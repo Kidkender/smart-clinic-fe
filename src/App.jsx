@@ -1,0 +1,73 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+import AdminLayout from './components/AdminLayout';
+import RequireAuth from './components/RequireAuth';
+import RequirePatientAuth from './components/RequirePatientAuth';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Patients from './pages/Patients';
+import PatientDetail from './pages/PatientDetail';
+import Appointments from './pages/Appointments';
+import Queue from './pages/Queue';
+import Departments from './pages/Departments';
+import DoctorSchedules from './pages/DoctorSchedules';
+import PortalLogin from './pages/portal/PortalLogin';
+import PortalRegister from './pages/portal/PortalRegister';
+import PortalHome from './pages/portal/PortalHome';
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+
+      <Route
+        path="/"
+        element={
+          <RequireAuth>
+            <AdminLayout />
+          </RequireAuth>
+        }
+      >
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="patients" element={<Patients />} />
+        <Route path="patients/:id" element={<PatientDetail />} />
+        <Route path="appointments" element={<Appointments />} />
+        <Route path="queue" element={<Queue />} />
+        <Route
+          path="departments"
+          element={
+            <RequireAuth roles={['admin']}>
+              <Departments />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="doctor-schedules"
+          element={
+            <RequireAuth roles={['admin']}>
+              <DoctorSchedules />
+            </RequireAuth>
+          }
+        />
+      </Route>
+
+      <Route path="/portal/login" element={<PortalLogin />} />
+      <Route path="/portal/register" element={<PortalRegister />} />
+      <Route
+        path="/portal/home"
+        element={
+          <RequirePatientAuth>
+            <PortalHome />
+          </RequirePatientAuth>
+        }
+      />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+export default App;

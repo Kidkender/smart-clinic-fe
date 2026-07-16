@@ -1,0 +1,46 @@
+import portalClient from './portalClient';
+
+export async function registerPatient(payload) {
+  const { data } = await portalClient.post('/auth/register', payload);
+  return data;
+}
+
+export async function loginPatient(email, password) {
+  const { data } = await portalClient.post('/auth/login', { email, password });
+  return data;
+}
+
+export async function getMyProfile() {
+  const { data } = await portalClient.get('/me');
+  return data;
+}
+
+export async function getPortalDepartments() {
+  const { data } = await portalClient.get('/departments');
+  return data;
+}
+
+export async function getPortalDoctors(departmentId) {
+  const { data } = await portalClient.get(`/departments/${departmentId}/doctors`);
+  return data;
+}
+
+export async function getPortalAvailableSlots(doctorId, date) {
+  const { data } = await portalClient.get(`/doctors/${doctorId}/available-slots`, { params: { date } });
+  return data;
+}
+
+export async function listMyAppointments() {
+  const { data } = await portalClient.get('/appointments', { params: { page: 1, limit: 20 } });
+  return data;
+}
+
+export async function bookMyAppointment(payload) {
+  const { data } = await portalClient.post('/appointments', payload);
+  return data;
+}
+
+export async function cancelMyAppointment(id) {
+  const { data } = await portalClient.patch(`/appointments/${id}/cancel`);
+  return data;
+}
