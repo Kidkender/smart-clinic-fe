@@ -3,8 +3,12 @@ import axios from 'axios';
 const BASE_URL = `${import.meta.env.VITE_API_URL || ''}/api/v1`;
 const TOKEN_KEY = 'smartclinic_token';
 
-const client = axios.create({ baseURL: BASE_URL });
-
+const client = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    "ngrok-skip-browser-warning": "true",
+  },
+});
 client.interceptors.request.use(config => {
   const token = localStorage.getItem(TOKEN_KEY);
   if (token && !config.headers.Authorization) {
