@@ -5,6 +5,7 @@ import { getDepartments, getDoctorsByDepartment } from '@/api/department';
 import { getAvailableSlots } from '@/api/doctorSchedule';
 import { resolveError } from '@/utils/errorMessages';
 import { appointmentStatusLabel } from '@/utils/labels';
+import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -72,6 +73,8 @@ function toLocalDateTimeInput(isoString: string) {
 }
 
 export default function Appointments() {
+  const { role } = useAuth();
+  const canManage = role === 'admin' || role === 'receptionist';
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -264,7 +267,7 @@ export default function Appointments() {
                     </span>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right">
-                    {a.Status === 'booked' && (
+                    {a.Status === 'booked' && canManage && (
                       <>
                         <button
                           type="button"

@@ -24,6 +24,7 @@ const ERROR_MESSAGES = {
   'error.appointment.not_found': 'Không tìm thấy lịch hẹn.',
   'error.appointment.invalid_status': 'Trạng thái lịch hẹn không hợp lệ.',
   'error.appointment.in_past': 'Không thể đặt lịch hẹn trong quá khứ.',
+  'error.appointment.duplicate': 'Bạn đã có lịch hẹn khác vào đúng thời điểm này.',
 
   'error.order.not_found': 'Không tìm thấy chỉ định.',
   'error.order.invalid_transition': 'Không thể chuyển sang trạng thái này.',

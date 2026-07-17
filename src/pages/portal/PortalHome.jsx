@@ -4,11 +4,24 @@ import { Icon } from '@iconify/react';
 import {
   getMyProfile, getPortalDepartments, getPortalDoctors, getPortalAvailableSlots,
   listMyAppointments, bookMyAppointment, cancelMyAppointment,
+  getMyHistory, getMyInvoices, updateMyProfile,
 } from '../../api/portal';
 import { resolveError } from '../../utils/errorMessages';
-import { appointmentStatusLabel } from '../../utils/labels';
+import {
+  appointmentStatusLabel, encounterStatusLabel, encounterTypeLabel, invoiceStatusLabel,
+} from '../../utils/labels';
 import { usePatientAuth } from '../../context/PatientAuthContext';
 import useConfirm from '../../hooks/useConfirm';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '../../components/ui/select';
+
+const TABS = [
+  { key: 'appointments', label: 'Lịch hẹn' },
+  { key: 'history', label: 'Lịch sử khám' },
+  { key: 'invoices', label: 'Hóa đơn' },
+  { key: 'profile', label: 'Hồ sơ của tôi' },
+];
 
 export default function PortalHome() {
   const { logout } = usePatientAuth();
@@ -27,8 +40,20 @@ export default function PortalHome() {
   const [slots, setSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [manualDate, setManualDate] = useState('');
+  const [manualTime, setManualTime] = useState('');
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const [tab, setTab] = useState('appointments');
+  const [history, setHistory] = useState(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [invoices, setInvoices] = useState(null);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [profileForm, setProfileForm] = useState(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [profileSaved, setProfileSaved] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -36,6 +61,12 @@ export default function PortalHome() {
     try {
       const [me, appts] = await Promise.all([getMyProfile(), listMyAppointments()]);
       setProfile(me.data);
+      setProfileForm({
+        phone: me.data.Phone ?? '',
+        address: me.data.Address ?? '',
+        insurance_number: me.data.InsuranceNumber ?? '',
+        allergies: me.data.Allergies ?? '',
+      });
       setAppointments(appts.data ?? []);
     } catch (err) {
       setError(resolveError(err));
@@ -60,6 +91,7 @@ export default function PortalHome() {
     setSlotDate('');
     setSlots([]);
     setSelectedSlot(null);
+    setManualDate(''); setManualTime('');
     setFormError('');
     setModalOpen(true);
     if (departments[0]?.ID) {
@@ -72,6 +104,7 @@ export default function PortalHome() {
     setSlotDate('');
     setSlots([]);
     setSelectedSlot(null);
+    setManualDate(''); setManualTime('');
     if (!departmentId) {
       setDoctors([]);
       return;
@@ -89,6 +122,7 @@ export default function PortalHome() {
     setSlotDate('');
     setSlots([]);
     setSelectedSlot(null);
+    setManualDate(''); setManualTime('');
   };
 
   const handleSlotDateChange = async date => {
@@ -110,16 +144,33 @@ export default function PortalHome() {
   const handleBook = async e => {
     e.preventDefault();
     setFormError('');
-    if (!selectedSlot) {
-      setFormError('Vui lòng chọn một khung giờ.');
-      return;
+
+    let scheduledAt;
+    if (form.doctor_id) {
+      if (!selectedSlot) {
+        setFormError('Vui lòng chọn một khung giờ.');
+        return;
+      }
+      scheduledAt = selectedSlot.start_time;
+    } else {
+      if (!manualDate || !manualTime) {
+        setFormError('Vui lòng chọn ngày và giờ mong muốn.');
+        return;
+      }
+      const parsed = new Date(`${manualDate}T${manualTime}:00`);
+      if (parsed.getTime() <= Date.now()) {
+        setFormError('Vui lòng chọn thời điểm trong tương lai.');
+        return;
+      }
+      scheduledAt = parsed.toISOString();
     }
+
     setSaving(true);
     try {
       await bookMyAppointment({
         department_id: Number(form.department_id),
         doctor_id: form.doctor_id ? Number(form.doctor_id) : undefined,
-        scheduled_at: selectedSlot.start_time,
+        scheduled_at: scheduledAt,
         reason: form.reason,
       });
       await loadAll();
@@ -140,6 +191,44 @@ export default function PortalHome() {
       setError(resolveError(err));
     }
   };
+
+  const handleTabChange = tabName => {
+    setTab(tabName);
+    if (tabName === 'history' && !history) {
+      setLoadingHistory(true);
+      getMyHistory()
+        .then(r => setHistory(r.data))
+        .catch(err => setError(resolveError(err)))
+        .finally(() => setLoadingHistory(false));
+    }
+    if (tabName === 'invoices' && !invoices) {
+      setLoadingInvoices(true);
+      getMyInvoices()
+        .then(r => setInvoices(r.data ?? []))
+        .catch(err => setError(resolveError(err)))
+        .finally(() => setLoadingInvoices(false));
+    }
+  };
+
+  const handleProfileSave = async e => {
+    e.preventDefault();
+    setProfileError('');
+    setProfileSaved(false);
+    setSavingProfile(true);
+    try {
+      await updateMyProfile(profileForm);
+      const me = await getMyProfile();
+      setProfile(me.data);
+      setProfileSaved(true);
+    } catch (err) {
+      setProfileError(resolveError(err));
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const canSubmitBooking = !!form.department_id
+    && (form.doctor_id ? !!selectedSlot : !!(manualDate && manualTime));
 
   return (
     <div style={pageStyle}>
@@ -167,36 +256,183 @@ export default function PortalHome() {
               </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0 16px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#134e48', margin: 0 }}>Lịch hẹn của tôi</h2>
-              <button onClick={openBooking} style={primaryBtnStyle}>
-                <Icon icon="fa6-solid:plus" style={{ fontSize: '13px' }} /> Đặt lịch mới
-              </button>
+            <div style={tabBarStyle}>
+              {TABS.map(t => (
+                <button key={t.key} onClick={() => handleTabChange(t.key)} style={tab === t.key ? tabBtnActiveStyle : tabBtnStyle}>
+                  {t.label}
+                </button>
+              ))}
             </div>
 
-            {appointments.length === 0 ? (
-              <div style={{ ...cardStyle, textAlign: 'center', color: '#6c757d' }}>Bạn chưa có lịch hẹn nào.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {appointments.map(a => (
-                  <div key={a.ID} style={cardStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                      <div>
-                        <div style={{ fontWeight: '700', color: '#134e48' }}>{a.Department?.Name ?? `Khoa #${a.DepartmentID}`}</div>
-                        <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px' }}>
-                          {a.Doctor?.Fullname ? `BS. ${a.Doctor.Fullname} · ` : ''}{new Date(a.ScheduledAt).toLocaleString('vi-VN')}
+            {tab === 'appointments' && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '20px 0 16px' }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#134e48', margin: 0 }}>Lịch hẹn của tôi</h2>
+                  <button onClick={openBooking} style={primaryBtnStyle}>
+                    <Icon icon="fa6-solid:plus" style={{ fontSize: '13px' }} /> Đặt lịch mới
+                  </button>
+                </div>
+
+                {appointments.length === 0 ? (
+                  <div style={{ ...cardStyle, textAlign: 'center', color: '#6c757d' }}>Bạn chưa có lịch hẹn nào.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {appointments.map(a => (
+                      <div key={a.ID} style={cardStyle}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                          <div>
+                            <div style={{ fontWeight: '700', color: '#134e48' }}>{a.Department?.Name ?? `Khoa #${a.DepartmentID}`}</div>
+                            <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px' }}>
+                              {a.Doctor?.Fullname ? `BS. ${a.Doctor.Fullname} · ` : ''}{new Date(a.ScheduledAt).toLocaleString('vi-VN')}
+                            </div>
+                            {a.Reason && <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px' }}>Lý do: {a.Reason}</div>}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={statusBadgeStyle(a.Status)}>{appointmentStatusLabel(a.Status)}</span>
+                            {a.Status === 'booked' && (
+                              <button onClick={() => handleCancel(a)} style={cancelBtnStyle}>Hủy</button>
+                            )}
+                          </div>
                         </div>
-                        {a.Reason && <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px' }}>Lý do: {a.Reason}</div>}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={statusBadgeStyle(a.Status)}>{appointmentStatusLabel(a.Status)}</span>
-                        {a.Status === 'booked' && (
-                          <button onClick={() => handleCancel(a)} style={cancelBtnStyle}>Hủy</button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {tab === 'history' && (
+              <div style={{ marginTop: '20px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#134e48', margin: '0 0 16px' }}>Lịch sử khám &amp; đơn thuốc</h2>
+                {loadingHistory ? (
+                  <div style={{ ...cardStyle, textAlign: 'center', color: '#6c757d' }}>Đang tải…</div>
+                ) : !history || history.encounters?.length === 0 ? (
+                  <div style={{ ...cardStyle, textAlign: 'center', color: '#6c757d' }}>Chưa có lượt khám nào.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {history.encounters.map(enc => {
+                      const rx = (history.prescriptions ?? []).filter(p => p.EncounterID === enc.ID);
+                      return (
+                        <div key={enc.ID} style={cardStyle}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                            <div>
+                              <div style={{ fontWeight: '700', color: '#134e48' }}>{enc.Department?.Name ?? `Khoa #${enc.DepartmentID}`}</div>
+                              <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px' }}>
+                                {encounterTypeLabel(enc.Type)} · {new Date(enc.CheckedInAt).toLocaleString('vi-VN')}
+                              </div>
+                            </div>
+                            <span style={statusBadgeStyle(enc.Status === 'completed' ? 'booked' : enc.Status)}>
+                              {encounterStatusLabel(enc.Status)}
+                            </span>
+                          </div>
+                          {enc.ClinicalNotes && (
+                            <div style={{ fontSize: '13px', color: '#134e48', marginTop: '10px' }}>{enc.ClinicalNotes}</div>
+                          )}
+                          {rx.length > 0 && (
+                            <div style={{ marginTop: '12px', borderTop: '1px solid #d1fae5', paddingTop: '12px' }}>
+                              <div style={{ fontSize: '13px', fontWeight: '700', color: '#134e48', marginBottom: '6px' }}>Đơn thuốc</div>
+                              {rx.map(p => (
+                                <ul key={p.ID} style={{ margin: 0, paddingLeft: '18px' }}>
+                                  {(p.Items ?? []).map(item => (
+                                    <li key={item.ID} style={{ fontSize: '13px', color: '#6c757d' }}>
+                                      {item.Drug?.Name ?? `Thuốc #${item.DrugID}`} — {item.Dosage}, SL {item.Quantity}
+                                      {item.Instructions ? ` (${item.Instructions})` : ''}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === 'invoices' && (
+              <div style={{ marginTop: '20px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#134e48', margin: '0 0 16px' }}>Hóa đơn của tôi</h2>
+                {loadingInvoices ? (
+                  <div style={{ ...cardStyle, textAlign: 'center', color: '#6c757d' }}>Đang tải…</div>
+                ) : !invoices || invoices.length === 0 ? (
+                  <div style={{ ...cardStyle, textAlign: 'center', color: '#6c757d' }}>Chưa có hóa đơn nào.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {invoices.map(inv => (
+                      <div key={inv.ID} style={cardStyle}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                          <div>
+                            <div style={{ fontWeight: '700', color: '#134e48' }}>
+                              {inv.TotalAmount?.toLocaleString('vi-VN')} đ
+                            </div>
+                            <div style={{ fontSize: '13px', color: '#6c757d', marginTop: '4px' }}>
+                              {new Date(inv.CreatedAt).toLocaleDateString('vi-VN')}
+                            </div>
+                          </div>
+                          <span style={statusBadgeStyle(inv.Status === 'paid' ? 'booked' : inv.Status === 'unpaid' ? 'no_show' : 'cancelled')}>
+                            {invoiceStatusLabel(inv.Status)}
+                          </span>
+                        </div>
+                        {(inv.Items ?? []).length > 0 && (
+                          <ul style={{ margin: '10px 0 0', paddingLeft: '18px' }}>
+                            {inv.Items.map(item => (
+                              <li key={item.ID} style={{ fontSize: '13px', color: '#6c757d' }}>
+                                {item.Description} — {item.Amount?.toLocaleString('vi-VN')} đ
+                              </li>
+                            ))}
+                          </ul>
                         )}
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                )}
+              </div>
+            )}
+
+            {tab === 'profile' && profileForm && (
+              <div style={{ marginTop: '20px', maxWidth: '480px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#134e48', margin: '0 0 16px' }}>Hồ sơ của tôi</h2>
+                <div style={cardStyle}>
+                  <form onSubmit={handleProfileSave}>
+                    <label style={labelStyle}>Số điện thoại</label>
+                    <input
+                      value={profileForm.phone}
+                      onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })}
+                      style={inputStyle}
+                    />
+                    <label style={labelStyle}>Địa chỉ</label>
+                    <input
+                      value={profileForm.address}
+                      onChange={e => setProfileForm({ ...profileForm, address: e.target.value })}
+                      style={inputStyle}
+                    />
+                    <label style={labelStyle}>Số thẻ BHYT</label>
+                    <input
+                      value={profileForm.insurance_number}
+                      onChange={e => setProfileForm({ ...profileForm, insurance_number: e.target.value })}
+                      style={inputStyle}
+                    />
+                    <label style={labelStyle}>Dị ứng</label>
+                    <input
+                      value={profileForm.allergies}
+                      onChange={e => setProfileForm({ ...profileForm, allergies: e.target.value })}
+                      style={inputStyle}
+                    />
+
+                    {profileError && <div style={{ ...errorBoxStyle, marginTop: '16px' }}>{profileError}</div>}
+                    {profileSaved && (
+                      <div style={{ marginTop: '16px', fontSize: '13px', color: '#0d9488', fontWeight: '600' }}>
+                        Đã lưu thay đổi.
+                      </div>
+                    )}
+
+                    <button type="submit" disabled={savingProfile} style={{ ...primaryBtnStyle, marginTop: '20px', width: '100%', justifyContent: 'center' }}>
+                      {savingProfile ? 'Đang lưu…' : 'Lưu thay đổi'}
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
           </>
@@ -209,16 +445,38 @@ export default function PortalHome() {
             <h2 style={{ margin: '0 0 24px', fontSize: '20px', fontWeight: '700', color: '#134e48' }}>Đặt lịch khám</h2>
             <form onSubmit={handleBook}>
               <label style={labelStyle}>Khoa *</label>
-              <select required value={form.department_id} onChange={e => handleDepartmentChange(e.target.value)} style={inputStyle}>
-                <option value="">-- Chọn khoa --</option>
-                {departments.map(d => <option key={d.ID} value={d.ID}>{d.Name}</option>)}
-              </select>
+              <Select value={form.department_id ? String(form.department_id) : ''} onValueChange={handleDepartmentChange}>
+                <SelectTrigger style={portalSelectTriggerStyle}>
+                  <SelectValue placeholder="-- Chọn khoa --" />
+                </SelectTrigger>
+                <SelectContent className="z-[1100]">
+                  {departments.map(d => (
+                    <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               <label style={labelStyle}>Bác sĩ (tùy chọn)</label>
-              <select value={form.doctor_id} onChange={e => handleDoctorChange(e.target.value)} style={inputStyle} disabled={doctors.length === 0}>
-                <option value="">-- Bác sĩ bất kỳ --</option>
-                {doctors.map(doc => <option key={doc.id} value={doc.id}>{doc.fullname}</option>)}
-              </select>
+              <Select
+                value={form.doctor_id ? String(form.doctor_id) : 'any'}
+                onValueChange={value => handleDoctorChange(value === 'any' ? '' : value)}
+                disabled={doctors.length === 0}
+              >
+                <SelectTrigger style={portalSelectTriggerStyle}>
+                  <SelectValue placeholder="-- Bác sĩ bất kỳ --" />
+                </SelectTrigger>
+                <SelectContent className="z-[1100]">
+                  <SelectItem value="any">-- Bác sĩ bất kỳ --</SelectItem>
+                  {doctors.map(doc => (
+                    <SelectItem key={doc.id} value={String(doc.id)}>{doc.fullname}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {doctors.length === 0 && (
+                <p style={{ fontSize: '13px', color: '#dc3545', margin: '8px 0 0' }}>
+                  Khoa này hiện chưa có bác sĩ nào — vui lòng chọn khoa khác.
+                </p>
+              )}
 
               {form.doctor_id && (
                 <>
@@ -226,7 +484,18 @@ export default function PortalHome() {
                   <input type="date" value={slotDate} onChange={e => handleSlotDateChange(e.target.value)} style={inputStyle} min={new Date().toISOString().slice(0, 10)} />
                   {loadingSlots && <p style={{ fontSize: '13px', color: '#6c757d', margin: '8px 0 0' }}>Đang tải khung giờ…</p>}
                   {!loadingSlots && slotDate && slots.length === 0 && (
-                    <p style={{ fontSize: '13px', color: '#6c757d', margin: '8px 0 0' }}>Bác sĩ không có khung giờ trống ngày này.</p>
+                    <div style={{ marginTop: '8px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(220,53,69,0.06)', border: '1px solid rgba(220,53,69,0.2)' }}>
+                      <p style={{ fontSize: '13px', color: '#dc3545', margin: 0, fontWeight: '600' }}>
+                        Bác sĩ không có khung giờ trống ngày này.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleDoctorChange('')}
+                        style={{ marginTop: '6px', padding: 0, border: 'none', background: 'none', color: '#0d9488', fontSize: '13px', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Đặt lịch không cần chọn bác sĩ cụ thể
+                      </button>
+                    </div>
                   )}
                   {slots.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
@@ -248,8 +517,35 @@ export default function PortalHome() {
                 </>
               )}
 
-              {!form.doctor_id && (
-                <p style={{ fontSize: '13px', color: '#6c757d', margin: '10px 0 0' }}>Chọn bác sĩ để xem khung giờ trống.</p>
+              {!form.doctor_id && form.department_id && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={labelStyle}>Ngày mong muốn</label>
+                      <input
+                        type="date"
+                        required
+                        value={manualDate}
+                        onChange={e => setManualDate(e.target.value)}
+                        style={inputStyle}
+                        min={new Date().toISOString().slice(0, 10)}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Giờ mong muốn</label>
+                      <input
+                        type="time"
+                        required
+                        value={manualTime}
+                        onChange={e => setManualTime(e.target.value)}
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '13px', color: '#6c757d', margin: '8px 0 0' }}>
+                    Chưa chọn bác sĩ cụ thể — phòng khám sẽ sắp xếp bác sĩ phù hợp cho lịch hẹn của bạn.
+                  </p>
+                </>
               )}
 
               <label style={labelStyle}>Lý do khám</label>
@@ -259,7 +555,7 @@ export default function PortalHome() {
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
                 <button type="button" onClick={() => setModalOpen(false)} disabled={saving} style={secondaryBtnStyle}>Hủy</button>
-                <button type="submit" disabled={saving} style={primaryBtnStyle}>{saving ? 'Đang đặt…' : 'Xác nhận đặt lịch'}</button>
+                <button type="submit" disabled={saving || !canSubmitBooking} style={primaryBtnStyle}>{saving ? 'Đang đặt…' : 'Xác nhận đặt lịch'}</button>
               </div>
             </form>
           </div>
@@ -295,5 +591,9 @@ const overlayStyle = { position: 'fixed', inset: 0, background: 'rgba(19,78,72,0
 const modalBoxStyle = { background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '460px', padding: '32px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' };
 const labelStyle = { display: 'block', fontSize: '14px', fontWeight: '600', color: '#134e48', marginBottom: '6px', marginTop: '16px' };
 const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #d1fae5', fontSize: '15px', color: '#134e48', outline: 'none', boxSizing: 'border-box' };
+const portalSelectTriggerStyle = { width: '100%', height: 'auto', padding: '12px 16px', borderRadius: '12px', border: '1px solid #d1fae5', fontSize: '15px', color: '#134e48' };
 const slotChipStyle = { padding: '8px 14px', borderRadius: '20px', border: '1px solid #d1fae5', background: '#fff', color: '#134e48', fontSize: '13px', fontWeight: '600', cursor: 'pointer' };
 const slotChipSelectedStyle = { ...slotChipStyle, background: '#0d9488', borderColor: '#0d9488', color: '#fff' };
+const tabBarStyle = { display: 'flex', gap: '6px', borderBottom: '1px solid #d1fae5', marginTop: '24px' };
+const tabBtnStyle = { padding: '10px 16px', border: 'none', background: 'transparent', color: '#6c757d', fontSize: '14px', fontWeight: '600', cursor: 'pointer', borderBottom: '2px solid transparent' };
+const tabBtnActiveStyle = { ...tabBtnStyle, color: '#0d9488', borderBottom: '2px solid #0d9488' };

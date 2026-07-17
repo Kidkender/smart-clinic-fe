@@ -15,6 +15,21 @@ export async function getMyProfile() {
   return data;
 }
 
+export async function updateMyProfile(payload) {
+  const { data } = await portalClient.patch('/me', payload);
+  return data;
+}
+
+export async function getMyHistory() {
+  const { data } = await portalClient.get('/history');
+  return data;
+}
+
+export async function getMyInvoices() {
+  const { data } = await portalClient.get('/invoices');
+  return data;
+}
+
 export async function getPortalDepartments() {
   const { data } = await portalClient.get('/departments');
   return data;

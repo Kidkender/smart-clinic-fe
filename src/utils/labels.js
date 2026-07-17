@@ -96,6 +96,12 @@ const USER_STATUS = {
   inactive: 'Ngừng hoạt động',
 };
 
+const INVOICE_STATUS = {
+  unpaid: 'Chưa thanh toán',
+  paid: 'Đã thanh toán',
+  cancelled: 'Đã hủy',
+};
+
 function translate(map, value) {
   if (!value) return '—';
   return map[value] ?? value;
@@ -115,3 +121,4 @@ export const roleLabel = value => translate(ROLE, value);
 export const shiftTypeLabel = value => translate(SHIFT_TYPE, value);
 export const leaveStatusLabel = value => translate(LEAVE_STATUS, value);
 export const userStatusLabel = value => translate(USER_STATUS, value);
+export const invoiceStatusLabel = value => translate(INVOICE_STATUS, value);
