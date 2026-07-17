@@ -20,6 +20,7 @@ import Departments from './pages/Departments';
 import DoctorSchedules from './pages/DoctorSchedules';
 import Doctors from './pages/Doctors';
 import DoctorDetail from './pages/DoctorDetail';
+import Users from './pages/Users';
 import PortalLogin from './pages/portal/PortalLogin';
 import PortalRegister from './pages/portal/PortalRegister';
 import PortalHome from './pages/portal/PortalHome';
@@ -107,6 +108,14 @@ function App() {
           element={
             <RequireAuth roles={['admin']}>
               <DoctorDetail />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="users"
+          element={
+            <RequireAuth roles={['admin']}>
+              <Users />
             </RequireAuth>
           }
         />

@@ -93,7 +93,8 @@ const LEAVE_STATUS = {
 
 const USER_STATUS = {
   active: 'Đang hoạt động',
-  inactive: 'Ngừng hoạt động',
+  pending: 'Chờ duyệt',
+  locked: 'Đã khóa',
 };
 
 const INVOICE_STATUS = {

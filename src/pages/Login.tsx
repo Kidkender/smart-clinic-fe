@@ -13,7 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [pendingApprovalOpen, setPendingApprovalOpen] = useState(false);
+  const [statusDialog, setStatusDialog] = useState<'pending' | 'locked' | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -26,8 +26,11 @@ export default function Login() {
       login(result.data.access_token, result.data.refresh_token);
       navigate('/dashboard');
     } catch (err: any) {
-      if (err?.response?.data?.error === 'error.user.inactive') {
-        setPendingApprovalOpen(true);
+      const code = err?.response?.data?.error;
+      if (code === 'error.user.pending_approval') {
+        setStatusDialog('pending');
+      } else if (code === 'error.user.locked') {
+        setStatusDialog('locked');
       } else {
         setError(resolveError(err, 'Sai email hoặc mật khẩu.'));
       }
@@ -103,21 +106,30 @@ export default function Login() {
         </div>
       </div>
 
-      <Dialog open={pendingApprovalOpen} onOpenChange={setPendingApprovalOpen}>
+      <Dialog open={statusDialog !== null} onOpenChange={open => { if (!open) setStatusDialog(null); }}>
         <DialogContent className="max-w-[400px] rounded-[20px] p-7">
-          <div className="mb-4.5 flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#d9a406]/12">
-            <Icon icon="fa6-solid:hourglass-half" className="text-xl text-[#b8860b]" />
-          </div>
+          {statusDialog === 'locked' ? (
+            <div className="mb-4.5 flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#dc3545]/12">
+              <Icon icon="fa6-solid:lock" className="text-xl text-[#dc3545]" />
+            </div>
+          ) : (
+            <div className="mb-4.5 flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#d9a406]/12">
+              <Icon icon="fa6-solid:hourglass-half" className="text-xl text-[#b8860b]" />
+            </div>
+          )}
           <DialogHeader>
-            <DialogTitle className="text-[19px] font-bold text-[#274760]">Tài khoản đang chờ duyệt</DialogTitle>
+            <DialogTitle className="text-[19px] font-bold text-[#274760]">
+              {statusDialog === 'locked' ? 'Tài khoản đã bị khóa' : 'Tài khoản đang chờ duyệt'}
+            </DialogTitle>
           </DialogHeader>
           <p className="m-0 text-sm leading-relaxed text-[#6c757d]">
-            Tài khoản của bạn đã đăng ký thành công nhưng chưa được kích hoạt. Vui lòng đợi
-            quản trị viên cấp quyền truy cập trước khi đăng nhập.
+            {statusDialog === 'locked'
+              ? 'Tài khoản của bạn đã bị quản trị viên khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.'
+              : 'Tài khoản của bạn đã đăng ký thành công nhưng chưa được kích hoạt. Vui lòng đợi quản trị viên cấp quyền truy cập trước khi đăng nhập.'}
           </p>
           <Button
             type="button"
-            onClick={() => setPendingApprovalOpen(false)}
+            onClick={() => setStatusDialog(null)}
             className="mt-5.5 h-auto w-full rounded-full bg-[#307bc4] py-3.25 text-[15px] font-semibold text-white hover:bg-[#307bc4]/90"
           >
             Đã hiểu

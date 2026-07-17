@@ -8,7 +8,8 @@ const ERROR_MESSAGES = {
 
   'error.user.already_exists': 'Email này đã được đăng ký.',
   'error.user.not_found': 'Không tìm thấy người dùng.',
-  'error.user.inactive': 'Tài khoản đã bị vô hiệu hóa.',
+  'error.user.pending_approval': 'Tài khoản đang chờ quản trị viên duyệt.',
+  'error.user.locked': 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.',
 
   'error.department.not_found': 'Không tìm thấy khoa/phòng.',
   'error.department.already_exists': 'Khoa/phòng này đã tồn tại.',
