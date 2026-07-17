@@ -90,10 +90,7 @@ export default function Queue() {
   const [form, setForm] = useState({ patient_id: '', type: 'new' });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [confirm, ConfirmDialog] = useConfirm() as [
-    (message: string, options?: { danger?: boolean; confirmLabel?: string }) => Promise<boolean>,
-    React.ReactNode,
-  ];
+  const [confirm, ConfirmDialog] = useConfirm();
 
   const fetchQueue = useCallback(async (deptId: string) => {
     if (!deptId) {
@@ -139,7 +136,7 @@ export default function Queue() {
       return;
     }
     try {
-      const result = await searchPatients({ name: value.trim(), page: 1, limit: 10 });
+      const result = await searchPatients({ q: value.trim(), page: 1, limit: 10 });
       setPatientResults(result.data ?? []);
     } catch {
       setPatientResults([]);
@@ -338,7 +335,7 @@ export default function Queue() {
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={open => { if (!saving) setModalOpen(open); }}>
-        <DialogContent className="max-w-[440px] rounded-[20px] p-8">
+        <DialogContent className="sm:max-w-[440px] rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Check-in bệnh nhân</DialogTitle>
           </DialogHeader>

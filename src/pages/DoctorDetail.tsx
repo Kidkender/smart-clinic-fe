@@ -108,10 +108,7 @@ export default function DoctorDetail() {
   const [perfLoading, setPerfLoading] = useState(false);
   const [perfError, setPerfError] = useState('');
 
-  const [confirm, ConfirmDialog] = useConfirm() as [
-    (message: string, options?: { danger?: boolean; confirmLabel?: string }) => Promise<boolean>,
-    React.ReactNode,
-  ];
+  const [confirm, ConfirmDialog] = useConfirm();
 
   const fetchAll = useCallback(async () => {
     setLoading(true);

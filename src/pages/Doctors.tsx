@@ -145,16 +145,16 @@ export default function Doctors() {
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="m-0 text-[26px] font-bold text-[#274760]">Quản lý Bác sĩ</h1>
           <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">
             Hồ sơ chuyên môn, ca trực, nghỉ phép và hiệu suất khám bệnh
           </p>
         </div>
-        <div className="flex flex-wrap gap-2.5">
+        <div className="flex shrink-0 items-center gap-2.5">
           <Select value={departmentId} onValueChange={setDepartmentId}>
-            <SelectTrigger className="h-auto max-w-[220px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+            <SelectTrigger className="h-auto w-[220px] shrink-0 rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760] data-[size=default]:h-auto">
               <SelectValue placeholder="Tất cả khoa/phòng" />
             </SelectTrigger>
             <SelectContent>
@@ -168,7 +168,7 @@ export default function Doctors() {
             placeholder="Lọc theo chuyên khoa…"
             value={specialty}
             onChange={e => setSpecialty(e.target.value)}
-            className="h-auto max-w-[220px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+            className="h-auto w-[220px] shrink-0 rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
           />
         </div>
       </div>
@@ -247,7 +247,7 @@ export default function Doctors() {
       </Card>
 
       <Dialog open={!!modalDoctor} onOpenChange={open => { if (!open) closeModal(); }}>
-        <DialogContent className="max-w-[480px] rounded-[20px] p-8">
+        <DialogContent className="sm:max-w-[480px] rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">
               Hồ sơ chuyên môn — {modalDoctor?.Fullname}

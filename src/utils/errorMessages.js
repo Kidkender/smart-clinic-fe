@@ -15,6 +15,7 @@ const ERROR_MESSAGES = {
   'error.department.already_exists': 'Khoa/phòng này đã tồn tại.',
 
   'error.patient.not_found': 'Không tìm thấy bệnh nhân.',
+  'error.patient.invalid_date_of_birth': 'Ngày sinh không được ở tương lai.',
   'error.patient_contact.not_found': 'Không tìm thấy người liên hệ.',
   'error.patient_attachment.not_found': 'Không tìm thấy tệp đính kèm.',
   'error.patient_attachment.invalid_category': 'Loại tệp đính kèm không hợp lệ.',

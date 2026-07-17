@@ -39,10 +39,7 @@ export default function Departments() {
   const [description, setDescription] = useState('');
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [confirm, ConfirmDialog] = useConfirm() as [
-    (message: string, options?: { danger?: boolean; confirmLabel?: string }) => Promise<boolean>,
-    React.ReactNode,
-  ];
+  const [confirm, ConfirmDialog] = useConfirm();
 
   const fetchDepartments = useCallback(async () => {
     setLoading(true);
@@ -187,7 +184,7 @@ export default function Departments() {
       </Card>
 
       <Dialog open={!!modal} onOpenChange={open => { if (!open) closeModal(); }}>
-        <DialogContent className="max-w-[440px] rounded-[20px] p-8">
+        <DialogContent className="sm:max-w-[440px] rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">
               {modal?.mode === 'create' ? 'Thêm khoa/phòng' : 'Sửa khoa/phòng'}

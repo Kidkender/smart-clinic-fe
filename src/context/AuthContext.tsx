@@ -1,31 +1,35 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { parseJwtPayload } from '../utils/jwt';
 import { logoutApi } from '../api/auth';
 
-/**
- * @typedef {{
- *   userId: string | null,
- *   role: string | null,
- *   isLoggedIn: boolean,
- *   login: (token: string, refreshToken?: string) => void,
- *   logout: () => void,
- * }} AuthContextValue
- */
+interface AuthContextValue {
+  userId: string | null;
+  role: string | null;
+  isLoggedIn: boolean;
+  login: (token: string, refreshToken?: string) => void;
+  logout: () => void;
+}
 
-/** @type {import('react').Context<AuthContextValue>} */
-const AuthContext = createContext(/** @type {any} */ (null));
+interface StoredAuth {
+  userId: string | null;
+  role: string | null;
+  isLoggedIn: boolean;
+  expiresAt: number;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
 
 const AUTH_KEY = 'smartclinic_auth';
 const TOKEN_KEY = 'smartclinic_token';
 const REFRESH_TOKEN_KEY = 'smartclinic_refresh_token';
 
-function expiryFromToken(token) {
+function expiryFromToken(token: string): number {
   const payload = parseJwtPayload(token);
   if (!payload?.exp) return Date.now() + 24 * 60 * 60 * 1000;
   return payload.exp * 1000;
 }
 
-function loadAuth() {
+function loadAuth(): StoredAuth | null {
   try {
     const raw = localStorage.getItem(AUTH_KEY);
     if (!raw) return null;
@@ -42,13 +46,13 @@ function loadAuth() {
   }
 }
 
-export function AuthProvider({ children }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const savedAuth = loadAuth();
 
-  const [userId, setUserId] = useState(savedAuth?.userId ?? null);
-  const [role, setRole] = useState(savedAuth?.role ?? null);
+  const [userId, setUserId] = useState<string | null>(savedAuth?.userId ?? null);
+  const [role, setRole] = useState<string | null>(savedAuth?.role ?? null);
   const [isLoggedIn, setIsLoggedIn] = useState(!!savedAuth);
-  const timerRef = useRef(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearTimer = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -68,12 +72,12 @@ export function AuthProvider({ children }) {
     setIsLoggedIn(false);
   };
 
-  const scheduleAutoLogout = expiresAt => {
+  const scheduleAutoLogout = (expiresAt: number) => {
     clearTimer();
     timerRef.current = setTimeout(logout, Math.max(expiresAt - Date.now(), 0));
   };
 
-  const login = (token, refreshToken) => {
+  const login = (token: string, refreshToken?: string) => {
     const payload = parseJwtPayload(token);
     const expiresAt = expiryFromToken(token);
     localStorage.setItem(TOKEN_KEY, token);
@@ -116,5 +120,7 @@ export function AuthProvider({ children }) {
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }

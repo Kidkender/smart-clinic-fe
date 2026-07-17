@@ -99,12 +99,12 @@ export default function PortalRegister() {
           />
 
           {error && (
-            <div className="mt-4 rounded-[10px] border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
+            <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
               {error}
             </div>
           )}
           {success && (
-            <div className="mt-4 rounded-[10px] border border-[#0d9488]/30 bg-[#0d9488]/8 px-4 py-3 text-sm text-[#0d9488]">
+            <div className="mt-4 rounded-lg border border-[#0d9488]/30 bg-[#0d9488]/8 px-4 py-3 text-sm text-[#0d9488]">
               Tạo tài khoản thành công! Đang chuyển đến trang đăng nhập…
             </div>
           )}

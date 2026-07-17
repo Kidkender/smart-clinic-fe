@@ -55,7 +55,7 @@ export default function AdminLayout() {
               end
               className={({ isActive }) =>
                 cn(
-                  'mb-1 flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[15px] font-medium no-underline transition-colors',
+                  'mb-1 flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[15px] font-medium no-underline transition-colors',
                   isActive ? 'bg-white/14 text-white' : 'text-white/65 hover:bg-white/8 hover:text-white',
                 )
               }
@@ -80,7 +80,7 @@ export default function AdminLayout() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full cursor-pointer items-center gap-2 rounded-[10px] border-none bg-white/8 px-3.5 py-2.5 text-sm font-medium text-white/70 hover:bg-white/12 hover:text-white"
+            className="flex w-full cursor-pointer items-center gap-2 rounded-lg border-none bg-white/8 px-3.5 py-2.5 text-sm font-medium text-white/70 hover:bg-white/12 hover:text-white"
           >
             <Icon icon="fa6-solid:right-from-bracket" className="text-sm" />
             Đăng xuất

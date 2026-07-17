@@ -82,12 +82,12 @@ export default function Register() {
             />
 
             {error && (
-              <div className="mt-4 rounded-[10px] border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
+              <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
                 {error}
               </div>
             )}
             {success && (
-              <div className="mt-4 rounded-[10px] border border-[#198754]/30 bg-[#198754]/8 px-4 py-3 text-sm text-[#198754]">
+              <div className="mt-4 rounded-lg border border-[#198754]/30 bg-[#198754]/8 px-4 py-3 text-sm text-[#198754]">
                 Tạo tài khoản thành công! Đang chuyển đến trang đăng nhập…
               </div>
             )}

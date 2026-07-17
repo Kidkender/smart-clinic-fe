@@ -4,9 +4,11 @@ import { Icon } from '@iconify/react';
 import { searchPatients, createPatient } from '@/api/patient';
 import { resolveError } from '@/utils/errorMessages';
 import { genderLabel } from '@/utils/labels';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import DateOfBirthSelect from '@/components/DateOfBirthSelect';
 import {
   Select,
   SelectContent,
@@ -39,6 +41,10 @@ interface Patient {
   CCCD: string;
 }
 
+function todayDateInput() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 const GENDERS = ['male', 'female', 'other'];
 const EMPTY_FORM = {
   fullname: '',
@@ -53,6 +59,8 @@ const EMPTY_FORM = {
 
 export default function Patients() {
   const navigate = useNavigate();
+  const { role } = useAuth();
+  const canManage = role === 'admin' || role === 'receptionist';
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -62,11 +70,11 @@ export default function Patients() {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const fetchPatients = useCallback(async (name: string) => {
+  const fetchPatients = useCallback(async (keyword: string) => {
     setLoading(true);
     setError('');
     try {
-      const result = await searchPatients({ name: name || undefined, page: 1, limit: 20 });
+      const result = await searchPatients({ q: keyword || undefined, page: 1, limit: 20 });
       setPatients(result.data ?? []);
     } catch (err) {
       setError(resolveError(err));
@@ -93,6 +101,10 @@ export default function Patients() {
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     setFormError('');
+    if (form.date_of_birth && form.date_of_birth > todayDateInput()) {
+      setFormError('Ngày sinh không được ở tương lai.');
+      return;
+    }
     setSaving(true);
     try {
       await createPatient({ ...form, date_of_birth: form.date_of_birth ? `${form.date_of_birth}T00:00:00Z` : null });
@@ -112,13 +124,15 @@ export default function Patients() {
           <h1 className="m-0 text-[26px] font-bold text-[#274760]">Bệnh nhân</h1>
           <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">Tra cứu và tiếp nhận bệnh nhân</p>
         </div>
-        <Button
-          onClick={openCreate}
-          className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
-        >
-          <Icon icon="fa6-solid:plus" className="text-sm" />
-          Thêm bệnh nhân
-        </Button>
+        {canManage && (
+          <Button
+            onClick={openCreate}
+            className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+          >
+            <Icon icon="fa6-solid:plus" className="text-sm" />
+            Thêm bệnh nhân
+          </Button>
+        )}
       </div>
 
       <form onSubmit={handleSearchSubmit} className="mb-5 flex gap-2.5">
@@ -179,8 +193,8 @@ export default function Patients() {
         )}
       </Card>
 
-      <Dialog open={modalOpen} onOpenChange={open => { if (!saving) setModalOpen(open); }}>
-        <DialogContent className="max-w-[440px] rounded-[20px] p-8">
+      <Dialog open={canManage && modalOpen} onOpenChange={open => { if (!saving) setModalOpen(open); }}>
+        <DialogContent className="max-w-110 rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Thêm bệnh nhân</DialogTitle>
           </DialogHeader>
@@ -225,12 +239,7 @@ export default function Patients() {
             />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Ngày sinh</label>
-            <Input
-              type="date"
-              value={form.date_of_birth}
-              onChange={e => setForm({ ...form, date_of_birth: e.target.value })}
-              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-            />
+            <DateOfBirthSelect value={form.date_of_birth} onChange={value => setForm({ ...form, date_of_birth: value })} />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số BHYT</label>
             <Input

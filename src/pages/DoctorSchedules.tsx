@@ -59,10 +59,7 @@ export default function DoctorSchedules() {
   const [form, setForm] = useState({ day_of_week: 1, start_time: '08:00', end_time: '17:00', slot_minutes: 30 });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [confirm, ConfirmDialog] = useConfirm() as [
-    (message: string, options?: { danger?: boolean; confirmLabel?: string }) => Promise<boolean>,
-    React.ReactNode,
-  ];
+  const [confirm, ConfirmDialog] = useConfirm();
 
   useEffect(() => {
     getDepartments().then(r => {

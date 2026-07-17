@@ -204,7 +204,7 @@ export default function Consultation() {
           </div>
         </div>
         {encounter.Patient?.Allergies && (
-          <div className="mt-3.5 rounded-[10px] bg-[#dc3545]/8 px-3.5 py-2.5 text-[13px] font-semibold text-[#dc3545]">
+          <div className="mt-3.5 rounded-lg bg-[#dc3545]/8 px-3.5 py-2.5 text-[13px] font-semibold text-[#dc3545]">
             <Icon icon="fa6-solid:triangle-exclamation" className="mr-1.5" />Dị ứng: {encounter.Patient.Allergies}
           </div>
         )}
@@ -397,10 +397,10 @@ function DiagnosesSection({
               value={icdQuery}
               onChange={e => handleIcdSearch(e.target.value)}
               placeholder="Nhập mã hoặc tên bệnh, ví dụ: J00, viêm họng…"
-              className="h-auto rounded-[10px] border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+              className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
             />
             {icdResults.length > 0 && (
-              <div className="absolute z-10 mt-1 max-h-[180px] w-full overflow-y-auto rounded-[10px] border border-[#dde2e8] bg-white shadow-md">
+              <div className="absolute z-10 mt-1 max-h-[180px] w-full overflow-y-auto rounded-lg border border-[#dde2e8] bg-white shadow-md">
                 {icdResults.map(icd => (
                   <div
                     key={icd.Code}
@@ -474,7 +474,7 @@ function ClinicalNotesSection({
         onChange={e => { setValue(e.target.value); setDirty(true); }}
         disabled={!canEdit}
         placeholder={canEdit ? 'Triệu chứng, diễn biến, nhận định lâm sàng…' : 'Chưa có ghi chú.'}
-        className="min-h-[90px] w-full rounded-[10px] border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+        className="min-h-[90px] w-full rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
       />
       {error && <div className="mt-2.5"><ErrorBox>{error}</ErrorBox></div>}
       {canEdit && (
@@ -561,7 +561,7 @@ function OrdersSection({
                       placeholder="Kết quả…"
                       value={resultDrafts[o.ID] ?? ''}
                       onChange={e => setResultDrafts({ ...resultDrafts, [o.ID]: e.target.value })}
-                      className="h-auto min-w-[140px] flex-1 rounded-[10px] border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                      className="h-auto min-w-[140px] flex-1 rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
                     />
                   )}
                   {ORDER_STATUS_NEXT[o.Status].map(next => (
@@ -585,7 +585,7 @@ function OrdersSection({
         <form onSubmit={handleSubmit} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Loại chỉ định *</label>
           <Select value={form.type} onValueChange={value => setForm({ ...form, type: value })}>
-            <SelectTrigger className="h-auto w-full rounded-[10px] border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
+            <SelectTrigger className="h-auto w-full rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -745,10 +745,10 @@ function PrescriptionsSection({
             value={drugQuery}
             onChange={handleDrugSearch}
             placeholder="Nhập tên thuốc…"
-            className="h-auto rounded-[10px] border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+            className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
           />
           {drugResults.length > 0 && (
-            <div className="mt-1.5 max-h-40 overflow-y-auto rounded-[10px] border border-[#dde2e8]">
+            <div className="mt-1.5 max-h-40 overflow-y-auto rounded-lg border border-[#dde2e8]">
               {drugResults.map(d => (
                 <div key={d.ID} onClick={() => addItem(d)} className="cursor-pointer px-3.5 py-2.5 text-sm text-[#274760]">
                   {d.Name} <span className="text-[#6c757d]">· còn {d.StockQuantity}</span>
@@ -760,7 +760,7 @@ function PrescriptionsSection({
           {items.length > 0 && (
             <div className="mt-3">
               {items.map(it => (
-                <div key={it.drug_id} className="mb-2 rounded-[10px] border border-[#f0f4f8] p-2.5">
+                <div key={it.drug_id} className="mb-2 rounded-lg border border-[#f0f4f8] p-2.5">
                   <div className="flex items-center justify-between">
                     <strong className="text-sm text-[#274760]">{it.name}</strong>
                     <button
@@ -776,7 +776,7 @@ function PrescriptionsSection({
                       placeholder="Liều dùng"
                       value={it.dosage}
                       onChange={e => updateItem(it.drug_id, 'dosage', e.target.value)}
-                      className="h-auto rounded-[10px] border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                      className="h-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
                     />
                     <Input
                       type="number"
@@ -784,14 +784,14 @@ function PrescriptionsSection({
                       placeholder="SL"
                       value={it.quantity}
                       onChange={e => updateItem(it.drug_id, 'quantity', e.target.value)}
-                      className="h-auto rounded-[10px] border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                      className="h-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
                     />
                   </div>
                   <Input
                     placeholder="Hướng dẫn sử dụng"
                     value={it.instructions}
                     onChange={e => updateItem(it.drug_id, 'instructions', e.target.value)}
-                    className="mt-2 h-auto w-full rounded-[10px] border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                    className="mt-2 h-auto w-full rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
                   />
                 </div>
               ))}
@@ -807,7 +807,7 @@ function PrescriptionsSection({
           )}
 
           {warnings.length > 0 && (
-            <div className="mt-3 rounded-[10px] border border-[#ffc107]/40 bg-[#ffc107]/12 px-3.5 py-3">
+            <div className="mt-3 rounded-lg border border-[#ffc107]/40 bg-[#ffc107]/12 px-3.5 py-3">
               <div className="mb-1.5 text-[13px] font-bold text-[#8a6100]">
                 <Icon icon="fa6-solid:triangle-exclamation" className="mr-1.5" />Cảnh báo tương tác thuốc
               </div>
@@ -884,7 +884,7 @@ function LabeledInput({
         step={step}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="h-auto rounded-[10px] border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+        className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
       />
     </div>
   );

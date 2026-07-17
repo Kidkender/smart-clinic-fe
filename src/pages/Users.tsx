@@ -41,10 +41,7 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | number | null>(null);
-  const [confirm, ConfirmDialog] = useConfirm() as [
-    (message: string, options?: { danger?: boolean; confirmLabel?: string }) => Promise<boolean>,
-    React.ReactNode,
-  ];
+  const [confirm, ConfirmDialog] = useConfirm();
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -120,14 +117,14 @@ export default function Users() {
           </p>
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-auto w-[220px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+          <SelectTrigger className="h-auto w-55 rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">Tất cả</SelectItem>
             <SelectItem value="pending">Đang chờ duyệt</SelectItem>
             <SelectItem value="active">Đang hoạt động</SelectItem>
             <SelectItem value="locked">Đã khóa</SelectItem>
-            <SelectItem value="all">Tất cả</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -50,7 +50,7 @@ export default function ForgotPassword() {
             />
 
             {error && (
-              <div className="mt-4 rounded-[10px] border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
+              <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
                 {error}
               </div>
             )}

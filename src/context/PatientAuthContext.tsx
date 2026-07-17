@@ -1,26 +1,29 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { parseJwtPayload } from '../utils/jwt';
 import { PATIENT_TOKEN_KEY, PATIENT_AUTH_KEY } from '../api/portalClient';
 
-/**
- * @typedef {{
- *   patientId: string | null,
- *   isLoggedIn: boolean,
- *   login: (token: string) => void,
- *   logout: () => void,
- * }} PatientAuthContextValue
- */
+interface PatientAuthContextValue {
+  patientId: string | null;
+  isLoggedIn: boolean;
+  login: (token: string) => void;
+  logout: () => void;
+}
 
-/** @type {import('react').Context<PatientAuthContextValue>} */
-const PatientAuthContext = createContext(/** @type {any} */ (null));
+interface StoredPatientAuth {
+  patientId: string | null;
+  isLoggedIn: boolean;
+  expiresAt: number;
+}
 
-function expiryFromToken(token) {
+const PatientAuthContext = createContext<PatientAuthContextValue | null>(null);
+
+function expiryFromToken(token: string): number {
   const payload = parseJwtPayload(token);
   if (!payload?.exp) return Date.now() + 24 * 60 * 60 * 1000;
   return payload.exp * 1000;
 }
 
-function loadAuth() {
+function loadAuth(): StoredPatientAuth | null {
   try {
     const raw = localStorage.getItem(PATIENT_AUTH_KEY);
     if (!raw) return null;
@@ -36,12 +39,12 @@ function loadAuth() {
   }
 }
 
-export function PatientAuthProvider({ children }) {
+export function PatientAuthProvider({ children }: { children: ReactNode }) {
   const savedAuth = loadAuth();
 
-  const [patientId, setPatientId] = useState(savedAuth?.patientId ?? null);
+  const [patientId, setPatientId] = useState<string | null>(savedAuth?.patientId ?? null);
   const [isLoggedIn, setIsLoggedIn] = useState(!!savedAuth);
-  const timerRef = useRef(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearTimer = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -55,12 +58,12 @@ export function PatientAuthProvider({ children }) {
     setIsLoggedIn(false);
   };
 
-  const scheduleAutoLogout = expiresAt => {
+  const scheduleAutoLogout = (expiresAt: number) => {
     clearTimer();
     timerRef.current = setTimeout(logout, Math.max(expiresAt - Date.now(), 0));
   };
 
-  const login = token => {
+  const login = (token: string) => {
     const payload = parseJwtPayload(token);
     const expiresAt = expiryFromToken(token);
     localStorage.setItem(PATIENT_TOKEN_KEY, token);
@@ -99,5 +102,7 @@ export function PatientAuthProvider({ children }) {
 }
 
 export function usePatientAuth() {
-  return useContext(PatientAuthContext);
+  const ctx = useContext(PatientAuthContext);
+  if (!ctx) throw new Error('usePatientAuth must be used within PatientAuthProvider');
+  return ctx;
 }

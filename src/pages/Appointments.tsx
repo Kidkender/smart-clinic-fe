@@ -66,6 +66,8 @@ const STATUS_STYLES: Record<string, string> = {
   no_show: 'bg-[#6c757d]/10 text-[#6c757d]',
 };
 
+const PAGE_LIMIT = 20;
+
 function toLocalDateTimeInput(isoString: string) {
   const d = new Date(isoString);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -87,28 +89,55 @@ export default function Appointments() {
   const [slotDate, setSlotDate] = useState('');
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [confirm, ConfirmDialog] = useConfirm() as [
-    (message: string, options?: { danger?: boolean; confirmLabel?: string }) => Promise<boolean>,
-    React.ReactNode,
-  ];
+  const [confirm, ConfirmDialog] = useConfirm();
+
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, departmentFilter, sortOrder]);
 
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const result = await searchAppointments({ page: 1, limit: 20 });
+      const result = await searchAppointments({
+        page,
+        limit: PAGE_LIMIT,
+        q: search || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        department_id: departmentFilter === 'all' ? undefined : departmentFilter,
+        sort: sortOrder,
+      });
       setAppointments(result.data ?? []);
+      setTotal(result.meta?.total ?? 0);
+      setTotalPages(result.meta?.total_pages ?? 1);
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, search, statusFilter, departmentFilter, sortOrder]);
 
   useEffect(() => {
     fetchAppointments();
-    getDepartments().then(r => setDepartments(r.data ?? [])).catch(() => {});
   }, [fetchAppointments]);
+
+  useEffect(() => {
+    getDepartments().then(r => setDepartments(r.data ?? [])).catch(() => {});
+  }, []);
 
   const openCreate = () => {
     const departmentId = String(departments[0]?.ID ?? '');
@@ -197,6 +226,7 @@ export default function Appointments() {
   };
 
   const handleNoShow = async (appt: Appointment) => {
+    if (!(await confirm('Đánh dấu bệnh nhân không đến khám?', { confirmLabel: 'Không đến' }))) return;
     try {
       await markNoShow(appt.ID);
       await fetchAppointments();
@@ -206,6 +236,7 @@ export default function Appointments() {
   };
 
   const handleCheckIn = async (appt: Appointment) => {
+    if (!(await confirm('Check-in cho bệnh nhân này?', { danger: false, confirmLabel: 'Check-in' }))) return;
     try {
       await checkInAppointment(appt.ID);
       await fetchAppointments();
@@ -221,13 +252,15 @@ export default function Appointments() {
           <h1 className="m-0 text-[26px] font-bold text-[#274760]">Lịch hẹn</h1>
           <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">Đặt lịch và quản lý tiếp nhận bệnh nhân</p>
         </div>
-        <Button
-          onClick={openCreate}
-          className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
-        >
-          <Icon icon="fa6-solid:plus" className="text-sm" />
-          Đặt lịch hẹn
-        </Button>
+        {canManage && (
+          <Button
+            onClick={openCreate}
+            className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+          >
+            <Icon icon="fa6-solid:plus" className="text-sm" />
+            Đặt lịch hẹn
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -237,11 +270,55 @@ export default function Appointments() {
         </div>
       )}
 
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[220px] flex-1">
+          <Icon icon="fa6-solid:magnifying-glass" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-[#6c757d]" />
+          <Input
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="Tìm theo tên, SĐT, MRN bệnh nhân…"
+            className="h-auto rounded-full border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="h-auto w-[170px] rounded-full px-4 py-2.75 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="booked">{appointmentStatusLabel('booked')}</SelectItem>
+            <SelectItem value="checked_in">{appointmentStatusLabel('checked_in')}</SelectItem>
+            <SelectItem value="cancelled">{appointmentStatusLabel('cancelled')}</SelectItem>
+            <SelectItem value="no_show">{appointmentStatusLabel('no_show')}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+          <SelectTrigger className="h-auto w-[180px] rounded-full px-4 py-2.75 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả khoa</SelectItem>
+            {departments.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={sortOrder} onValueChange={value => setSortOrder(value as 'asc' | 'desc')}>
+          <SelectTrigger className="h-auto w-[160px] rounded-full px-4 py-2.75 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="asc">Sắp tới trước</SelectItem>
+            <SelectItem value="desc">Gần đây trước</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
         {loading ? (
           <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>
         ) : appointments.length === 0 ? (
-          <div className="p-15 text-center text-[#6c757d]">Chưa có lịch hẹn nào.</div>
+          <div className="p-15 text-center text-[#6c757d]">
+            {search || statusFilter !== 'all' || departmentFilter !== 'all' ? 'Không tìm thấy lịch hẹn phù hợp.' : 'Chưa có lịch hẹn nào.'}
+          </div>
         ) : (
           <Table>
             <TableHeader>
@@ -303,8 +380,38 @@ export default function Appointments() {
         )}
       </Card>
 
-      <Dialog open={modalOpen} onOpenChange={open => { if (!saving) setModalOpen(open); }}>
-        <DialogContent className="max-h-[90vh] max-w-[440px] overflow-y-auto rounded-[20px] p-8">
+      {!loading && total > 0 && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="m-0 text-sm text-[#6c757d]">
+            Trang {page}/{totalPages} · {total} lịch hẹn
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={page <= 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              className="h-auto rounded-full border-[#dde2e8] px-4 py-2 text-sm font-medium text-[#274760]"
+            >
+              <Icon icon="fa6-solid:chevron-left" className="text-xs" />
+              Trước
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={page >= totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              className="h-auto rounded-full border-[#dde2e8] px-4 py-2 text-sm font-medium text-[#274760]"
+            >
+              Sau
+              <Icon icon="fa6-solid:chevron-right" className="text-xs" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <Dialog open={canManage && modalOpen} onOpenChange={open => { if (!saving) setModalOpen(open); }}>
+        <DialogContent className="max-h-[90vh] sm:max-w-[440px] overflow-y-auto rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Đặt lịch hẹn</DialogTitle>
           </DialogHeader>

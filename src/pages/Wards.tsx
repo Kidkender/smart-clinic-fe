@@ -203,7 +203,7 @@ export default function Wards() {
                     <li key={bed.ID} className="flex items-center justify-between gap-2.5 border-b border-[#f0f4f8] py-2.5">
                       <span className="font-semibold text-[#274760]">Giường {bed.BedNumber}</span>
                       <Select value={bed.Status} onValueChange={value => handleBedStatus(bed, value)}>
-                        <SelectTrigger className="h-auto w-auto rounded-[10px] border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]">
+                        <SelectTrigger className="h-auto w-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -219,7 +219,7 @@ export default function Wards() {
                   placeholder="Số giường"
                   value={bedForm[ward.ID] ?? ''}
                   onChange={e => setBedForm({ ...bedForm, [ward.ID]: e.target.value })}
-                  className="h-auto flex-1 rounded-[10px] border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                  className="h-auto flex-1 rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
                 />
                 <Button
                   type="submit"

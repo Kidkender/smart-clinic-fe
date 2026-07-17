@@ -86,7 +86,7 @@ export default function Login() {
             />
 
             {error && (
-              <div className="mt-4 rounded-[10px] border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
+              <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
                 {error}
               </div>
             )}
@@ -107,13 +107,13 @@ export default function Login() {
       </div>
 
       <Dialog open={statusDialog !== null} onOpenChange={open => { if (!open) setStatusDialog(null); }}>
-        <DialogContent className="max-w-[400px] rounded-[20px] p-7">
+        <DialogContent className="sm:max-w-[400px] rounded-[20px] p-7">
           {statusDialog === 'locked' ? (
-            <div className="mb-4.5 flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#dc3545]/12">
+            <div className="mb-4.5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#dc3545]/12">
               <Icon icon="fa6-solid:lock" className="text-xl text-[#dc3545]" />
             </div>
           ) : (
-            <div className="mb-4.5 flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#d9a406]/12">
+            <div className="mb-4.5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#d9a406]/12">
               <Icon icon="fa6-solid:hourglass-half" className="text-xl text-[#b8860b]" />
             </div>
           )}
