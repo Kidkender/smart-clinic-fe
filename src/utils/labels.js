@@ -17,6 +17,19 @@ const ENCOUNTER_TYPE = {
   follow_up: 'Tái khám',
   insurance: 'BHYT',
   service: 'Dịch vụ',
+  inpatient: 'Nội trú',
+};
+
+const BED_STATUS = {
+  available: 'Trống',
+  occupied: 'Có người',
+  cleaning: 'Đang vệ sinh',
+};
+
+const ADMISSION_TYPE = {
+  bhyt: 'BHYT',
+  service: 'Dịch vụ',
+  insurance_private: 'Bảo hiểm tư nhân',
 };
 
 const PRESCRIPTION_STATUS = {
@@ -35,6 +48,17 @@ const ORDER_STATUS = {
 const ORDER_TYPE = {
   lab: 'Xét nghiệm',
   imaging: 'Chẩn đoán hình ảnh',
+  xray: 'X-quang',
+  ct: 'Chụp CT',
+  mri: 'Chụp MRI',
+  ultrasound: 'Siêu âm',
+  endoscopy: 'Nội soi',
+};
+
+const INTERACTION_SEVERITY = {
+  minor: 'Nhẹ',
+  moderate: 'Trung bình',
+  severe: 'Nghiêm trọng',
 };
 
 const GENDER = {
@@ -53,6 +77,25 @@ const ROLE = {
   lab_tech: 'Kỹ thuật viên XN',
 };
 
+const SHIFT_TYPE = {
+  morning: 'Ca sáng',
+  afternoon: 'Ca chiều',
+  night: 'Ca đêm',
+  on_call: 'Trực gác',
+};
+
+const LEAVE_STATUS = {
+  pending: 'Chờ duyệt',
+  approved: 'Đã duyệt',
+  rejected: 'Đã từ chối',
+  cancelled: 'Đã hủy',
+};
+
+const USER_STATUS = {
+  active: 'Đang hoạt động',
+  inactive: 'Ngừng hoạt động',
+};
+
 function translate(map, value) {
   if (!value) return '—';
   return map[value] ?? value;
@@ -64,5 +107,11 @@ export const encounterTypeLabel = value => translate(ENCOUNTER_TYPE, value);
 export const prescriptionStatusLabel = value => translate(PRESCRIPTION_STATUS, value);
 export const orderStatusLabel = value => translate(ORDER_STATUS, value);
 export const orderTypeLabel = value => translate(ORDER_TYPE, value);
+export const interactionSeverityLabel = value => translate(INTERACTION_SEVERITY, value);
+export const bedStatusLabel = value => translate(BED_STATUS, value);
+export const admissionTypeLabel = value => translate(ADMISSION_TYPE, value);
 export const genderLabel = value => translate(GENDER, value);
 export const roleLabel = value => translate(ROLE, value);
+export const shiftTypeLabel = value => translate(SHIFT_TYPE, value);
+export const leaveStatusLabel = value => translate(LEAVE_STATUS, value);
+export const userStatusLabel = value => translate(USER_STATUS, value);

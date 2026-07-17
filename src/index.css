@@ -1,12 +1,259 @@
+@import 'tailwindcss';
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
 * {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #274760;
 }
 
 #root {
   min-height: 100svh;
+}
+
+::selection {
+  background: rgba(48, 123, 196, 0.25);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cfd8e2;
+  border-radius: 20px;
+  border: 2px solid #f4f7fa;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b7c3d0;
+}
+
+/* Global interaction polish: works on top of inline styles because these
+   properties (transition/transform/filter/box-shadow/outline) are never
+   set inline, so they layer cleanly without touching every page's JSX. */
+a,
+button,
+select,
+input,
+textarea {
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+button:not(:disabled):hover,
+a[style*="border-radius: 25px"]:hover,
+a[style*="border-radius: 18px"]:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+button:not(:disabled):active,
+a[style*="border-radius: 25px"]:active {
+  transform: translateY(0);
+  filter: brightness(0.97);
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none !important;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #307bc4;
+  outline-offset: 2px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #307bc4 !important;
+  box-shadow: 0 0 0 3px rgba(48, 123, 196, 0.12);
+}
+
+/* Rows/cards marked clickable via inline `cursor: pointer` get a hover
+   highlight and cards get a soft lift, without needing a className pass. */
+tr[style*="cursor: pointer"]:hover {
+  background: #f4f7fa !important;
+}
+div[style*="cursor: pointer"][style*="border-radius"]:hover {
+  background: #f4f7fa;
+}
+
+div[style*="border-radius: 16px"][style*="border: 1px solid #e8edf2"] {
+  box-shadow: 0 1px 2px rgba(16, 42, 67, 0.04);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+table {
+  border-collapse: collapse;
+}
+tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+div[style*="position: fixed"][style*="inset: 0"] > div {
+  animation: modalPop 0.18s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+div[style*="position: fixed"][style*="inset: 0"] {
+  animation: fadeIn 0.15s ease;
+}
+
+@theme inline {
+  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #274760;
+  --card: #ffffff;
+  --card-foreground: #274760;
+  --popover: #ffffff;
+  --popover-foreground: #274760;
+  --primary: #307bc4;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f7fa;
+  --secondary-foreground: #274760;
+  --muted: #f4f7fa;
+  --muted-foreground: #6c757d;
+  --accent: #eaf2fb;
+  --accent-foreground: #274760;
+  --destructive: #dc3545;
+  --border: #e8edf2;
+  --input: #e8edf2;
+  --ring: #307bc4;
+  --chart-1: #307bc4;
+  --chart-2: #5aa0d8;
+  --chart-3: #274760;
+  --chart-4: #6c757d;
+  --chart-5: #9db4c7;
+  --radius: 0.625rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #274760;
+  --sidebar-primary: #307bc4;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f4f7fa;
+  --sidebar-accent-foreground: #274760;
+  --sidebar-border: #e8edf2;
+  --sidebar-ring: #307bc4;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
 }

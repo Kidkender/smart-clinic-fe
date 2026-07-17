@@ -1,0 +1,91 @@
+import { useState, type FormEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { resetPasswordApi } from '@/api/auth';
+import { resolveError } from '@/utils/errorMessages';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+export default function ResetPassword() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [token, setToken] = useState(searchParams.get('token') ?? '');
+  const [newPassword, setNewPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await resetPasswordApi(token.trim(), newPassword);
+      setDone(true);
+    } catch (err) {
+      setError(resolveError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#f4f7fa] p-5">
+      <div className="w-full max-w-[420px] rounded-[20px] bg-white p-10 shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
+        <h1 className="mb-1 text-2xl font-bold text-[#1c3a52]">Đặt lại mật khẩu</h1>
+        <p className="mb-7 text-[#6c757d]">Nhập mã đặt lại và mật khẩu mới cho tài khoản.</p>
+
+        {done ? (
+          <div className="rounded-xl border border-[#2e9e5b]/30 bg-[#2e9e5b]/8 px-4.5 py-3.5 text-sm text-[#274760]">
+            Đặt lại mật khẩu thành công.{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="cursor-pointer font-semibold text-[#307bc4] underline"
+            >
+              Đăng nhập ngay
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mã đặt lại</label>
+            <Input
+              required
+              value={token}
+              onChange={e => setToken(e.target.value)}
+              placeholder="Mã được cấp từ quản trị viên"
+              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+            />
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mật khẩu mới</label>
+            <Input
+              type="password"
+              required
+              minLength={8}
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              placeholder="Tối thiểu 8 ký tự"
+              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+            />
+
+            {error && (
+              <div className="mt-4 rounded-[10px] border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="mt-6 h-auto w-full rounded-full bg-[#307bc4] py-3.25 text-[15px] font-semibold text-white hover:bg-[#307bc4]/90"
+            >
+              {loading ? 'Đang xử lý…' : 'Đặt lại mật khẩu'}
+            </Button>
+          </form>
+        )}
+
+        <p className="mt-5 text-center text-sm text-[#6c757d]">
+          <Link to="/login" className="font-semibold text-[#307bc4]">Quay lại đăng nhập</Link>
+        </p>
+      </div>
+    </div>
+  );
+}

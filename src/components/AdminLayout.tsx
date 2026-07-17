@@ -1,0 +1,97 @@
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Icon } from '@iconify/react';
+import { useAuth } from '@/context/AuthContext';
+import { roleLabel } from '@/utils/labels';
+import { cn } from '@/lib/utils';
+
+type NavItem = {
+  to: string;
+  label: string;
+  icon: string;
+  roles?: string[];
+};
+
+const NAV: NavItem[] = [
+  { to: '/dashboard', label: 'Dashboard', icon: 'fa6-solid:gauge' },
+  { to: '/patients', label: 'Bệnh nhân', icon: 'fa6-solid:user-injured' },
+  { to: '/appointments', label: 'Lịch hẹn', icon: 'fa6-solid:calendar-days' },
+  { to: '/queue', label: 'Hàng đợi', icon: 'fa6-solid:list-ol' },
+  { to: '/admissions', label: 'Nội trú', icon: 'fa6-solid:bed-pulse' },
+  { to: '/departments', label: 'Khoa/Phòng', icon: 'fa6-solid:sitemap', roles: ['admin'] },
+  { to: '/wards', label: 'Khu điều trị & Giường', icon: 'fa6-solid:hospital-user', roles: ['admin'] },
+  { to: '/doctors', label: 'Bác sĩ', icon: 'fa6-solid:user-doctor', roles: ['admin'] },
+  { to: '/doctor-schedules', label: 'Lịch làm việc BS', icon: 'fa6-solid:calendar-check', roles: ['admin'] },
+];
+
+export default function AdminLayout() {
+  const { role, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const visibleNav = NAV.filter(item => !item.roles || (role != null && item.roles.includes(role)));
+
+  return (
+    <div className="flex min-h-screen bg-[#f4f7fa]">
+      <aside className="fixed top-0 left-0 flex h-screen w-60 shrink-0 flex-col overflow-y-auto bg-[#1c3a52] text-white">
+        <div className="border-b border-white/10 px-6 pt-7 pb-5">
+          <Link to="/dashboard" className="no-underline">
+            <div className="flex items-center gap-2.5">
+              <Icon icon="fa6-solid:hospital" className="text-[22px] text-[#63c4ff]" />
+              <span className="text-lg font-bold tracking-tight text-white">SmartClinic</span>
+            </div>
+          </Link>
+        </div>
+
+        <nav className="flex-1 px-3 py-4">
+          {visibleNav.map(({ to, label, icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end
+              className={({ isActive }) =>
+                cn(
+                  'mb-1 flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[15px] font-medium no-underline transition-colors',
+                  isActive ? 'bg-white/14 text-white' : 'text-white/65 hover:bg-white/8 hover:text-white',
+                )
+              }
+            >
+              <Icon icon={icon} className="text-base" />
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="border-t border-white/10 px-3 py-4">
+          <div className="mb-2 flex items-center gap-2.5 px-3.5 py-2">
+            <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-white/15 text-sm font-semibold text-white">
+              {(role || 'U').charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-white">
+                {role ? roleLabel(role) : 'Người dùng'}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full cursor-pointer items-center gap-2 rounded-[10px] border-none bg-white/8 px-3.5 py-2.5 text-sm font-medium text-white/70 hover:bg-white/12 hover:text-white"
+          >
+            <Icon icon="fa6-solid:right-from-bracket" className="text-sm" />
+            Đăng xuất
+          </button>
+        </div>
+      </aside>
+
+      <div className="ml-60 flex min-w-0 flex-1 flex-col">
+        <main className="flex-1 overflow-y-auto p-8">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}

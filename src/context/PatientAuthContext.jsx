@@ -2,7 +2,17 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { parseJwtPayload } from '../utils/jwt';
 import { PATIENT_TOKEN_KEY, PATIENT_AUTH_KEY } from '../api/portalClient';
 
-const PatientAuthContext = createContext(null);
+/**
+ * @typedef {{
+ *   patientId: string | null,
+ *   isLoggedIn: boolean,
+ *   login: (token: string) => void,
+ *   logout: () => void,
+ * }} PatientAuthContextValue
+ */
+
+/** @type {import('react').Context<PatientAuthContextValue>} */
+const PatientAuthContext = createContext(/** @type {any} */ (null));
 
 function expiryFromToken(token) {
   const payload = parseJwtPayload(token);
