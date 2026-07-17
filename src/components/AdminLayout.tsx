@@ -84,6 +84,7 @@ export default function AdminLayout() {
             <Icon icon="fa6-solid:right-from-bracket" className="text-sm" />
             Đăng xuất
           </button>
+          <div className="mt-3 text-center text-[11px] text-white/35">SmartClinic v{__APP_VERSION__}</div>
         </div>
       </aside>
 

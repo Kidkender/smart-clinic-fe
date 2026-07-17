@@ -64,6 +64,10 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <footer className="border-t border-[#e8edf2] bg-white px-12 py-6 text-center text-[13px] text-[#6c757d]">
+        SmartClinic v{__APP_VERSION__}
+      </footer>
     </div>
   );
 }

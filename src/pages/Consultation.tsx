@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { getEncounterById, updateEncounterStatus } from '@/api/encounter';
 import { recordVitalSign, listVitalSigns, addDiagnosis, listDiagnoses, updateClinicalNotes } from '@/api/consultation';
+import { searchIcd10 } from '@/api/icd10';
 import { createOrder, listOrdersByEncounter, updateOrderStatus } from '@/api/order';
 import { searchDrugs, checkDrugInteractions } from '@/api/drug';
 import { createPrescription, listPrescriptionsByEncounter, updatePrescriptionStatus } from '@/api/prescription';
@@ -53,6 +54,11 @@ interface VitalSign {
   RespiratoryRate: number;
   RecordedAt?: string;
   CreatedAt?: string;
+}
+
+interface Icd10Code {
+  Code: string;
+  Descriptor: string;
 }
 
 interface Diagnosis {
@@ -310,9 +316,42 @@ function DiagnosesSection({
   onAdded: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ icd10_code: '', icd10_descriptor: '', is_primary: false, notes: '' });
+  const [form, setForm] = useState({ icd10_code: '', is_primary: false, notes: '' });
+  const [icdQuery, setIcdQuery] = useState('');
+  const [icdResults, setIcdResults] = useState<Icd10Code[]>([]);
+  const [selectedIcd, setSelectedIcd] = useState<Icd10Code | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+
+  const handleIcdSearch = async (value: string) => {
+    setIcdQuery(value);
+    setSelectedIcd(null);
+    setForm(f => ({ ...f, icd10_code: '' }));
+    if (value.trim().length < 1) {
+      setIcdResults([]);
+      return;
+    }
+    try {
+      const result = await searchIcd10(value.trim());
+      setIcdResults(result.data ?? []);
+    } catch {
+      setIcdResults([]);
+    }
+  };
+
+  const handleSelectIcd = (icd: Icd10Code) => {
+    setSelectedIcd(icd);
+    setIcdQuery(`${icd.Code} — ${icd.Descriptor}`);
+    setIcdResults([]);
+    setForm(f => ({ ...f, icd10_code: icd.Code }));
+  };
+
+  const resetForm = () => {
+    setForm({ icd10_code: '', is_primary: false, notes: '' });
+    setIcdQuery('');
+    setIcdResults([]);
+    setSelectedIcd(null);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -320,7 +359,7 @@ function DiagnosesSection({
     setSaving(true);
     try {
       await addDiagnosis(encounterId, form);
-      setForm({ icd10_code: '', icd10_descriptor: '', is_primary: false, notes: '' });
+      resetForm();
       setOpen(false);
       await onAdded();
     } catch (err) {
@@ -351,15 +390,39 @@ function DiagnosesSection({
       )}
       {open && canAdd && (
         <form onSubmit={handleSubmit} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
-          <LabeledInput label="Mã ICD-10 *" value={form.icd10_code} onChange={v => setForm({ ...form, icd10_code: v })} required />
-          <LabeledInput label="Mô tả" value={form.icd10_descriptor} onChange={v => setForm({ ...form, icd10_descriptor: v })} />
+          <div className="relative">
+            <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Chẩn đoán (tra cứu ICD-10) *</label>
+            <Input
+              required
+              value={icdQuery}
+              onChange={e => handleIcdSearch(e.target.value)}
+              placeholder="Nhập mã hoặc tên bệnh, ví dụ: J00, viêm họng…"
+              className="h-auto rounded-[10px] border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+            />
+            {icdResults.length > 0 && (
+              <div className="absolute z-10 mt-1 max-h-[180px] w-full overflow-y-auto rounded-[10px] border border-[#dde2e8] bg-white shadow-md">
+                {icdResults.map(icd => (
+                  <div
+                    key={icd.Code}
+                    onClick={() => handleSelectIcd(icd)}
+                    className="cursor-pointer px-3.5 py-2 text-sm text-[#274760] hover:bg-[#f4f7fa]"
+                  >
+                    <span className="font-semibold">{icd.Code}</span> — {icd.Descriptor}
+                  </div>
+                ))}
+              </div>
+            )}
+            {!selectedIcd && icdQuery.trim().length > 0 && icdResults.length === 0 && (
+              <p className="mt-1 text-[12px] text-[#dc3545]">Không tìm thấy mã ICD-10 phù hợp. Vui lòng chọn từ danh sách gợi ý.</p>
+            )}
+          </div>
           <LabeledInput label="Ghi chú" value={form.notes} onChange={v => setForm({ ...form, notes: v })} />
           <label className="mt-2.5 flex items-center gap-2 text-sm text-[#274760]">
             <input type="checkbox" checked={form.is_primary} onChange={e => setForm({ ...form, is_primary: e.target.checked })} />
             Chẩn đoán chính
           </label>
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
-          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
+          <Button type="submit" disabled={saving || !form.icd10_code} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
             {saving ? 'Đang lưu…' : 'Lưu chẩn đoán'}
           </Button>
         </form>

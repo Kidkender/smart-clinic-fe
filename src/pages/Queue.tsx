@@ -6,6 +6,7 @@ import { getDepartments } from '@/api/department';
 import { searchPatients } from '@/api/patient';
 import { resolveError } from '@/utils/errorMessages';
 import { encounterStatusLabel, encounterTypeLabel } from '@/utils/labels';
+import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,12 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function Queue() {
+  const { role } = useAuth();
+  // Must match backend role gates: POST /encounters + /encounters/call-next
+  // are admin+receptionist only; PATCH /encounters/:id/status (complete/
+  // cancel) and the exam link are admin+doctor+nurse only.
+  const canCheckInWalkIn = role === 'admin' || role === 'receptionist';
+  const canDoClinical = role === 'admin' || role === 'doctor' || role === 'nurse';
   const [departments, setDepartments] = useState<Department[]>([]);
   const [departmentId, setDepartmentId] = useState('');
   const [queue, setQueue] = useState<Encounter[]>([]);
@@ -217,14 +224,16 @@ export default function Queue() {
               ))}
             </SelectContent>
           </Select>
-          <Button
-            onClick={openCheckIn}
-            disabled={!departmentId}
-            className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
-          >
-            <Icon icon="fa6-solid:user-plus" className="text-sm" />
-            Check-in
-          </Button>
+          {canCheckInWalkIn && (
+            <Button
+              onClick={openCheckIn}
+              disabled={!departmentId}
+              className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            >
+              <Icon icon="fa6-solid:user-plus" className="text-sm" />
+              Check-in
+            </Button>
+          )}
         </div>
       </div>
 
@@ -242,17 +251,19 @@ export default function Queue() {
           value={inProgress ? `#${inProgress.QueueNumber} — ${inProgress.Patient?.Fullname ?? ''}` : '—'}
           color="#198754"
         />
-        <Card className="flex-row items-center justify-between rounded-2xl border-[#e8edf2] px-5 py-4.5">
-          <div className="text-xs font-bold tracking-wide text-[#6c757d] uppercase">Gọi số tiếp theo</div>
-          <Button
-            variant="outline"
-            onClick={handleCallNext}
-            disabled={calling || waitingCount === 0}
-            className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
-          >
-            {calling ? 'Đang gọi…' : 'Gọi tiếp theo'}
-          </Button>
-        </Card>
+        {canCheckInWalkIn && (
+          <Card className="flex-row items-center justify-between rounded-2xl border-[#e8edf2] px-5 py-4.5">
+            <div className="text-xs font-bold tracking-wide text-[#6c757d] uppercase">Gọi số tiếp theo</div>
+            <Button
+              variant="outline"
+              onClick={handleCallNext}
+              disabled={calling || waitingCount === 0}
+              className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+            >
+              {calling ? 'Đang gọi…' : 'Gọi tiếp theo'}
+            </Button>
+          </Card>
+        )}
       </div>
 
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
@@ -289,7 +300,7 @@ export default function Queue() {
                     </span>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right">
-                    {q.Status === 'in_progress' && (
+                    {canDoClinical && q.Status === 'in_progress' && (
                       <Link
                         to={`/encounters/${q.ID}`}
                         title="Khám bệnh"
@@ -298,7 +309,7 @@ export default function Queue() {
                         <Icon icon="fa6-solid:stethoscope" className="text-[13px]" />
                       </Link>
                     )}
-                    {q.Status === 'in_progress' && (
+                    {canDoClinical && q.Status === 'in_progress' && (
                       <button
                         type="button"
                         onClick={() => handleComplete(q)}
@@ -308,7 +319,7 @@ export default function Queue() {
                         <Icon icon="fa6-solid:check" className="text-[13px]" />
                       </button>
                     )}
-                    {(q.Status === 'waiting' || q.Status === 'in_progress') && (
+                    {canDoClinical && (q.Status === 'waiting' || q.Status === 'in_progress') && (
                       <button
                         type="button"
                         onClick={() => handleCancel(q)}

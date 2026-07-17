@@ -57,7 +57,7 @@ function App() {
         <Route
           path="admissions"
           element={
-            <RequireAuth roles={['admin', 'doctor', 'nurse']}>
+            <RequireAuth roles={['admin', 'doctor', 'nurse', 'receptionist']}>
               <Admissions />
             </RequireAuth>
           }
@@ -65,7 +65,7 @@ function App() {
         <Route
           path="admissions/:id"
           element={
-            <RequireAuth roles={['admin', 'doctor', 'nurse']}>
+            <RequireAuth roles={['admin', 'doctor', 'nurse', 'receptionist']}>
               <AdmissionDetail />
             </RequireAuth>
           }

@@ -8,6 +8,10 @@ import { listBeds } from '../api/bed';
 import { searchPatients } from '../api/patient';
 import { resolveError } from '../utils/errorMessages';
 import { admissionTypeLabel } from '../utils/labels';
+import { Button } from '@/components/ui/button';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 
 const ADMISSION_TYPES = ['bhyt', 'service', 'insurance_private'];
 
@@ -79,6 +83,7 @@ export default function Admissions() {
   const handleDepartmentChange = async departmentId => {
     setForm(f => ({ ...f, department_id: departmentId, attending_doctor_id: '', ward_id: '', bed_id: '' }));
     setBeds([]);
+    setFormError('');
     if (!departmentId) {
       setDoctors([]);
       setWards([]);
@@ -89,8 +94,12 @@ export default function Admissions() {
         getDoctorsByDepartment(departmentId),
         listWards(departmentId),
       ]);
-      setDoctors(doctorsResult.data ?? []);
+      const doctorList = doctorsResult.data ?? [];
+      setDoctors(doctorList);
       setWards(wardsResult.data ?? []);
+      if (doctorList.length === 0) {
+        setFormError('Khoa này chưa có bác sĩ nào. Vui lòng chọn khoa khác hoặc liên hệ quản trị viên.');
+      }
     } catch {
       setDoctors([]);
       setWards([]);
@@ -144,15 +153,25 @@ export default function Admissions() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ ...inputStyle, maxWidth: '180px' }}>
-            <option value="active">Đang điều trị</option>
-            <option value="discharged">Đã xuất viện</option>
-            <option value="">Tất cả</option>
-          </select>
-          <button onClick={openAdmit} style={primaryBtnStyle}>
-            <Icon icon="fa6-solid:bed-pulse" style={{ fontSize: '14px' }} />
-            <span>Nhập viện</span>
-          </button>
+          <Select value={statusFilter || 'all'} onValueChange={value => setStatusFilter(value === 'all' ? '' : value)}>
+            <SelectTrigger
+              style={{ height: 'auto', width: '180px', borderRadius: '9999px', border: '1px solid #dde2e8', padding: '11px 20px', fontSize: '14px', color: '#274760' }}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Đang điều trị</SelectItem>
+              <SelectItem value="discharged">Đã xuất viện</SelectItem>
+              <SelectItem value="all">Tất cả</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={openAdmit}
+            className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+          >
+            <Icon icon="fa6-solid:bed-pulse" className="text-sm" />
+            Nhập viện
+          </Button>
         </div>
       </div>
 
@@ -253,7 +272,7 @@ export default function Admissions() {
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
                 <button type="button" onClick={() => setModalOpen(false)} disabled={saving} style={secondaryBtnStyle}>Hủy</button>
-                <button type="submit" disabled={saving || !form.patient_id} style={primaryBtnStyle}>{saving ? 'Đang lưu…' : 'Nhập viện'}</button>
+                <button type="submit" disabled={saving || !form.patient_id || !form.department_id || doctors.length === 0} style={primaryBtnStyle}>{saving ? 'Đang lưu…' : 'Nhập viện'}</button>
               </div>
             </form>
           </div>

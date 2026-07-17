@@ -7,7 +7,8 @@ import {
   listAttachments, uploadAttachment, deleteAttachment,
 } from '../api/patient';
 import { resolveError } from '../utils/errorMessages';
-import { genderLabel, encounterStatusLabel, encounterTypeLabel, prescriptionStatusLabel, orderStatusLabel, orderTypeLabel } from '../utils/labels';
+import { genderLabel, encounterStatusLabel, encounterTypeLabel, prescriptionStatusLabel, orderStatusLabel, orderTypeLabel, attachmentCategoryLabel, ATTACHMENT_CATEGORIES } from '../utils/labels';
+import { useAuth } from '../context/AuthContext';
 import useConfirm from '../hooks/useConfirm';
 
 const GENDERS = ['male', 'female', 'other'];
@@ -19,6 +20,12 @@ function toDateInput(value) {
 
 export default function PatientDetail() {
   const { id } = useParams();
+  const { role } = useAuth();
+  // Must match backend role gates in routes/patient.go: create/update patient,
+  // contacts, and attachments are admin+receptionist only; history is
+  // admin+doctor+nurse only (receptionist can't view it).
+  const canManage = role === 'admin' || role === 'receptionist';
+  const canViewHistory = role === 'admin' || role === 'doctor' || role === 'nurse';
   const [patient, setPatient] = useState(null);
   const [history, setHistory] = useState(null);
   const [contacts, setContacts] = useState([]);
@@ -38,6 +45,8 @@ export default function PatientDetail() {
 
   const [uploading, setUploading] = useState(false);
   const [attachmentError, setAttachmentError] = useState('');
+  const [uploadCategory, setUploadCategory] = useState('document');
+  const [attachmentFilter, setAttachmentFilter] = useState('');
   const fileInputRef = useRef(null);
 
   const [confirm, ConfirmDialog] = useConfirm();
@@ -46,22 +55,30 @@ export default function PatientDetail() {
     setLoading(true);
     setError('');
     try {
-      const [p, h, c, a] = await Promise.all([
+      const [p, c, a] = await Promise.all([
         getPatientById(id),
-        getPatientHistory(id),
         listContacts(id),
         listAttachments(id),
       ]);
       setPatient(p.data);
-      setHistory(h.data);
       setContacts(c.data ?? []);
       setAttachments(a.data ?? []);
     } catch (err) {
       setError(resolveError(err));
-    } finally {
       setLoading(false);
+      return;
     }
-  }, [id]);
+
+    if (canViewHistory) {
+      try {
+        const h = await getPatientHistory(id);
+        setHistory(h.data);
+      } catch {
+        setHistory(null);
+      }
+    }
+    setLoading(false);
+  }, [id, canViewHistory]);
 
   useEffect(() => {
     loadAll();
@@ -148,7 +165,7 @@ export default function PatientDetail() {
     setUploading(true);
     setAttachmentError('');
     try {
-      await uploadAttachment(id, file);
+      await uploadAttachment(id, file, uploadCategory);
       const a = await listAttachments(id);
       setAttachments(a.data ?? []);
     } catch (err) {
@@ -189,9 +206,11 @@ export default function PatientDetail() {
             <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#274760', margin: 0 }}>{patient.Fullname}</h1>
             <p style={{ color: '#6c757d', margin: '4px 0 0', fontSize: '14px' }}>MRN: {patient.MRN}</p>
           </div>
-          <button onClick={openEdit} style={secondaryBtnStyle}>
-            <Icon icon="fa6-solid:pen" style={{ fontSize: '12px', marginRight: '6px' }} />Sửa
-          </button>
+          {canManage && (
+            <button onClick={openEdit} style={secondaryBtnStyle}>
+              <Icon icon="fa6-solid:pen" style={{ fontSize: '12px', marginRight: '6px' }} />Sửa
+            </button>
+          )}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
           <Field label="Giới tính" value={genderLabel(patient.Gender)} />
@@ -217,57 +236,82 @@ export default function PatientDetail() {
                     <div style={{ fontWeight: '600', color: '#274760' }}>{c.Fullname}</div>
                     <div style={{ fontSize: '13px', color: '#6c757d' }}>{c.Relationship || '—'} · {c.Phone || '—'}</div>
                   </div>
-                  <div>
-                    <button onClick={() => openEditContact(c)} style={iconBtnStyle} title="Sửa"><Icon icon="fa6-solid:pen" style={{ fontSize: '12px' }} /></button>
-                    <button onClick={() => handleDeleteContact(c)} style={{ ...iconBtnStyle, marginLeft: '6px', color: '#dc3545' }} title="Xóa"><Icon icon="fa6-solid:xmark" style={{ fontSize: '12px' }} /></button>
-                  </div>
+                  {canManage && (
+                    <div>
+                      <button onClick={() => openEditContact(c)} style={iconBtnStyle} title="Sửa"><Icon icon="fa6-solid:pen" style={{ fontSize: '12px' }} /></button>
+                      <button onClick={() => handleDeleteContact(c)} style={{ ...iconBtnStyle, marginLeft: '6px', color: '#dc3545' }} title="Xóa"><Icon icon="fa6-solid:xmark" style={{ fontSize: '12px' }} /></button>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
           )}
-          <form onSubmit={handleSaveContact} style={{ borderTop: '1px solid #f0f4f8', paddingTop: '14px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <input required placeholder="Họ tên" value={contactForm.fullname} onChange={e => setContactForm({ ...contactForm, fullname: e.target.value })} style={smallInputStyle} />
-              <input placeholder="Quan hệ" value={contactForm.relationship} onChange={e => setContactForm({ ...contactForm, relationship: e.target.value })} style={smallInputStyle} />
-            </div>
-            <input placeholder="SĐT" value={contactForm.phone} onChange={e => setContactForm({ ...contactForm, phone: e.target.value })} style={{ ...smallInputStyle, marginTop: '10px', width: '100%' }} />
-            {contactError && <div style={{ ...errorBoxStyle, marginTop: '10px' }}>{contactError}</div>}
-            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-              <button type="submit" disabled={savingContact} style={primaryBtnStyle}>
-                {editingContactId ? 'Cập nhật' : 'Thêm liên hệ'}
-              </button>
-              {editingContactId && (
-                <button type="button" onClick={openAddContact} style={secondaryBtnStyle}>Hủy sửa</button>
-              )}
-            </div>
-          </form>
+          {canManage && (
+            <form onSubmit={handleSaveContact} style={{ borderTop: '1px solid #f0f4f8', paddingTop: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <input required placeholder="Họ tên" value={contactForm.fullname} onChange={e => setContactForm({ ...contactForm, fullname: e.target.value })} style={smallInputStyle} />
+                <input placeholder="Quan hệ" value={contactForm.relationship} onChange={e => setContactForm({ ...contactForm, relationship: e.target.value })} style={smallInputStyle} />
+              </div>
+              <input placeholder="SĐT" value={contactForm.phone} onChange={e => setContactForm({ ...contactForm, phone: e.target.value })} style={{ ...smallInputStyle, marginTop: '10px', width: '100%' }} />
+              {contactError && <div style={{ ...errorBoxStyle, marginTop: '10px' }}>{contactError}</div>}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                <button type="submit" disabled={savingContact} style={primaryBtnStyle}>
+                  {editingContactId ? 'Cập nhật' : 'Thêm liên hệ'}
+                </button>
+                {editingContactId && (
+                  <button type="button" onClick={openAddContact} style={secondaryBtnStyle}>Hủy sửa</button>
+                )}
+              </div>
+            </form>
+          )}
         </div>
 
         <div style={cardStyle}>
-          <h2 style={sectionTitleStyle}>Tệp đính kèm</h2>
-          {attachments.length === 0 ? (
-            <p style={{ color: '#6c757d', fontSize: '14px' }}>Chưa có tệp đính kèm.</p>
-          ) : (
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px' }}>
-              {attachments.map(a => (
-                <li key={a.ID} style={listItemStyle}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: '600', color: '#274760', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.FileName}</div>
-                    <div style={{ fontSize: '13px', color: '#6c757d' }}>
-                      {a.ContentType || 'file'} · {a.FileSize ? `${(a.FileSize / 1024).toFixed(0)} KB` : ''}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+            <h2 style={{ ...sectionTitleStyle, marginBottom: 0 }}>Tệp đính kèm</h2>
+            <select value={attachmentFilter} onChange={e => setAttachmentFilter(e.target.value)} style={{ ...smallInputStyle, width: 'auto' }}>
+              <option value="">Tất cả loại</option>
+              {ATTACHMENT_CATEGORIES.map(c => <option key={c} value={c}>{attachmentCategoryLabel(c)}</option>)}
+            </select>
+          </div>
+          {(() => {
+            const filtered = attachmentFilter ? attachments.filter(a => a.Category === attachmentFilter) : attachments;
+            if (filtered.length === 0) {
+              return <p style={{ color: '#6c757d', fontSize: '14px', marginTop: '14px' }}>Chưa có tệp đính kèm.</p>;
+            }
+            return (
+              <ul style={{ listStyle: 'none', padding: 0, margin: '14px 0 16px' }}>
+                {filtered.map(a => (
+                  <li key={a.ID} style={listItemStyle}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: '600', color: '#274760', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.FileName}</div>
+                      <div style={{ fontSize: '13px', color: '#6c757d' }}>
+                        <span style={{ ...badgeStyle, padding: '2px 8px' }}>{attachmentCategoryLabel(a.Category)}</span>
+                        {' · '}{a.ContentType || 'file'} · {a.FileSize ? `${(a.FileSize / 1024).toFixed(0)} KB` : ''}
+                      </div>
                     </div>
-                  </div>
-                  <button onClick={() => handleDeleteAttachment(a)} style={{ ...iconBtnStyle, color: '#dc3545', flexShrink: 0 }} title="Xóa"><Icon icon="fa6-solid:xmark" style={{ fontSize: '12px' }} /></button>
-                </li>
-              ))}
-            </ul>
-          )}
+                    {canManage && (
+                      <button onClick={() => handleDeleteAttachment(a)} style={{ ...iconBtnStyle, color: '#dc3545', flexShrink: 0 }} title="Xóa"><Icon icon="fa6-solid:xmark" style={{ fontSize: '12px' }} /></button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
           {attachmentError && <div style={{ ...errorBoxStyle, marginBottom: '10px' }}>{attachmentError}</div>}
-          <input ref={fileInputRef} type="file" onChange={handleUpload} disabled={uploading} style={{ fontSize: '14px' }} />
-          {uploading && <span style={{ marginLeft: '10px', fontSize: '13px', color: '#6c757d' }}>Đang tải lên…</span>}
+          {canManage && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <select value={uploadCategory} onChange={e => setUploadCategory(e.target.value)} style={smallInputStyle} disabled={uploading}>
+                {ATTACHMENT_CATEGORIES.map(c => <option key={c} value={c}>{attachmentCategoryLabel(c)}</option>)}
+              </select>
+              <input ref={fileInputRef} type="file" onChange={handleUpload} disabled={uploading} style={{ fontSize: '14px' }} />
+              {uploading && <span style={{ fontSize: '13px', color: '#6c757d' }}>Đang tải lên…</span>}
+            </div>
+          )}
         </div>
       </div>
 
+      {canViewHistory && (
       <div style={{ ...cardStyle, marginTop: '20px' }}>
         <h2 style={sectionTitleStyle}>Lịch sử khám</h2>
         <HistorySubsection title="Lượt khám" empty="Chưa có lượt khám nào.">
@@ -304,6 +348,7 @@ export default function PatientDetail() {
           ))}
         </HistorySubsection>
       </div>
+      )}
 
       {editOpen && form && (
         <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) !saving && setEditOpen(false); }}>

@@ -79,9 +79,11 @@ export default function AdmissionDetail() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={badgeStyle(isDischarged)}>{isDischarged ? 'Đã xuất viện' : 'Đang điều trị'}</span>
-            <Link to={`/encounters/${admission.EncounterID}`} style={secondaryBtnStyle}>
-              <Icon icon="fa6-solid:stethoscope" style={{ fontSize: '12px', marginRight: '6px' }} />Hồ sơ khám ({encounterTypeLabel(admission.Encounter?.Type)})
-            </Link>
+            {canManage && (
+              <Link to={`/encounters/${admission.EncounterID}`} style={secondaryBtnStyle}>
+                <Icon icon="fa6-solid:stethoscope" style={{ fontSize: '12px', marginRight: '6px' }} />Hồ sơ khám ({encounterTypeLabel(admission.Encounter?.Type)})
+              </Link>
+            )}
           </div>
         </div>
         {patient?.Allergies && (

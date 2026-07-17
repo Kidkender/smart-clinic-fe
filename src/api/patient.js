@@ -50,9 +50,10 @@ export async function listAttachments(id) {
   return data;
 }
 
-export async function uploadAttachment(id, file) {
+export async function uploadAttachment(id, file, category) {
   const formData = new FormData();
   formData.append('file', file);
+  if (category) formData.append('category', category);
   const { data } = await client.post(`/patients/${id}/attachments`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });

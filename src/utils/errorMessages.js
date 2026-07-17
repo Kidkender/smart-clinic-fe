@@ -16,6 +16,8 @@ const ERROR_MESSAGES = {
   'error.patient.not_found': 'Không tìm thấy bệnh nhân.',
   'error.patient_contact.not_found': 'Không tìm thấy người liên hệ.',
   'error.patient_attachment.not_found': 'Không tìm thấy tệp đính kèm.',
+  'error.patient_attachment.invalid_category': 'Loại tệp đính kèm không hợp lệ.',
+  'error.icd10.not_found': 'Không tìm thấy mã ICD-10 phù hợp. Vui lòng chọn từ danh sách gợi ý.',
 
   'error.encounter.not_found': 'Không tìm thấy lượt khám.',
   'error.encounter.invalid_status': 'Trạng thái lượt khám không hợp lệ.',
@@ -42,6 +44,7 @@ const ERROR_MESSAGES = {
   'error.bed.not_available': 'Giường không còn trống.',
   'error.admission.not_found': 'Không tìm thấy đợt nhập viện.',
   'error.admission.already_discharged': 'Đợt nhập viện này đã xuất viện.',
+  'error.admission.already_active': 'Bệnh nhân này đang có một đợt nhập viện chưa xuất viện.',
   'error.progress_note.not_found': 'Không tìm thấy diễn biến bệnh.',
   'error.nursing_log.not_found': 'Không tìm thấy nhật ký điều dưỡng.',
   'error.invoice.not_found': 'Không tìm thấy hóa đơn.',

@@ -102,6 +102,16 @@ const INVOICE_STATUS = {
   cancelled: 'Đã hủy',
 };
 
+const ATTACHMENT_CATEGORY = {
+  document: 'Giấy tờ',
+  xray: 'X-quang',
+  ct: 'CT',
+  mri: 'MRI',
+  ultrasound: 'Siêu âm',
+  lab_result: 'Kết quả xét nghiệm',
+  other: 'Khác',
+};
+
 function translate(map, value) {
   if (!value) return '—';
   return map[value] ?? value;
@@ -122,3 +132,5 @@ export const shiftTypeLabel = value => translate(SHIFT_TYPE, value);
 export const leaveStatusLabel = value => translate(LEAVE_STATUS, value);
 export const userStatusLabel = value => translate(USER_STATUS, value);
 export const invoiceStatusLabel = value => translate(INVOICE_STATUS, value);
+export const attachmentCategoryLabel = value => translate(ATTACHMENT_CATEGORY, value);
+export const ATTACHMENT_CATEGORIES = Object.keys(ATTACHMENT_CATEGORY);
