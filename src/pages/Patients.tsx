@@ -46,6 +46,35 @@ function todayDateInput() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function SortableHead({
+  label,
+  column,
+  sortBy,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  column: string;
+  sortBy: string;
+  sortDir: 'asc' | 'desc';
+  onSort: (column: string) => void;
+}) {
+  const active = sortBy === column;
+  const icon = active ? (sortDir === 'asc' ? 'fa6-solid:sort-up' : 'fa6-solid:sort-down') : 'fa6-solid:sort';
+  return (
+    <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className="flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs font-bold text-[#6c757d] uppercase"
+      >
+        {label}
+        <Icon icon={icon} className={active ? 'text-[#307bc4]' : 'text-[#6c757d]/50'} />
+      </button>
+    </TableHead>
+  );
+}
+
 const GENDERS = ['male', 'female', 'other'];
 const EMPTY_FORM = {
   fullname: '',
@@ -66,31 +95,49 @@ export default function Patients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const fetchPatients = useCallback(async (keyword: string) => {
+  const fetchPatients = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const result = await searchPatients({ q: keyword || undefined, page: 1, limit: 20 });
+      const result = await searchPatients({
+        q: appliedSearch || undefined,
+        page: 1,
+        limit: 20,
+        sort_by: sortBy || undefined,
+        sort_dir: sortBy ? sortDir : undefined,
+      });
       setPatients(result.data ?? []);
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [appliedSearch, sortBy, sortDir]);
 
   useEffect(() => {
-    fetchPatients('');
+    fetchPatients();
   }, [fetchPatients]);
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
-    fetchPatients(search.trim());
+    setAppliedSearch(search.trim());
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
   };
 
   const openCreate = () => {
@@ -118,8 +165,8 @@ export default function Patients() {
     }
     setSaving(true);
     try {
-      await createPatient({ ...form, fullname: form.fullname.trim(), date_of_birth: form.date_of_birth ? `${form.date_of_birth}T00:00:00Z` : null });
-      await fetchPatients(search.trim());
+      await createPatient({ ...form, fullname: form.fullname.trim(), date_of_birth: form.date_of_birth || null });
+      await fetchPatients();
       setModalOpen(false);
     } catch (err) {
       setFormError(resolveError(err));
@@ -178,9 +225,9 @@ export default function Patients() {
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">MRN</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Họ tên</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Giới tính</TableHead>
+                <SortableHead label="MRN" column="mrn" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableHead label="Họ tên" column="fullname" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableHead label="Giới tính" column="gender" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">SĐT</TableHead>
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">CCCD</TableHead>
               </TableRow>

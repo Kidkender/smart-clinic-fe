@@ -14,3 +14,8 @@ export async function updateWard(id, name) {
   const { data } = await client.put(`/wards/${id}`, { name });
   return data;
 }
+
+export async function deleteWard(id) {
+  const { data } = await client.delete(`/wards/${id}`);
+  return data;
+}

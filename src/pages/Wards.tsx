@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Icon } from '@iconify/react';
 import { getDepartments } from '@/api/department';
-import { listWards, createWard } from '@/api/ward';
-import { listBeds, createBed, updateBedStatus } from '@/api/bed';
+import { listWards, createWard, deleteWard } from '@/api/ward';
+import { listBeds, createBed, updateBedStatus, deleteBed } from '@/api/bed';
 import { resolveError } from '@/utils/errorMessages';
 import { bedStatusLabel } from '@/utils/labels';
+import useConfirm from '@/hooks/useConfirm';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -48,6 +49,7 @@ export default function Wards() {
 
   const [bedForm, setBedForm] = useState<Record<string, string>>({});
   const [savingBed, setSavingBed] = useState<Record<string, boolean>>({});
+  const [confirm, ConfirmDialog] = useConfirm();
 
   useEffect(() => {
     getDepartments()
@@ -133,6 +135,26 @@ export default function Wards() {
     }
   };
 
+  const handleDeleteWard = async (ward: Ward) => {
+    if (!(await confirm(`Xóa khu điều trị "${ward.Name}"?`, { confirmLabel: 'Xóa' }))) return;
+    try {
+      await deleteWard(ward.ID);
+      await fetchWards(departmentId);
+    } catch (err) {
+      setError(resolveError(err));
+    }
+  };
+
+  const handleDeleteBed = async (bed: Bed) => {
+    if (!(await confirm(`Xóa giường "${bed.BedNumber}"?`, { confirmLabel: 'Xóa' }))) return;
+    try {
+      await deleteBed(bed.ID);
+      await fetchWards(departmentId);
+    } catch (err) {
+      setError(resolveError(err));
+    }
+  };
+
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -191,25 +213,50 @@ export default function Wards() {
       ) : wards.length === 0 ? (
         <div className="p-10 text-center text-[#6c757d]">Chưa có khu điều trị nào trong khoa này.</div>
       ) : (
-        <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(360px,1fr))] gap-5">
+        <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(360px,1fr))] items-start gap-5">
           {wards.map(ward => (
             <Card key={ward.ID} className="rounded-2xl border-[#e8edf2] p-6">
-              <h2 className="m-0 mb-4 text-[17px] font-bold text-[#274760]">{ward.Name}</h2>
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <h2 className="m-0 text-[17px] font-bold text-[#274760]">
+                  {ward.Name}
+                  <span className="ml-2 text-[13px] font-normal text-[#6c757d]">
+                    ({(bedsByWard[ward.ID] ?? []).length} giường)
+                  </span>
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteWard(ward)}
+                  title="Xóa khu điều trị"
+                  className="inline-flex size-[30px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#dc3545]"
+                >
+                  <Icon icon="fa6-solid:trash" className="text-[13px]" />
+                </button>
+              </div>
               {(bedsByWard[ward.ID] ?? []).length === 0 ? (
                 <p className="text-sm text-[#6c757d]">Chưa có giường nào.</p>
               ) : (
-                <ul className="m-0 mb-3.5 list-none p-0">
+                <ul className="m-0 mb-3.5 max-h-[320px] list-none overflow-y-auto p-0">
                   {(bedsByWard[ward.ID] ?? []).map(bed => (
                     <li key={bed.ID} className="flex items-center justify-between gap-2.5 border-b border-[#f0f4f8] py-2.5">
                       <span className="font-semibold text-[#274760]">Giường {bed.BedNumber}</span>
-                      <Select value={bed.Status} onValueChange={value => handleBedStatus(bed, value)}>
-                        <SelectTrigger className="h-auto w-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {BED_STATUSES.map(s => <SelectItem key={s} value={s}>{bedStatusLabel(s)}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-2">
+                        <Select value={bed.Status} onValueChange={value => handleBedStatus(bed, value)}>
+                          <SelectTrigger className="h-auto w-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {BED_STATUSES.map(s => <SelectItem key={s} value={s}>{bedStatusLabel(s)}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBed(bed)}
+                          title="Xóa giường"
+                          className="inline-flex size-[30px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#dc3545]"
+                        >
+                          <Icon icon="fa6-solid:trash" className="text-[13px]" />
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -234,6 +281,8 @@ export default function Wards() {
           ))}
         </div>
       )}
+
+      {ConfirmDialog}
     </>
   );
 }

@@ -55,6 +55,36 @@ const ORDER_TYPE = {
   endoscopy: 'Nội soi',
 };
 
+const LAB_TEST_CATEGORY = {
+  hematology: 'Huyết học',
+  biochemistry: 'Sinh hóa',
+  immunology: 'Miễn dịch',
+  microbiology: 'Vi sinh',
+  other: 'Khác',
+};
+
+const LAB_SPECIMEN_STATUS = {
+  pending_collection: 'Chờ lấy mẫu',
+  collected: 'Đã lấy mẫu',
+  received: 'Đã nhận mẫu',
+  verified: 'Đã duyệt',
+  cancelled: 'Đã hủy',
+};
+
+const LAB_RESULT_FLAG = {
+  pending: 'Chưa có kết quả',
+  normal: 'Bình thường',
+  low: 'Thấp',
+  high: 'Cao',
+  abnormal: 'Bất thường',
+};
+
+const LAB_RESULT_STATUS = {
+  pending: 'Chờ thực hiện',
+  resulted: 'Đã có kết quả',
+  verified: 'Đã duyệt',
+};
+
 const INTERACTION_SEVERITY = {
   minor: 'Nhẹ',
   moderate: 'Trung bình',
@@ -124,6 +154,11 @@ export const encounterTypeLabel = value => translate(ENCOUNTER_TYPE, value);
 export const prescriptionStatusLabel = value => translate(PRESCRIPTION_STATUS, value);
 export const orderStatusLabel = value => translate(ORDER_STATUS, value);
 export const orderTypeLabel = value => translate(ORDER_TYPE, value);
+export const labTestCategoryLabel = value => translate(LAB_TEST_CATEGORY, value);
+export const labSpecimenStatusLabel = value => translate(LAB_SPECIMEN_STATUS, value);
+export const labResultFlagLabel = value => translate(LAB_RESULT_FLAG, value);
+export const labResultStatusLabel = value => translate(LAB_RESULT_STATUS, value);
+export const LAB_TEST_CATEGORIES = Object.keys(LAB_TEST_CATEGORY);
 export const interactionSeverityLabel = value => translate(INTERACTION_SEVERITY, value);
 export const bedStatusLabel = value => translate(BED_STATUS, value);
 export const admissionTypeLabel = value => translate(ADMISSION_TYPE, value);

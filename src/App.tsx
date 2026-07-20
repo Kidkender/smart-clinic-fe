@@ -17,6 +17,8 @@ import Admissions from './pages/Admissions';
 import AdmissionDetail from './pages/AdmissionDetail';
 import Wards from './pages/Wards';
 import Departments from './pages/Departments';
+import LabTests from './pages/LabTests';
+import LabWorklist from './pages/LabWorklist';
 import DoctorSchedules from './pages/DoctorSchedules';
 import Doctors from './pages/Doctors';
 import DoctorDetail from './pages/DoctorDetail';
@@ -84,6 +86,22 @@ function App() {
           element={
             <RequireAuth roles={['admin']}>
               <Departments />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="lab-tests"
+          element={
+            <RequireAuth roles={['admin', 'lab_tech']}>
+              <LabTests />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="lab-worklist"
+          element={
+            <RequireAuth roles={['admin', 'lab_tech', 'nurse', 'doctor']}>
+              <LabWorklist />
             </RequireAuth>
           }
         />

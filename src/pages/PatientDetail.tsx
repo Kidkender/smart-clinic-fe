@@ -205,7 +205,7 @@ export default function PatientDetail() {
     }
     setSaving(true);
     try {
-      await updatePatient(id, { ...form, fullname: form.fullname.trim(), date_of_birth: form.date_of_birth ? `${form.date_of_birth}T00:00:00Z` : null });
+      await updatePatient(id, { ...form, fullname: form.fullname.trim(), date_of_birth: form.date_of_birth || null });
       const p = await getPatientById(id);
       setPatient(p.data);
       setEditOpen(false);

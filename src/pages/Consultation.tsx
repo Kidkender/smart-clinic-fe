@@ -7,6 +7,7 @@ import { searchIcd10 } from '@/api/icd10';
 import { createOrder, listOrdersByEncounter, updateOrderStatus } from '@/api/order';
 import { searchDrugs, checkDrugInteractions } from '@/api/drug';
 import { createPrescription, listPrescriptionsByEncounter, updatePrescriptionStatus } from '@/api/prescription';
+import LabOrderPanel from '@/components/LabOrderPanel';
 import { useAuth } from '@/context/AuthContext';
 import { resolveError } from '@/utils/errorMessages';
 import {
@@ -219,7 +220,7 @@ export default function Consultation() {
       <ClinicalNotesSection encounterId={encounterId} notes={encounter.ClinicalNotes} canEdit={canDiagnose} onSaved={loadAll} />
 
       <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(460px,1fr))] gap-5">
-        <OrdersSection encounterId={encounterId} orders={orders} canCreate={canOrder} canUpdateStatus={canUpdateOrderStatus} onChanged={loadAll} />
+        <OrdersSection encounterId={encounterId} orders={orders} canCreate={canOrder} canUpdateStatus={canUpdateOrderStatus} role={role} onChanged={loadAll} />
         <PrescriptionsSection encounterId={encounterId} prescriptions={prescriptions} canCreate={canPrescribe} canUpdateStatus={canUpdatePrescriptionStatus} onChanged={loadAll} />
       </div>
     </>
@@ -496,12 +497,14 @@ function OrdersSection({
   orders,
   canCreate,
   canUpdateStatus,
+  role,
   onChanged,
 }: {
   encounterId: string;
   orders: Order[];
   canCreate: boolean;
   canUpdateStatus: boolean;
+  role: string | null;
   onChanged: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -577,6 +580,7 @@ function OrdersSection({
                 </div>
               )}
               {o.ResultSummary && <div className="mt-1.5 text-[13px] text-[#6c757d]">Kết quả: {o.ResultSummary}</div>}
+              {o.Type === 'lab' && <LabOrderPanel orderId={o.ID} role={role} onOrderChanged={onChanged} />}
             </li>
           ))}
         </ul>

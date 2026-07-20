@@ -14,3 +14,8 @@ export async function updateBedStatus(id, status) {
   const { data } = await client.patch(`/beds/${id}/status`, { status });
   return data;
 }
+
+export async function deleteBed(id) {
+  const { data } = await client.delete(`/beds/${id}`);
+  return data;
+}

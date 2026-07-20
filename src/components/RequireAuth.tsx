@@ -9,7 +9,7 @@ export default function RequireAuth({ roles = [], children }: { roles?: string[]
     return <Navigate to="/login" replace />;
   }
   if (roles.length > 0 && (role == null || !roles.includes(role))) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 }
