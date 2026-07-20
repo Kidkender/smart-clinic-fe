@@ -4,6 +4,7 @@ import { Icon } from '@iconify/react';
 import {
   getAdmissionById, transferAdmission, dischargeAdmission,
   listProgressNotes, addProgressNote, listNursingLogs, addNursingLog,
+  listAdmissionVitals, recordAdmissionVital,
 } from '@/api/admission';
 import { getDepartments } from '@/api/department';
 import { listWards } from '@/api/ward';
@@ -49,6 +50,17 @@ interface NursingLog {
   PerformedAt: string;
 }
 
+interface VitalSign {
+  ID: number | string;
+  Temperature: number;
+  Pulse: number;
+  BloodPressureSystolic: number;
+  BloodPressureDiastolic: number;
+  RespiratoryRate: number;
+  SpO2: number;
+  RecordedAt: string;
+}
+
 interface Admission {
   ID: number | string;
   EncounterID: number | string;
@@ -74,10 +86,12 @@ export default function AdmissionDetail() {
   const canDischarge = ['admin', 'doctor'].includes(role ?? '');
   const canAddProgressNote = ['admin', 'doctor'].includes(role ?? '');
   const canAddNursingLog = ['admin', 'nurse'].includes(role ?? '');
+  const canAddVital = ['admin', 'doctor', 'nurse'].includes(role ?? '');
 
   const [admission, setAdmission] = useState<Admission | null>(null);
   const [progressNotes, setProgressNotes] = useState<ProgressNote[]>([]);
   const [nursingLogs, setNursingLogs] = useState<NursingLog[]>([]);
+  const [vitals, setVitals] = useState<VitalSign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -85,14 +99,16 @@ export default function AdmissionDetail() {
     setLoading(true);
     setError('');
     try {
-      const [a, p, n] = await Promise.all([
+      const [a, p, n, v] = await Promise.all([
         getAdmissionById(id),
         listProgressNotes(id),
         listNursingLogs(id),
+        listAdmissionVitals(id),
       ]);
       setAdmission(a.data);
       setProgressNotes(p.data ?? []);
       setNursingLogs(n.data ?? []);
+      setVitals(v.data ?? []);
     } catch (err) {
       setError(resolveError(err));
     } finally {
@@ -174,6 +190,7 @@ export default function AdmissionDetail() {
       )}
 
       <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(420px,1fr))] gap-5">
+        <VitalSignsSection admissionId={id} vitals={vitals} canAdd={canAddVital && !isDischarged} onAdded={loadAll} />
         <ProgressNotesSection admissionId={id} notes={progressNotes} canAdd={canAddProgressNote && !isDischarged} onAdded={loadAll} />
         <NursingLogsSection admissionId={id} logs={nursingLogs} progressNotes={progressNotes} canAdd={canAddNursingLog && !isDischarged} onAdded={loadAll} />
       </div>
@@ -369,6 +386,109 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
             className="mt-3 h-auto rounded-full bg-[#dc3545] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#dc3545]/90"
           >
             {saving ? 'Đang lưu…' : 'Xác nhận xuất viện'}
+          </Button>
+        </form>
+      )}
+    </Card>
+  );
+}
+
+const EMPTY_VITAL_FORM = {
+  temperature: '', pulse: '', blood_pressure_systolic: '', blood_pressure_diastolic: '', respiratory_rate: '', spo2: '',
+};
+
+interface VitalSignsSectionProps {
+  admissionId: string;
+  vitals: VitalSign[];
+  canAdd: boolean;
+  onAdded: () => Promise<void>;
+}
+
+function VitalSignsSection({ admissionId, vitals, canAdd, onAdded }: VitalSignsSectionProps) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(EMPTY_VITAL_FORM);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+    setSaving(true);
+    try {
+      await recordAdmissionVital(admissionId, {
+        temperature: Number(form.temperature) || 0,
+        pulse: Number(form.pulse) || 0,
+        blood_pressure_systolic: Number(form.blood_pressure_systolic) || 0,
+        blood_pressure_diastolic: Number(form.blood_pressure_diastolic) || 0,
+        respiratory_rate: Number(form.respiratory_rate) || 0,
+        spo2: Number(form.spo2) || 0,
+      });
+      setForm(EMPTY_VITAL_FORM);
+      setOpen(false);
+      await onAdded();
+    } catch (err) {
+      setFormError(resolveError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="rounded-2xl border-[#e8edf2] p-6">
+      <SectionHeader title="Sinh hiệu" canAct={canAdd} open={open} onToggle={() => setOpen(o => !o)} actionLabel="Ghi sinh hiệu" />
+      {vitals.length === 0 ? (
+        <p className="text-sm text-[#6c757d]">Chưa có chỉ số sinh hiệu nào.</p>
+      ) : (
+        <ul className="m-0 list-none p-0">
+          {vitals.map(v => (
+            <li key={v.ID} className="flex items-center justify-between gap-2.5 border-b border-[#f0f4f8] py-2.5">
+              <div>
+                <div className="font-semibold text-[#274760]">
+                  {v.Temperature}°C · M {v.Pulse} · HA {v.BloodPressureSystolic}/{v.BloodPressureDiastolic} · NT {v.RespiratoryRate} · SpO2 {v.SpO2}%
+                </div>
+                <div className="text-xs text-[#6c757d]">{new Date(v.RecordedAt).toLocaleString('vi-VN')}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {open && canAdd && (
+        <form onSubmit={handleSubmit} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Nhiệt độ (°C)</label>
+              <Input type="number" step="0.1" value={form.temperature} onChange={e => setForm({ ...form, temperature: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Mạch (lần/phút)</label>
+              <Input type="number" value={form.pulse} onChange={e => setForm({ ...form, pulse: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Huyết áp tâm thu</label>
+              <Input type="number" value={form.blood_pressure_systolic} onChange={e => setForm({ ...form, blood_pressure_systolic: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Huyết áp tâm trương</label>
+              <Input type="number" value={form.blood_pressure_diastolic} onChange={e => setForm({ ...form, blood_pressure_diastolic: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Nhịp thở (lần/phút)</label>
+              <Input type="number" value={form.respiratory_rate} onChange={e => setForm({ ...form, respiratory_rate: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">SpO2 (%)</label>
+              <Input type="number" value={form.spo2} onChange={e => setForm({ ...form, spo2: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
+          </div>
+          {formError && (
+            <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
+          )}
+          <Button
+            type="submit"
+            disabled={saving}
+            className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+          >
+            {saving ? 'Đang lưu…' : 'Lưu sinh hiệu'}
           </Button>
         </form>
       )}

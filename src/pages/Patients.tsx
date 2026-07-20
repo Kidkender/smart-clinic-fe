@@ -4,6 +4,7 @@ import { Icon } from '@iconify/react';
 import { searchPatients, createPatient } from '@/api/patient';
 import { resolveError } from '@/utils/errorMessages';
 import { genderLabel } from '@/utils/labels';
+import { validateFullname, validatePhone } from '@/utils/validation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -101,13 +102,23 @@ export default function Patients() {
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     setFormError('');
+    const fullnameError = validateFullname(form.fullname);
+    if (fullnameError) {
+      setFormError(fullnameError);
+      return;
+    }
+    const phoneError = validatePhone(form.phone);
+    if (phoneError) {
+      setFormError(phoneError);
+      return;
+    }
     if (form.date_of_birth && form.date_of_birth > todayDateInput()) {
       setFormError('Ngày sinh không được ở tương lai.');
       return;
     }
     setSaving(true);
     try {
-      await createPatient({ ...form, date_of_birth: form.date_of_birth ? `${form.date_of_birth}T00:00:00Z` : null });
+      await createPatient({ ...form, fullname: form.fullname.trim(), date_of_birth: form.date_of_birth ? `${form.date_of_birth}T00:00:00Z` : null });
       await fetchPatients(search.trim());
       setModalOpen(false);
     } catch (err) {
@@ -194,7 +205,7 @@ export default function Patients() {
       </Card>
 
       <Dialog open={canManage && modalOpen} onOpenChange={open => { if (!saving) setModalOpen(open); }}>
-        <DialogContent className="max-w-110 rounded-[20px] p-8">
+        <DialogContent className="max-h-[90vh] max-w-110 overflow-y-auto rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Thêm bệnh nhân</DialogTitle>
           </DialogHeader>

@@ -44,3 +44,13 @@ export async function addNursingLog(admissionId, payload) {
   const { data } = await client.post(`/admissions/${admissionId}/nursing-logs`, payload);
   return data;
 }
+
+export async function listAdmissionVitals(admissionId) {
+  const { data } = await client.get(`/admissions/${admissionId}/vitals`);
+  return data;
+}
+
+export async function recordAdmissionVital(admissionId, payload) {
+  const { data } = await client.post(`/admissions/${admissionId}/vitals`, payload);
+  return data;
+}

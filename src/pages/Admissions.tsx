@@ -381,7 +381,7 @@ export default function Admissions() {
               </Button>
               <Button
                 type="submit"
-                disabled={saving || !form.patient_id || !form.department_id || doctors.length === 0}
+                disabled={saving || !form.patient_id || !form.department_id || !form.attending_doctor_id || doctors.length === 0}
                 className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Nhập viện'}

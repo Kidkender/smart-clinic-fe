@@ -8,6 +8,7 @@ import {
 } from '@/api/patient';
 import { resolveError } from '@/utils/errorMessages';
 import { genderLabel, encounterStatusLabel, encounterTypeLabel, prescriptionStatusLabel, orderStatusLabel, orderTypeLabel, attachmentCategoryLabel, ATTACHMENT_CATEGORIES } from '@/utils/labels';
+import { validateFullname, validatePhone } from '@/utils/validation';
 import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { Button } from '@/components/ui/button';
@@ -188,13 +189,23 @@ export default function PatientDetail() {
     e.preventDefault();
     setFormError('');
     if (!form) return;
+    const fullnameError = validateFullname(form.fullname);
+    if (fullnameError) {
+      setFormError(fullnameError);
+      return;
+    }
+    const phoneError = validatePhone(form.phone);
+    if (phoneError) {
+      setFormError(phoneError);
+      return;
+    }
     if (form.date_of_birth && form.date_of_birth > todayDateInput()) {
       setFormError('Ngày sinh không được ở tương lai.');
       return;
     }
     setSaving(true);
     try {
-      await updatePatient(id, { ...form, date_of_birth: form.date_of_birth ? `${form.date_of_birth}T00:00:00Z` : null });
+      await updatePatient(id, { ...form, fullname: form.fullname.trim(), date_of_birth: form.date_of_birth ? `${form.date_of_birth}T00:00:00Z` : null });
       const p = await getPatientById(id);
       setPatient(p.data);
       setEditOpen(false);
@@ -220,12 +231,23 @@ export default function PatientDetail() {
   const handleSaveContact = async (e: FormEvent) => {
     e.preventDefault();
     setContactError('');
+    const fullnameError = validateFullname(contactForm.fullname);
+    if (fullnameError) {
+      setContactError(fullnameError);
+      return;
+    }
+    const phoneError = validatePhone(contactForm.phone);
+    if (phoneError) {
+      setContactError(phoneError);
+      return;
+    }
     setSavingContact(true);
     try {
+      const payload = { ...contactForm, fullname: contactForm.fullname.trim() };
       if (editingContactId) {
-        await updateContact(id, editingContactId, contactForm);
+        await updateContact(id, editingContactId, payload);
       } else {
-        await addContact(id, contactForm);
+        await addContact(id, payload);
       }
       const c = await listContacts(id);
       setContacts(c.data ?? []);

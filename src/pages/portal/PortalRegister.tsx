@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { registerPatient } from '@/api/portal';
 import { resolveError } from '@/utils/errorMessages';
+import { validateFullname, validatePhone } from '@/utils/validation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,9 +23,19 @@ export default function PortalRegister() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    const fullnameError = validateFullname(form.fullname);
+    if (fullnameError) {
+      setError(fullnameError);
+      return;
+    }
+    const phoneError = validatePhone(form.phone, { required: true });
+    if (phoneError) {
+      setError(phoneError);
+      return;
+    }
     setLoading(true);
     try {
-      await registerPatient(form);
+      await registerPatient({ ...form, fullname: form.fullname.trim() });
       setSuccess(true);
       setTimeout(() => navigate('/portal/login'), 1200);
     } catch (err) {
@@ -84,10 +95,12 @@ export default function PortalRegister() {
             </SelectContent>
           </Select>
 
-          <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#134e48]">Số điện thoại</label>
+          <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#134e48]">Số điện thoại *</label>
           <Input
+            required
             value={form.phone}
             onChange={e => setForm({ ...form, phone: e.target.value })}
+            placeholder="VD: 0912345678"
             className="h-auto rounded-xl border-[#d1fae5] px-4 py-3 text-[15px] text-[#134e48]"
           />
 
