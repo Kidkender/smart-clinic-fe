@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { Link } from 'react-router-dom';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { checkIn, getTodayQueue, callNext, updateEncounterStatus } from '@/api/encounter';
 import { getDepartments } from '@/api/department';
 import { searchPatients } from '@/api/patient';
@@ -9,9 +11,11 @@ import { encounterStatusLabel, encounterTypeLabel } from '@/utils/labels';
 import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { cn } from '@/lib/utils';
+import { checkInSchema, type CheckInFormValues } from '@/schemas/queue';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import FieldError from '@/components/FieldError';
 import {
   Select,
   SelectContent,
@@ -72,6 +76,8 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: 'bg-[#dc3545]/10 text-[#dc3545]',
 };
 
+const EMPTY_CHECKIN_FORM: CheckInFormValues = { patient_id: '', type: 'new' };
+
 export default function Queue() {
   const { role } = useAuth();
   // Must match backend role gates: POST /encounters + /encounters/call-next
@@ -89,10 +95,16 @@ export default function Queue() {
   const [modalOpen, setModalOpen] = useState(false);
   const [patientQuery, setPatientQuery] = useState('');
   const [patientResults, setPatientResults] = useState<PatientResult[]>([]);
-  const [form, setForm] = useState({ patient_id: '', type: 'new' });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirm, ConfirmDialog] = useConfirm();
+  const {
+    control, handleSubmit, reset, setValue, watch, formState: { errors },
+  } = useForm<CheckInFormValues>({
+    resolver: zodResolver(checkInSchema),
+    defaultValues: EMPTY_CHECKIN_FORM,
+  });
+  const patientId = watch('patient_id');
 
   const fetchQueue = useCallback(async (deptId: string) => {
     setLoading(true);
@@ -133,19 +145,18 @@ export default function Queue() {
   };
 
   const openCheckIn = () => {
-    setForm({ patient_id: '', type: 'new' });
+    reset(EMPTY_CHECKIN_FORM);
     setPatientQuery('');
     setPatientResults([]);
     setFormError('');
     setModalOpen(true);
   };
 
-  const handleCheckIn = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleCheckIn = handleSubmit(async values => {
     setFormError('');
     setSaving(true);
     try {
-      await checkIn({ patient_id: Number(form.patient_id), department_id: Number(departmentId), type: form.type });
+      await checkIn({ patient_id: Number(values.patient_id), department_id: Number(departmentId), type: values.type });
       await fetchQueue(departmentId);
       setModalOpen(false);
     } catch (err) {
@@ -153,7 +164,7 @@ export default function Queue() {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleCallNext = async () => {
     setCalling(true);
@@ -337,12 +348,13 @@ export default function Queue() {
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Check-in bệnh nhân</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCheckIn}>
+          <form onSubmit={handleCheckIn} noValidate>
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Tìm bệnh nhân *</label>
             <Input
               value={patientQuery}
               onChange={handlePatientSearch}
               placeholder="Nhập tên, SĐT, CCCD, MRN…"
+              aria-invalid={!!errors.patient_id}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
             {patientResults.length > 0 && (
@@ -350,10 +362,10 @@ export default function Queue() {
                 {patientResults.map(p => (
                   <div
                     key={p.ID}
-                    onClick={() => { setForm({ ...form, patient_id: String(p.ID) }); setPatientQuery(`${p.Fullname} (${p.MRN})`); setPatientResults([]); }}
+                    onClick={() => { setValue('patient_id', String(p.ID), { shouldValidate: true }); setPatientQuery(`${p.Fullname} (${p.MRN})`); setPatientResults([]); }}
                     className={cn(
                       'cursor-pointer px-3.5 py-2.5 text-sm text-[#274760]',
-                      String(form.patient_id) === String(p.ID) ? 'bg-[#f4f7fa]' : 'bg-white',
+                      String(patientId) === String(p.ID) ? 'bg-[#f4f7fa]' : 'bg-white',
                     )}
                   >
                     {p.Fullname} <span className="text-[#6c757d]">· {p.MRN}</span>
@@ -361,19 +373,26 @@ export default function Queue() {
                 ))}
               </div>
             )}
-            {form.patient_id && (
-              <div className="mt-1.5 text-[13px] text-[#198754]">Đã chọn bệnh nhân #{form.patient_id}</div>
+            {patientId && (
+              <div className="mt-1.5 text-[13px] text-[#198754]">Đã chọn bệnh nhân #{patientId}</div>
             )}
+            <FieldError message={errors.patient_id?.message} />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Loại khám *</label>
-            <Select value={form.type} onValueChange={value => setForm({ ...form, type: value })}>
-              <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="type"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
 
             {formError && (
               <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
@@ -393,7 +412,7 @@ export default function Queue() {
               </Button>
               <Button
                 type="submit"
-                disabled={saving || !form.patient_id}
+                disabled={saving || !patientId}
                 className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Check-in'}

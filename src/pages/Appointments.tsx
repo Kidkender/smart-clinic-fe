@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { searchAppointments, createAppointment, cancelAppointment, markNoShow, checkInAppointment } from '@/api/appointment';
 import { searchPatients } from '@/api/patient';
 import { getDepartments, getDoctorsByDepartment } from '@/api/department';
@@ -10,9 +12,11 @@ import { appointmentStatusLabel } from '@/utils/labels';
 import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { cn } from '@/lib/utils';
+import { appointmentSchema, type AppointmentFormValues } from '@/schemas/appointment';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import FieldError from '@/components/FieldError';
 import {
   Select,
   SelectContent,
@@ -81,6 +85,10 @@ const STATUS_STYLES: Record<string, string> = {
 
 const PAGE_LIMIT = 20;
 
+const EMPTY_APPOINTMENT_FORM: AppointmentFormValues = {
+  patient_id: '', department_id: '', doctor_id: '', scheduled_at: '', reason: '',
+};
+
 const CHECKIN_TYPES = [
   { value: 'new', label: 'Khám mới' },
   { value: 'follow_up', label: 'Tái khám' },
@@ -103,9 +111,18 @@ export default function Appointments() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ patient_id: '', department_id: '', doctor_id: '', scheduled_at: '', reason: '' });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const {
+    control, handleSubmit, reset, setValue, watch, formState: { errors },
+  } = useForm<AppointmentFormValues>({
+    resolver: zodResolver(appointmentSchema),
+    defaultValues: EMPTY_APPOINTMENT_FORM,
+  });
+  const patientId = watch('patient_id');
+  const departmentIdValue = watch('department_id');
+  const doctorId = watch('doctor_id');
+  const scheduledAt = watch('scheduled_at');
   const [slotDate, setSlotDate] = useState('');
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -189,7 +206,7 @@ export default function Appointments() {
 
   const openCreate = () => {
     const departmentId = String(departments[0]?.ID ?? '');
-    setForm({ patient_id: '', department_id: departmentId, doctor_id: '', scheduled_at: '', reason: '' });
+    reset({ ...EMPTY_APPOINTMENT_FORM, department_id: departmentId });
     setFormError('');
     setSlotDate('');
     setSlots([]);
@@ -205,7 +222,9 @@ export default function Appointments() {
   };
 
   const handleDepartmentChange = async (departmentId: string) => {
-    setForm(f => ({ ...f, department_id: departmentId, doctor_id: '', scheduled_at: '' }));
+    setValue('department_id', departmentId, { shouldValidate: true });
+    setValue('doctor_id', '');
+    setValue('scheduled_at', '');
     setSlotDate('');
     setSlots([]);
     if (!departmentId) {
@@ -221,7 +240,8 @@ export default function Appointments() {
   };
 
   const handleDoctorChange = (doctorId: string) => {
-    setForm(f => ({ ...f, doctor_id: doctorId, scheduled_at: '' }));
+    setValue('doctor_id', doctorId);
+    setValue('scheduled_at', '');
     setSlotDate('');
     setSlots([]);
   };
@@ -229,10 +249,10 @@ export default function Appointments() {
   const handleSlotDateChange = async (date: string) => {
     setSlotDate(date);
     setSlots([]);
-    if (!date || !form.doctor_id) return;
+    if (!date || !doctorId) return;
     setLoadingSlots(true);
     try {
-      const result = await getAvailableSlots(form.doctor_id, date);
+      const result = await getAvailableSlots(doctorId, date);
       setSlots(result.data ?? []);
     } catch {
       setSlots([]);
@@ -242,7 +262,7 @@ export default function Appointments() {
   };
 
   const handlePickSlot = (slot: Slot) => {
-    setForm(f => ({ ...f, scheduled_at: toLocalDateTimeInput(slot.start_time) }));
+    setValue('scheduled_at', toLocalDateTimeInput(slot.start_time), { shouldValidate: true });
   };
 
   const handlePatientSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,46 +282,28 @@ export default function Appointments() {
 
   const handleSelectPatient = (patient: PatientOption) => {
     setSelectedPatient(patient);
-    setForm(f => ({ ...f, patient_id: String(patient.ID) }));
+    setValue('patient_id', String(patient.ID), { shouldValidate: true });
     setPatientQuery('');
     setPatientResults([]);
   };
 
   const handleClearPatient = () => {
     setSelectedPatient(null);
-    setForm(f => ({ ...f, patient_id: '' }));
+    setValue('patient_id', '', { shouldValidate: true });
     setPatientQuery('');
     setPatientResults([]);
   };
 
-  const handleCreate = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleCreate = handleSubmit(async values => {
     setFormError('');
-    if (!form.patient_id) {
-      setFormError('Vui lòng chọn bệnh nhân.');
-      return;
-    }
-    if (!form.scheduled_at) {
-      setFormError(
-        form.doctor_id
-          ? 'Bác sĩ không có khung giờ trống ngày này. Vui lòng chọn ngày khác hoặc bỏ chọn bác sĩ.'
-          : 'Vui lòng chọn thời gian hẹn.',
-      );
-      return;
-    }
-    const scheduledDate = new Date(form.scheduled_at);
-    if (Number.isNaN(scheduledDate.getTime())) {
-      setFormError('Thời gian hẹn không hợp lệ.');
-      return;
-    }
     setSaving(true);
     try {
       await createAppointment({
-        patient_id: Number(form.patient_id),
-        department_id: Number(form.department_id),
-        doctor_id: form.doctor_id ? Number(form.doctor_id) : undefined,
-        scheduled_at: scheduledDate.toISOString(),
-        reason: form.reason,
+        patient_id: Number(values.patient_id),
+        department_id: Number(values.department_id),
+        doctor_id: values.doctor_id ? Number(values.doctor_id) : undefined,
+        scheduled_at: new Date(values.scheduled_at).toISOString(),
+        reason: values.reason,
       });
       await fetchAppointments();
       setModalOpen(false);
@@ -310,7 +312,7 @@ export default function Appointments() {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleCancel = async (appt: Appointment) => {
     if (!(await confirm('Hủy lịch hẹn này?', { confirmLabel: 'Hủy lịch' }))) return;
@@ -562,7 +564,7 @@ export default function Appointments() {
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Đặt lịch hẹn</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCreate}>
+          <form onSubmit={handleCreate} noValidate>
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Bệnh nhân *</label>
             {selectedPatient ? (
               <div className="flex items-center justify-between rounded-xl border border-[#dde2e8] px-4 py-3">
@@ -583,6 +585,7 @@ export default function Appointments() {
                   value={patientQuery}
                   onChange={handlePatientSearch}
                   placeholder="Nhập tên, SĐT, CCCD, MRN…"
+                  aria-invalid={!!errors.patient_id}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
                 {patientResults.length > 0 && (
@@ -600,31 +603,45 @@ export default function Appointments() {
                 )}
               </>
             )}
+            <FieldError message={errors.patient_id?.message} />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Khoa *</label>
-            <Select value={form.department_id} onValueChange={handleDepartmentChange}>
-              <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                <SelectValue placeholder="-- Chọn khoa --" />
-              </SelectTrigger>
-              <SelectContent>
-                {departments.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="department_id"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={handleDepartmentChange}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                    <SelectValue placeholder="-- Chọn khoa --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={errors.department_id?.message} />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Bác sĩ (tùy chọn)</label>
-            <Select value={form.doctor_id} onValueChange={handleDoctorChange} disabled={doctors.length === 0}>
-              <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                <SelectValue placeholder="-- Không chỉ định bác sĩ --" />
-              </SelectTrigger>
-              <SelectContent>
-                {doctors.map(doc => <SelectItem key={doc.id} value={String(doc.id)}>{doc.fullname}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {form.department_id && doctors.length === 0 && (
+            <Controller
+              control={control}
+              name="doctor_id"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={handleDoctorChange} disabled={doctors.length === 0}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                    <SelectValue placeholder="-- Không chỉ định bác sĩ --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctors.map(doc => <SelectItem key={doc.id} value={String(doc.id)}>{doc.fullname}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {departmentIdValue && doctors.length === 0 && (
               <p className="mt-1.5 text-[13px] text-[#6c757d]">Khoa này chưa có bác sĩ nào.</p>
             )}
 
-            {form.doctor_id && (
+            {doctorId && (
               <>
                 <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Chọn ngày để xem khung giờ trống</label>
                 <Input
@@ -640,7 +657,7 @@ export default function Appointments() {
                 {slots.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {slots.map(slot => {
-                      const isSelected = form.scheduled_at === toLocalDateTimeInput(slot.start_time);
+                      const isSelected = scheduledAt === toLocalDateTimeInput(slot.start_time);
                       return (
                         <button
                           key={slot.start_time}
@@ -661,30 +678,43 @@ export default function Appointments() {
             )}
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Thời gian hẹn *</label>
-            <Input
-              required
-              type="datetime-local"
-              value={form.scheduled_at}
-              onChange={e => setForm({ ...form, scheduled_at: e.target.value })}
-              readOnly={!!form.doctor_id}
-              className={cn(
-                'h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]',
-                form.doctor_id && 'cursor-not-allowed bg-[#f4f7fa] text-[#6c757d]',
+            <Controller
+              control={control}
+              name="scheduled_at"
+              render={({ field }) => (
+                <Input
+                  type="datetime-local"
+                  value={field.value}
+                  onChange={field.onChange}
+                  readOnly={!!doctorId}
+                  aria-invalid={!!errors.scheduled_at}
+                  className={cn(
+                    'h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]',
+                    doctorId && 'cursor-not-allowed bg-[#f4f7fa] text-[#6c757d]',
+                  )}
+                />
               )}
             />
-            {form.doctor_id && (
+            <FieldError message={errors.scheduled_at?.message} />
+            {doctorId && (
               <p className="mt-1.5 text-[13px] text-[#6c757d]">
-                {form.scheduled_at
+                {scheduledAt
                   ? 'Đã chỉ định bác sĩ — chọn khung giờ khác ở trên nếu muốn đổi.'
                   : 'Vui lòng chọn một khung giờ trống ở trên để điền giờ hẹn.'}
               </p>
             )}
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Lý do khám</label>
-            <Input
-              value={form.reason}
-              onChange={e => setForm({ ...form, reason: e.target.value })}
-              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+            <Controller
+              control={control}
+              name="reason"
+              render={({ field }) => (
+                <Input
+                  value={field.value}
+                  onChange={field.onChange}
+                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                />
+              )}
             />
 
             {formError && (
@@ -705,7 +735,7 @@ export default function Appointments() {
               </Button>
               <Button
                 type="submit"
-                disabled={saving || !form.patient_id || !form.department_id || !form.scheduled_at}
+                disabled={saving || !patientId || !departmentIdValue || !scheduledAt}
                 className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Đặt lịch'}

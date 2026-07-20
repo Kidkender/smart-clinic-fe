@@ -1,14 +1,19 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { getDepartments } from '@/api/department';
 import { listDoctors, upsertDoctorProfile } from '@/api/doctor';
 import { resolveError } from '@/utils/errorMessages';
 import { userStatusLabel } from '@/utils/labels';
+import { doctorProfileSchema, type DoctorProfileFormValues } from '@/schemas/doctor';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import FieldError from '@/components/FieldError';
 import {
   Select,
   SelectContent,
@@ -54,7 +59,7 @@ interface Doctor {
   profile?: DoctorProfile;
 }
 
-const EMPTY_PROFILE_FORM = {
+const EMPTY_PROFILE_FORM: DoctorProfileFormValues = {
   specialty: '',
   license_no: '',
   qualification: '',
@@ -72,9 +77,14 @@ export default function Doctors() {
   const [error, setError] = useState('');
 
   const [modalDoctor, setModalDoctor] = useState<Doctor | null>(null);
-  const [profileForm, setProfileForm] = useState(EMPTY_PROFILE_FORM);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const {
+    register, handleSubmit, reset, formState: { errors },
+  } = useForm<DoctorProfileFormValues>({
+    resolver: zodResolver(doctorProfileSchema),
+    defaultValues: EMPTY_PROFILE_FORM,
+  });
 
   useEffect(() => {
     getDepartments().then(r => setDepartments(r.data ?? [])).catch(() => setDepartments([]));
@@ -105,7 +115,7 @@ export default function Doctors() {
     departments.find(d => String(d.ID) === String(id))?.Name ?? '—';
 
   const openProfile = (doctor: Doctor) => {
-    setProfileForm({
+    reset({
       specialty: doctor.profile?.Specialty ?? '',
       license_no: doctor.profile?.LicenseNo ?? '',
       qualification: doctor.profile?.Qualification ?? '',
@@ -121,18 +131,17 @@ export default function Doctors() {
     setModalDoctor(null);
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleProfileSubmit = handleSubmit(async values => {
     if (!modalDoctor) return;
     setFormError('');
     setSaving(true);
     try {
       await upsertDoctorProfile(modalDoctor.ID, {
-        specialty: profileForm.specialty.trim(),
-        license_no: profileForm.license_no.trim(),
-        qualification: profileForm.qualification.trim(),
-        years_experience: Number(profileForm.years_experience),
-        bio: profileForm.bio.trim(),
+        specialty: values.specialty.trim(),
+        license_no: values.license_no.trim(),
+        qualification: values.qualification.trim(),
+        years_experience: values.years_experience,
+        bio: values.bio.trim(),
       });
       await fetchDoctors();
       setModalDoctor(null);
@@ -141,7 +150,7 @@ export default function Doctors() {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   return (
     <>
@@ -253,22 +262,21 @@ export default function Doctors() {
               Hồ sơ chuyên môn — {modalDoctor?.Fullname}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleProfileSubmit} noValidate>
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Chuyên khoa *</label>
             <Input
-              required
-              value={profileForm.specialty}
-              onChange={e => setProfileForm({ ...profileForm, specialty: e.target.value })}
+              {...register('specialty')}
               placeholder="VD: Tim mạch"
+              aria-invalid={!!errors.specialty}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.specialty?.message} />
 
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số CCHN</label>
                 <Input
-                  value={profileForm.license_no}
-                  onChange={e => setProfileForm({ ...profileForm, license_no: e.target.value })}
+                  {...register('license_no')}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
               </div>
@@ -277,27 +285,26 @@ export default function Doctors() {
                 <Input
                   type="number"
                   min={0}
-                  value={profileForm.years_experience}
-                  onChange={e => setProfileForm({ ...profileForm, years_experience: Number(e.target.value) })}
+                  {...register('years_experience', { valueAsNumber: true })}
+                  aria-invalid={!!errors.years_experience}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
+                <FieldError message={errors.years_experience?.message} />
               </div>
             </div>
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Bằng cấp/Chứng chỉ</label>
             <Input
-              value={profileForm.qualification}
-              onChange={e => setProfileForm({ ...profileForm, qualification: e.target.value })}
+              {...register('qualification')}
               placeholder="VD: Tiến sĩ Y khoa, ĐH Y Hà Nội"
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giới thiệu</label>
-            <textarea
-              value={profileForm.bio}
-              onChange={e => setProfileForm({ ...profileForm, bio: e.target.value })}
+            <Textarea
+              {...register('bio')}
               rows={3}
-              className="w-full rounded-xl border border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760] outline-none focus:border-[#307bc4]"
+              className="rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
 
             {formError && (

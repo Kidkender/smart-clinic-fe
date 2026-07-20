@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { searchPatients, createPatient } from '@/api/patient';
 import { resolveError } from '@/utils/errorMessages';
 import { genderLabel } from '@/utils/labels';
-import { validateFullname, validatePhone } from '@/utils/validation';
+import { patientSchema, type PatientFormValues } from '@/schemas/patient';
 import { useAuth } from '@/context/AuthContext';
+import FieldError from '@/components/FieldError';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,10 +45,6 @@ interface Patient {
   CCCD: string;
 }
 
-function todayDateInput() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function SortableHead({
   label,
   column,
@@ -76,7 +75,7 @@ function SortableHead({
 }
 
 const GENDERS = ['male', 'female', 'other'];
-const EMPTY_FORM = {
+const EMPTY_FORM: PatientFormValues = {
   fullname: '',
   gender: 'other',
   phone: '',
@@ -99,9 +98,14 @@ export default function Patients() {
   const [sortBy, setSortBy] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const {
+    register, handleSubmit, control, reset, formState: { errors },
+  } = useForm<PatientFormValues>({
+    resolver: zodResolver(patientSchema),
+    defaultValues: EMPTY_FORM,
+  });
 
   const fetchPatients = useCallback(async () => {
     setLoading(true);
@@ -141,31 +145,20 @@ export default function Patients() {
   };
 
   const openCreate = () => {
-    setForm(EMPTY_FORM);
+    reset(EMPTY_FORM);
     setFormError('');
     setModalOpen(true);
   };
 
-  const handleCreate = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleCreate = handleSubmit(async values => {
     setFormError('');
-    const fullnameError = validateFullname(form.fullname);
-    if (fullnameError) {
-      setFormError(fullnameError);
-      return;
-    }
-    const phoneError = validatePhone(form.phone);
-    if (phoneError) {
-      setFormError(phoneError);
-      return;
-    }
-    if (form.date_of_birth && form.date_of_birth > todayDateInput()) {
-      setFormError('Ngày sinh không được ở tương lai.');
-      return;
-    }
     setSaving(true);
     try {
-      await createPatient({ ...form, fullname: form.fullname.trim(), date_of_birth: form.date_of_birth || null });
+      await createPatient({
+        ...values,
+        fullname: values.fullname.trim(),
+        date_of_birth: values.date_of_birth || null,
+      });
       await fetchPatients();
       setModalOpen(false);
     } catch (err) {
@@ -173,7 +166,7 @@ export default function Patients() {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   return (
     <>
@@ -252,64 +245,79 @@ export default function Patients() {
       </Card>
 
       <Dialog open={canManage && modalOpen} onOpenChange={open => { if (!saving) setModalOpen(open); }}>
-        <DialogContent className="max-h-[90vh] max-w-110 overflow-y-auto rounded-[20px] p-8">
+        <DialogContent className="max-h-[90vh] sm:max-w-[440px] overflow-y-auto rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Thêm bệnh nhân</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCreate}>
+          <form onSubmit={handleCreate} noValidate>
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Họ tên *</label>
             <Input
-              required
-              value={form.fullname}
-              onChange={e => setForm({ ...form, fullname: e.target.value })}
+              {...register('fullname')}
+              placeholder="Nguyễn Văn A"
+              aria-invalid={!!errors.fullname}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.fullname?.message} />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giới tính *</label>
-            <Select value={form.gender} onValueChange={value => setForm({ ...form, gender: value })}>
-              <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {GENDERS.map(g => <SelectItem key={g} value={g}>{genderLabel(g)}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={control}
+              name="gender"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENDERS.map(g => <SelectItem key={g} value={g}>{genderLabel(g)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={errors.gender?.message} />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số điện thoại</label>
             <Input
-              value={form.phone}
-              onChange={e => setForm({ ...form, phone: e.target.value })}
+              {...register('phone')}
+              placeholder="0912345678"
+              aria-invalid={!!errors.phone}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.phone?.message} />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">CCCD</label>
             <Input
-              value={form.cccd}
-              onChange={e => setForm({ ...form, cccd: e.target.value })}
+              {...register('cccd')}
+              placeholder="079..."
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Địa chỉ</label>
             <Input
-              value={form.address}
-              onChange={e => setForm({ ...form, address: e.target.value })}
+              {...register('address')}
+              placeholder="Số nhà, đường, phường/xã…"
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Ngày sinh</label>
-            <DateOfBirthSelect value={form.date_of_birth} onChange={value => setForm({ ...form, date_of_birth: value })} />
+            <Controller
+              control={control}
+              name="date_of_birth"
+              render={({ field }) => <DateOfBirthSelect value={field.value} onChange={field.onChange} />}
+            />
+            <FieldError message={errors.date_of_birth?.message} />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số BHYT</label>
             <Input
-              value={form.insurance_number}
-              onChange={e => setForm({ ...form, insurance_number: e.target.value })}
+              {...register('insurance_number')}
+              placeholder="DN4xxxxxxxxxx"
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Tiền sử dị ứng</label>
             <Input
-              value={form.allergies}
-              onChange={e => setForm({ ...form, allergies: e.target.value })}
+              {...register('allergies')}
+              placeholder="VD: Penicillin, hải sản…"
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
 

@@ -1,29 +1,37 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { forgotPasswordApi } from '@/api/auth';
 import { resolveError } from '@/utils/errorMessages';
+import { forgotPasswordSchema, type ForgotPasswordFormValues } from '@/schemas/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import FieldError from '@/components/FieldError';
 
 export default function ForgotPassword() {
-  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const {
+    register, handleSubmit, formState: { errors },
+  } = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setError('');
     setLoading(true);
     try {
-      await forgotPasswordApi(email);
+      await forgotPasswordApi(values.email);
       setSent(true);
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setLoading(false);
     }
-  };
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f4f7fa] p-5">
@@ -38,16 +46,16 @@ export default function ForgotPassword() {
             Nếu email tồn tại trong hệ thống, yêu cầu đặt lại mật khẩu đã được ghi nhận.
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleFormSubmit} noValidate>
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Email</label>
             <Input
               type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              {...register('email')}
               placeholder="you@smartclinic.local"
+              aria-invalid={!!errors.email}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.email?.message} />
 
             {error && (
               <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">

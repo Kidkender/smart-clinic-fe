@@ -1,28 +1,35 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { loginApi } from '@/api/auth';
 import { resolveError } from '@/utils/errorMessages';
 import { useAuth } from '@/context/AuthContext';
+import { loginSchema, type LoginFormValues } from '@/schemas/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import FieldError from '@/components/FieldError';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [statusDialog, setStatusDialog] = useState<'pending' | 'locked' | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const {
+    register, handleSubmit, formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setError('');
     setLoading(true);
     try {
-      const result = await loginApi(email, password);
+      const result = await loginApi(values.email, values.password);
       login(result.data.access_token, result.data.refresh_token);
       navigate('/dashboard');
     } catch (err: any) {
@@ -37,7 +44,7 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
+  });
 
   return (
     <div className="flex min-h-screen">
@@ -62,28 +69,28 @@ export default function Login() {
         <div className="w-full max-w-[420px] rounded-[20px] bg-white p-10 shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
           <h1 className="mb-1 text-2xl font-bold text-[#1c3a52]">Đăng nhập</h1>
           <p className="mb-7 text-[#6c757d]">Nhập thông tin tài khoản của bạn</p>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleFormSubmit} noValidate>
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Email</label>
             <Input
               type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              {...register('email')}
               placeholder="you@smartclinic.local"
+              aria-invalid={!!errors.email}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.email?.message} />
             <div className="mt-4 mb-1.5 flex items-center justify-between">
               <label className="block text-sm font-semibold text-[#274760]">Mật khẩu</label>
               <Link to="/forgot-password" className="text-sm font-medium text-[#307bc4]">Quên mật khẩu?</Link>
             </div>
             <Input
               type="password"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
+              {...register('password')}
               placeholder="••••••••"
+              aria-invalid={!!errors.password}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.password?.message} />
 
             {error && (
               <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
@@ -113,8 +120,8 @@ export default function Login() {
               <Icon icon="fa6-solid:lock" className="text-xl text-[#dc3545]" />
             </div>
           ) : (
-            <div className="mb-4.5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#d9a406]/12">
-              <Icon icon="fa6-solid:hourglass-half" className="text-xl text-[#b8860b]" />
+            <div className="mb-4.5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#ffc107]/12">
+              <Icon icon="fa6-solid:hourglass-half" className="text-xl text-[#8a6100]" />
             </div>
           )}
           <DialogHeader>

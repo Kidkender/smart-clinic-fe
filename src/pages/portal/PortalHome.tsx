@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   getMyProfile, getPortalDepartments, getPortalDoctors, getPortalAvailableSlots,
   listMyAppointments, bookMyAppointment, cancelMyAppointment,
@@ -15,9 +17,11 @@ import {
 import { usePatientAuth } from '@/context/PatientAuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { cn } from '@/lib/utils';
+import { portalBookingSchema, portalProfileSchema, type PortalBookingFormValues, type PortalProfileFormValues } from '@/schemas/portal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import FieldError from '@/components/FieldError';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -102,13 +106,6 @@ interface Invoice {
   Items?: InvoiceItem[];
 }
 
-interface ProfileForm {
-  phone: string;
-  address: string;
-  insurance_number: string;
-  allergies: string;
-}
-
 interface Attachment {
   ID: number | string;
   FileName: string;
@@ -149,7 +146,15 @@ export default function PortalHome() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ department_id: '', doctor_id: '', reason: '' });
+  const {
+    control: bookingControl, handleSubmit: handleBookingSubmit, reset: resetBooking,
+    setValue: setBookingValue, watch: watchBooking, formState: { errors: bookingErrors },
+  } = useForm<PortalBookingFormValues>({
+    resolver: zodResolver(portalBookingSchema),
+    defaultValues: { department_id: '', doctor_id: '', reason: '' },
+  });
+  const bookingDepartmentId = watchBooking('department_id');
+  const bookingDoctorId = watchBooking('doctor_id');
   const [slotDate, setSlotDate] = useState('');
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -168,10 +173,17 @@ export default function PortalHome() {
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [openingAttachmentId, setOpeningAttachmentId] = useState<number | string | null>(null);
   const [attachmentError, setAttachmentError] = useState('');
-  const [profileForm, setProfileForm] = useState<ProfileForm | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState('');
   const [profileSaved, setProfileSaved] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const {
+    register: registerProfile, handleSubmit: handleProfileSubmit, reset: resetProfile,
+    formState: { errors: profileErrors },
+  } = useForm<PortalProfileFormValues>({
+    resolver: zodResolver(portalProfileSchema),
+    defaultValues: { phone: '', address: '', insurance_number: '', allergies: '' },
+  });
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -179,18 +191,20 @@ export default function PortalHome() {
     try {
       const [me, appts] = await Promise.all([getMyProfile(), listMyAppointments()]);
       setProfile(me.data);
-      setProfileForm({
+      resetProfile({
         phone: me.data.Phone ?? '',
         address: me.data.Address ?? '',
         insurance_number: me.data.InsuranceNumber ?? '',
         allergies: me.data.Allergies ?? '',
       });
+      setProfileLoaded(true);
       setAppointments(appts.data ?? []);
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -204,7 +218,7 @@ export default function PortalHome() {
   };
 
   const openBooking = () => {
-    setForm({ department_id: String(departments[0]?.ID ?? ''), doctor_id: '', reason: '' });
+    resetBooking({ department_id: String(departments[0]?.ID ?? ''), doctor_id: '', reason: '' });
     setDoctors([]);
     setSlotDate('');
     setSlots([]);
@@ -218,7 +232,8 @@ export default function PortalHome() {
   };
 
   const handleDepartmentChange = async (departmentId: string) => {
-    setForm(f => ({ ...f, department_id: departmentId, doctor_id: '' }));
+    setBookingValue('department_id', departmentId, { shouldValidate: true });
+    setBookingValue('doctor_id', '');
     setSlotDate('');
     setSlots([]);
     setSelectedSlot(null);
@@ -236,7 +251,7 @@ export default function PortalHome() {
   };
 
   const handleDoctorChange = (doctorId: string) => {
-    setForm(f => ({ ...f, doctor_id: doctorId }));
+    setBookingValue('doctor_id', doctorId);
     setSlotDate('');
     setSlots([]);
     setSelectedSlot(null);
@@ -247,10 +262,10 @@ export default function PortalHome() {
     setSlotDate(date);
     setSlots([]);
     setSelectedSlot(null);
-    if (!date || !form.doctor_id) return;
+    if (!date || !bookingDoctorId) return;
     setLoadingSlots(true);
     try {
-      const result = await getPortalAvailableSlots(form.doctor_id, date);
+      const result = await getPortalAvailableSlots(bookingDoctorId, date);
       setSlots(result.data ?? []);
     } catch {
       setSlots([]);
@@ -259,12 +274,11 @@ export default function PortalHome() {
     }
   };
 
-  const handleBook = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleBook = handleBookingSubmit(async values => {
     setFormError('');
 
     let scheduledAt: string;
-    if (form.doctor_id) {
+    if (values.doctor_id) {
       if (!selectedSlot) {
         setFormError('Vui lòng chọn một khung giờ.');
         return;
@@ -286,10 +300,10 @@ export default function PortalHome() {
     setSaving(true);
     try {
       await bookMyAppointment({
-        department_id: Number(form.department_id),
-        doctor_id: form.doctor_id ? Number(form.doctor_id) : undefined,
+        department_id: Number(values.department_id),
+        doctor_id: values.doctor_id ? Number(values.doctor_id) : undefined,
         scheduled_at: scheduledAt,
-        reason: form.reason,
+        reason: values.reason,
       });
       await loadAll();
       setModalOpen(false);
@@ -298,7 +312,7 @@ export default function PortalHome() {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleCancel = async (appt: Appointment) => {
     if (!(await confirm('Hủy lịch hẹn này?', { confirmLabel: 'Hủy lịch' }))) return;
@@ -350,14 +364,12 @@ export default function PortalHome() {
     }
   };
 
-  const handleProfileSave = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleProfileSave = handleProfileSubmit(async values => {
     setProfileError('');
     setProfileSaved(false);
-    if (!profileForm) return;
     setSavingProfile(true);
     try {
-      await updateMyProfile(profileForm);
+      await updateMyProfile(values);
       const me = await getMyProfile();
       setProfile(me.data);
       setProfileSaved(true);
@@ -366,10 +378,10 @@ export default function PortalHome() {
     } finally {
       setSavingProfile(false);
     }
-  };
+  });
 
-  const canSubmitBooking = !!form.department_id
-    && (form.doctor_id ? !!selectedSlot : !!(manualDate && manualTime));
+  const canSubmitBooking = !!bookingDepartmentId
+    && (bookingDoctorId ? !!selectedSlot : !!(manualDate && manualTime));
 
   return (
     <div className="min-h-screen bg-[#f0fdfa]">
@@ -591,33 +603,31 @@ export default function PortalHome() {
               </div>
             )}
 
-            {tab === 'profile' && profileForm && (
+            {tab === 'profile' && profileLoaded && (
               <div className="mt-5 max-w-[480px]">
                 <h2 className="m-0 mb-4 text-lg font-bold text-[#134e48]">Hồ sơ của tôi</h2>
                 <Card className="rounded-2xl border-[#d1fae5] p-5">
-                  <form onSubmit={handleProfileSave}>
+                  <form onSubmit={handleProfileSave} noValidate>
                     <label className={PORTAL_LABEL}>Số điện thoại</label>
                     <Input
-                      value={profileForm.phone}
-                      onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })}
+                      {...registerProfile('phone')}
+                      aria-invalid={!!profileErrors.phone}
                       className={PORTAL_INPUT}
                     />
+                    <FieldError message={profileErrors.phone?.message} />
                     <label className={PORTAL_LABEL}>Địa chỉ</label>
                     <Input
-                      value={profileForm.address}
-                      onChange={e => setProfileForm({ ...profileForm, address: e.target.value })}
+                      {...registerProfile('address')}
                       className={PORTAL_INPUT}
                     />
                     <label className={PORTAL_LABEL}>Số thẻ BHYT</label>
                     <Input
-                      value={profileForm.insurance_number}
-                      onChange={e => setProfileForm({ ...profileForm, insurance_number: e.target.value })}
+                      {...registerProfile('insurance_number')}
                       className={PORTAL_INPUT}
                     />
                     <label className={PORTAL_LABEL}>Dị ứng</label>
                     <Input
-                      value={profileForm.allergies}
-                      onChange={e => setProfileForm({ ...profileForm, allergies: e.target.value })}
+                      {...registerProfile('allergies')}
                       className={PORTAL_INPUT}
                     />
 
@@ -648,42 +658,55 @@ export default function PortalHome() {
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#134e48]">Đặt lịch khám</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleBook}>
+          <form onSubmit={handleBook} noValidate>
             <label className={PORTAL_LABEL}>Khoa *</label>
-            <Select value={form.department_id ? String(form.department_id) : ''} onValueChange={handleDepartmentChange}>
-              <SelectTrigger className={cn(PORTAL_INPUT, 'w-full')}>
-                <SelectValue placeholder="-- Chọn khoa --" />
-              </SelectTrigger>
-              <SelectContent>
-                {departments.map(d => (
-                  <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={bookingControl}
+              name="department_id"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={handleDepartmentChange}>
+                  <SelectTrigger className={cn(PORTAL_INPUT, 'w-full')}>
+                    <SelectValue placeholder="-- Chọn khoa --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(d => (
+                      <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={bookingErrors.department_id?.message} />
 
             <label className={PORTAL_LABEL}>Bác sĩ (tùy chọn)</label>
-            <Select
-              value={form.doctor_id ? String(form.doctor_id) : 'any'}
-              onValueChange={value => handleDoctorChange(value === 'any' ? '' : value)}
-              disabled={doctors.length === 0}
-            >
-              <SelectTrigger className={cn(PORTAL_INPUT, 'w-full')}>
-                <SelectValue placeholder="-- Bác sĩ bất kỳ --" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any">-- Bác sĩ bất kỳ --</SelectItem>
-                {doctors.map(doc => (
-                  <SelectItem key={doc.id} value={String(doc.id)}>{doc.fullname}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={bookingControl}
+              name="doctor_id"
+              render={({ field }) => (
+                <Select
+                  value={field.value ? field.value : 'any'}
+                  onValueChange={value => handleDoctorChange(value === 'any' ? '' : value)}
+                  disabled={doctors.length === 0}
+                >
+                  <SelectTrigger className={cn(PORTAL_INPUT, 'w-full')}>
+                    <SelectValue placeholder="-- Bác sĩ bất kỳ --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">-- Bác sĩ bất kỳ --</SelectItem>
+                    {doctors.map(doc => (
+                      <SelectItem key={doc.id} value={String(doc.id)}>{doc.fullname}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
             {doctors.length === 0 && (
               <p className="mt-2 text-[13px] text-[#dc3545]">
                 Khoa này hiện chưa có bác sĩ nào — vui lòng chọn khoa khác.
               </p>
             )}
 
-            {form.doctor_id && (
+            {bookingDoctorId && (
               <>
                 <label className={PORTAL_LABEL}>Chọn ngày khám</label>
                 <Input type="date" value={slotDate} onChange={e => handleSlotDateChange(e.target.value)} className={PORTAL_INPUT} min={new Date().toISOString().slice(0, 10)} />
@@ -725,7 +748,7 @@ export default function PortalHome() {
               </>
             )}
 
-            {!form.doctor_id && form.department_id && (
+            {!bookingDoctorId && bookingDepartmentId && (
               <>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
@@ -757,7 +780,11 @@ export default function PortalHome() {
             )}
 
             <label className={PORTAL_LABEL}>Lý do khám</label>
-            <Input value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} className={PORTAL_INPUT} />
+            <Controller
+              control={bookingControl}
+              name="reason"
+              render={({ field }) => <Input {...field} className={PORTAL_INPUT} />}
+            />
 
             {formError && <div className={cn(PORTAL_ERROR, 'mt-4')}>{formError}</div>}
 

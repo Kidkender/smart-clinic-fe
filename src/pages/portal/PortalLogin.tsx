@@ -1,25 +1,32 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { loginPatient } from '@/api/portal';
 import { resolveError } from '@/utils/errorMessages';
 import { usePatientAuth } from '@/context/PatientAuthContext';
+import { portalLoginSchema, type PortalLoginFormValues } from '@/schemas/portal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import FieldError from '@/components/FieldError';
 
 export default function PortalLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = usePatientAuth();
   const navigate = useNavigate();
+  const {
+    register, handleSubmit, formState: { errors },
+  } = useForm<PortalLoginFormValues>({
+    resolver: zodResolver(portalLoginSchema),
+    defaultValues: { email: '', password: '' },
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setError('');
     setLoading(true);
     try {
-      const result = await loginPatient(email, password);
+      const result = await loginPatient(values.email, values.password);
       login(result.data.access_token);
       navigate('/portal/home');
     } catch (err) {
@@ -27,7 +34,7 @@ export default function PortalLogin() {
     } finally {
       setLoading(false);
     }
-  };
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(160deg,#e6fffa_0%,#f0fdfa_100%)] p-5">
@@ -38,23 +45,23 @@ export default function PortalLogin() {
         </Link>
         <h1 className="mb-1 text-[22px] font-bold text-[#134e48]">Đăng nhập</h1>
         <p className="mb-6 text-sm text-[#6c757d]">Xem và đặt lịch hẹn khám của bạn</p>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleFormSubmit} noValidate>
           <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#134e48]">Email</label>
           <Input
             type="email"
-            required
-            value={email}
-            onChange={e => setEmail(e.target.value)}
+            {...register('email')}
+            aria-invalid={!!errors.email}
             className="h-auto rounded-xl border-[#d1fae5] px-4 py-3 text-[15px] text-[#134e48]"
           />
+          <FieldError message={errors.email?.message} />
           <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#134e48]">Mật khẩu</label>
           <Input
             type="password"
-            required
-            value={password}
-            onChange={e => setPassword(e.target.value)}
+            {...register('password')}
+            aria-invalid={!!errors.password}
             className="h-auto rounded-xl border-[#d1fae5] px-4 py-3 text-[15px] text-[#134e48]"
           />
+          <FieldError message={errors.password?.message} />
 
           {error && (
             <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">

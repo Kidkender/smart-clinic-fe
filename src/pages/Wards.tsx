@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Icon } from '@iconify/react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { getDepartments } from '@/api/department';
 import { listWards, createWard, deleteWard } from '@/api/ward';
 import { listBeds, createBed, updateBedStatus, deleteBed } from '@/api/bed';
 import { resolveError } from '@/utils/errorMessages';
 import { bedStatusLabel } from '@/utils/labels';
 import useConfirm from '@/hooks/useConfirm';
+import { wardSchema, bedSchema, type WardFormValues } from '@/schemas/facility';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import FieldError from '@/components/FieldError';
 import {
   Select,
   SelectContent,
@@ -43,11 +47,17 @@ export default function Wards() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [wardName, setWardName] = useState('');
   const [savingWard, setSavingWard] = useState(false);
   const [wardError, setWardError] = useState('');
+  const {
+    register: registerWard, handleSubmit: handleWardSubmit, reset: resetWard, formState: { errors: wardErrors },
+  } = useForm<WardFormValues>({
+    resolver: zodResolver(wardSchema),
+    defaultValues: { name: '' },
+  });
 
   const [bedForm, setBedForm] = useState<Record<string, string>>({});
+  const [bedFormErrors, setBedFormErrors] = useState<Record<string, string>>({});
   const [savingBed, setSavingBed] = useState<Record<string, boolean>>({});
   const [confirm, ConfirmDialog] = useConfirm();
 
@@ -95,28 +105,31 @@ export default function Wards() {
     if (departmentId) fetchWards(departmentId);
   }, [departmentId, fetchWards]);
 
-  const handleCreateWard = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleCreateWard = handleWardSubmit(async values => {
     setWardError('');
     setSavingWard(true);
     try {
-      await createWard({ department_id: Number(departmentId), name: wardName.trim() });
-      setWardName('');
+      await createWard({ department_id: Number(departmentId), name: values.name.trim() });
+      resetWard({ name: '' });
       await fetchWards(departmentId);
     } catch (err) {
       setWardError(resolveError(err));
     } finally {
       setSavingWard(false);
     }
-  };
+  });
 
   const handleCreateBed = async (wardId: number | string, e: FormEvent) => {
     e.preventDefault();
-    const bedNumber = (bedForm[wardId] ?? '').trim();
-    if (!bedNumber) return;
+    const parsed = bedSchema.safeParse({ bed_number: (bedForm[wardId] ?? '').trim() });
+    if (!parsed.success) {
+      setBedFormErrors({ ...bedFormErrors, [wardId]: parsed.error.issues[0].message });
+      return;
+    }
+    setBedFormErrors({ ...bedFormErrors, [wardId]: '' });
     setSavingBed({ ...savingBed, [wardId]: true });
     try {
-      await createBed({ ward_id: wardId, bed_number: bedNumber });
+      await createBed({ ward_id: wardId, bed_number: parsed.data.bed_number });
       setBedForm({ ...bedForm, [wardId]: '' });
       await fetchWards(departmentId);
     } catch (err) {
@@ -185,14 +198,16 @@ export default function Wards() {
 
       <Card className="rounded-2xl border-[#e8edf2] p-6">
         <h2 className="m-0 mb-4 text-[17px] font-bold text-[#274760]">Thêm khu điều trị mới</h2>
-        <form onSubmit={handleCreateWard} className="flex gap-2.5">
-          <Input
-            required
-            placeholder="Tên khu điều trị (VD: Khu A)"
-            value={wardName}
-            onChange={e => setWardName(e.target.value)}
-            className="h-auto flex-1 rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-          />
+        <form onSubmit={handleCreateWard} noValidate className="flex gap-2.5">
+          <div className="flex-1">
+            <Input
+              {...registerWard('name')}
+              placeholder="Tên khu điều trị (VD: Khu A)"
+              aria-invalid={!!wardErrors.name}
+              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+            />
+            <FieldError message={wardErrors.name?.message} />
+          </div>
           <Button
             type="submit"
             disabled={savingWard || !departmentId}
@@ -241,7 +256,7 @@ export default function Wards() {
                       <span className="font-semibold text-[#274760]">Giường {bed.BedNumber}</span>
                       <div className="flex items-center gap-2">
                         <Select value={bed.Status} onValueChange={value => handleBedStatus(bed, value)}>
-                          <SelectTrigger className="h-auto w-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]">
+                          <SelectTrigger className="h-auto w-auto rounded-xl border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -261,21 +276,25 @@ export default function Wards() {
                   ))}
                 </ul>
               )}
-              <form onSubmit={e => handleCreateBed(ward.ID, e)} className="flex gap-2 border-t border-[#f0f4f8] pt-3">
-                <Input
-                  placeholder="Số giường"
-                  value={bedForm[ward.ID] ?? ''}
-                  onChange={e => setBedForm({ ...bedForm, [ward.ID]: e.target.value })}
-                  className="h-auto flex-1 rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
-                />
-                <Button
-                  type="submit"
-                  variant="outline"
-                  disabled={savingBed[ward.ID]}
-                  className="h-auto rounded-full border-[#dde2e8] px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-[#274760]"
-                >
-                  <Icon icon="fa6-solid:plus" className="mr-1 text-[11px]" />Thêm giường
-                </Button>
+              <form onSubmit={e => handleCreateBed(ward.ID, e)} noValidate className="border-t border-[#f0f4f8] pt-3">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Số giường"
+                    value={bedForm[ward.ID] ?? ''}
+                    onChange={e => setBedForm({ ...bedForm, [ward.ID]: e.target.value })}
+                    aria-invalid={!!bedFormErrors[ward.ID]}
+                    className="h-auto flex-1 rounded-xl border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                  />
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    disabled={savingBed[ward.ID]}
+                    className="h-auto rounded-full border-[#dde2e8] px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-[#274760]"
+                  >
+                    <Icon icon="fa6-solid:plus" className="mr-1 text-[11px]" />Thêm giường
+                  </Button>
+                </div>
+                <FieldError message={bedFormErrors[ward.ID]} />
               </form>
             </Card>
           ))}

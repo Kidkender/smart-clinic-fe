@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { admitPatient, listAdmissions } from '@/api/admission';
 import { getDepartments, getDoctorsByDepartment } from '@/api/department';
 import { listWards } from '@/api/ward';
@@ -10,9 +12,11 @@ import { resolveError } from '@/utils/errorMessages';
 import { admissionTypeLabel } from '@/utils/labels';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import { admissionSchema, type AdmissionFormValues } from '@/schemas/admission';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import FieldError from '@/components/FieldError';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -59,15 +63,6 @@ interface Admission {
   Bed?: { BedNumber?: string };
 }
 
-interface AdmissionForm {
-  patient_id: string;
-  department_id: string;
-  attending_doctor_id: string;
-  admission_type: string;
-  ward_id: string;
-  bed_id: string;
-}
-
 const ADMISSION_TYPES = ['bhyt', 'service', 'insurance_private'];
 
 const STATUS_STYLES: Record<string, string> = {
@@ -75,9 +70,9 @@ const STATUS_STYLES: Record<string, string> = {
   discharged: 'bg-[#6c757d]/10 text-[#6c757d]',
 };
 
-function emptyForm(): AdmissionForm {
-  return { patient_id: '', department_id: '', attending_doctor_id: '', admission_type: 'bhyt', ward_id: '', bed_id: '' };
-}
+const EMPTY_FORM: AdmissionFormValues = {
+  patient_id: '', department_id: '', attending_doctor_id: '', admission_type: 'bhyt', ward_id: '', bed_id: '',
+};
 
 export default function Admissions() {
   const navigate = useNavigate();
@@ -95,9 +90,18 @@ export default function Admissions() {
   const [beds, setBeds] = useState<Bed[]>([]);
   const [patientQuery, setPatientQuery] = useState('');
   const [patientResults, setPatientResults] = useState<PatientResult[]>([]);
-  const [form, setForm] = useState<AdmissionForm>(emptyForm());
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const {
+    control, handleSubmit, reset, setValue, watch, formState: { errors },
+  } = useForm<AdmissionFormValues>({
+    resolver: zodResolver(admissionSchema),
+    defaultValues: EMPTY_FORM,
+  });
+  const wardId = watch('ward_id');
+  const patientId = watch('patient_id');
+  const departmentId = watch('department_id');
+  const attendingDoctorId = watch('attending_doctor_id');
 
   const fetchAdmissions = useCallback(async () => {
     setLoading(true);
@@ -121,7 +125,7 @@ export default function Admissions() {
   }, []);
 
   const openAdmit = () => {
-    setForm(emptyForm());
+    reset(EMPTY_FORM);
     setPatientQuery('');
     setPatientResults([]);
     setDoctors([]);
@@ -144,7 +148,10 @@ export default function Admissions() {
   };
 
   const handleDepartmentChange = async (departmentId: string) => {
-    setForm(f => ({ ...f, department_id: departmentId, attending_doctor_id: '', ward_id: '', bed_id: '' }));
+    setValue('department_id', departmentId, { shouldValidate: true });
+    setValue('attending_doctor_id', '');
+    setValue('ward_id', '');
+    setValue('bed_id', '');
     setBeds([]);
     setFormError('');
     if (!departmentId) {
@@ -170,7 +177,8 @@ export default function Admissions() {
   };
 
   const handleWardChange = async (wardId: string) => {
-    setForm(f => ({ ...f, ward_id: wardId, bed_id: '' }));
+    setValue('ward_id', wardId);
+    setValue('bed_id', '');
     if (!wardId) {
       setBeds([]);
       return;
@@ -183,18 +191,17 @@ export default function Admissions() {
     }
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setFormError('');
     setSaving(true);
     try {
       const admission = await admitPatient({
-        patient_id: Number(form.patient_id),
-        department_id: Number(form.department_id),
-        attending_doctor_id: Number(form.attending_doctor_id),
-        admission_type: form.admission_type,
-        ward_id: form.ward_id ? Number(form.ward_id) : undefined,
-        bed_id: form.bed_id ? Number(form.bed_id) : undefined,
+        patient_id: Number(values.patient_id),
+        department_id: Number(values.department_id),
+        attending_doctor_id: Number(values.attending_doctor_id),
+        admission_type: values.admission_type,
+        ward_id: values.ward_id ? Number(values.ward_id) : undefined,
+        bed_id: values.bed_id ? Number(values.bed_id) : undefined,
       });
       setModalOpen(false);
       await fetchAdmissions();
@@ -204,7 +211,7 @@ export default function Admissions() {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   return (
     <>
@@ -287,12 +294,13 @@ export default function Admissions() {
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Nhập viện</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleFormSubmit} noValidate>
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Tìm bệnh nhân *</label>
             <Input
               value={patientQuery}
               onChange={handlePatientSearch}
               placeholder="Nhập tên, SĐT, CCCD, MRN…"
+              aria-invalid={!!errors.patient_id}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
             {patientResults.length > 0 && (
@@ -300,7 +308,7 @@ export default function Admissions() {
                 {patientResults.map(p => (
                   <div
                     key={p.ID}
-                    onClick={() => { setForm(f => ({ ...f, patient_id: String(p.ID) })); setPatientQuery(`${p.Fullname} (${p.MRN})`); setPatientResults([]); }}
+                    onClick={() => { setValue('patient_id', String(p.ID), { shouldValidate: true }); setPatientQuery(`${p.Fullname} (${p.MRN})`); setPatientResults([]); }}
                     className="cursor-pointer px-3.5 py-2.5 text-sm text-[#274760] hover:bg-[#f4f7fa]"
                   >
                     {p.Fullname} <span className="text-[#6c757d]">· {p.MRN}</span>
@@ -308,58 +316,92 @@ export default function Admissions() {
                 ))}
               </div>
             )}
+            <FieldError message={errors.patient_id?.message} />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Khoa điều trị *</label>
-            <Select value={form.department_id} onValueChange={handleDepartmentChange}>
-              <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                <SelectValue placeholder="-- Chọn khoa --" />
-              </SelectTrigger>
-              <SelectContent>
-                {departments.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Bác sĩ điều trị *</label>
-            <Select value={form.attending_doctor_id} onValueChange={value => setForm(f => ({ ...f, attending_doctor_id: value }))} disabled={doctors.length === 0}>
-              <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                <SelectValue placeholder="-- Chọn bác sĩ --" />
-              </SelectTrigger>
-              <SelectContent>
-                {doctors.map(doc => <SelectItem key={doc.id} value={String(doc.id)}>{doc.fullname}</SelectItem>)}
-              </SelectContent>
-            </Select>
-
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Diện điều trị *</label>
-            <Select value={form.admission_type} onValueChange={value => setForm(f => ({ ...f, admission_type: value }))}>
-              <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ADMISSION_TYPES.map(t => <SelectItem key={t} value={t}>{admissionTypeLabel(t)}</SelectItem>)}
-              </SelectContent>
-            </Select>
-
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Khu điều trị</label>
-            <Select value={form.ward_id} onValueChange={handleWardChange} disabled={wards.length === 0}>
-              <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                <SelectValue placeholder="-- Chưa xếp giường --" />
-              </SelectTrigger>
-              <SelectContent>
-                {wards.map(w => <SelectItem key={w.ID} value={String(w.ID)}>{w.Name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-
-            {form.ward_id && (
-              <>
-                <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giường trống</label>
-                <Select value={form.bed_id} onValueChange={value => setForm(f => ({ ...f, bed_id: value }))}>
+            <Controller
+              control={control}
+              name="department_id"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={handleDepartmentChange}>
                   <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                    <SelectValue placeholder="-- Chưa chọn giường --" />
+                    <SelectValue placeholder="-- Chọn khoa --" />
                   </SelectTrigger>
                   <SelectContent>
-                    {beds.map(b => <SelectItem key={b.ID} value={String(b.ID)}>Giường {b.BedNumber}</SelectItem>)}
+                    {departments.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              )}
+            />
+            <FieldError message={errors.department_id?.message} />
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Bác sĩ điều trị *</label>
+            <Controller
+              control={control}
+              name="attending_doctor_id"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange} disabled={doctors.length === 0}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                    <SelectValue placeholder="-- Chọn bác sĩ --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctors.map(doc => <SelectItem key={doc.id} value={String(doc.id)}>{doc.fullname}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={errors.attending_doctor_id?.message} />
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Diện điều trị *</label>
+            <Controller
+              control={control}
+              name="admission_type"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ADMISSION_TYPES.map(t => <SelectItem key={t} value={t}>{admissionTypeLabel(t)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={errors.admission_type?.message} />
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Khu điều trị</label>
+            <Controller
+              control={control}
+              name="ward_id"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={handleWardChange} disabled={wards.length === 0}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                    <SelectValue placeholder="-- Chưa xếp giường --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wards.map(w => <SelectItem key={w.ID} value={String(w.ID)}>{w.Name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+
+            {wardId && (
+              <>
+                <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giường trống</label>
+                <Controller
+                  control={control}
+                  name="bed_id"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                        <SelectValue placeholder="-- Chưa chọn giường --" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {beds.map(b => <SelectItem key={b.ID} value={String(b.ID)}>Giường {b.BedNumber}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </>
             )}
 
@@ -381,7 +423,7 @@ export default function Admissions() {
               </Button>
               <Button
                 type="submit"
-                disabled={saving || !form.patient_id || !form.department_id || !form.attending_doctor_id || doctors.length === 0}
+                disabled={saving || !patientId || !departmentId || !attendingDoctorId || doctors.length === 0}
                 className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Nhập viện'}

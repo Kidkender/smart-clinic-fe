@@ -1,32 +1,39 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { resetPasswordApi } from '@/api/auth';
 import { resolveError } from '@/utils/errorMessages';
+import { resetPasswordSchema, type ResetPasswordFormValues } from '@/schemas/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import FieldError from '@/components/FieldError';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [token, setToken] = useState(searchParams.get('token') ?? '');
-  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const {
+    register, handleSubmit, formState: { errors },
+  } = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { token: searchParams.get('token') ?? '', newPassword: '' },
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setError('');
     setLoading(true);
     try {
-      await resetPasswordApi(token.trim(), newPassword);
+      await resetPasswordApi(values.token.trim(), values.newPassword);
       setDone(true);
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setLoading(false);
     }
-  };
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f4f7fa] p-5">
@@ -35,7 +42,7 @@ export default function ResetPassword() {
         <p className="mb-7 text-[#6c757d]">Nhập mã đặt lại và mật khẩu mới cho tài khoản.</p>
 
         {done ? (
-          <div className="rounded-xl border border-[#2e9e5b]/30 bg-[#2e9e5b]/8 px-4.5 py-3.5 text-sm text-[#274760]">
+          <div className="rounded-xl border border-[#198754]/30 bg-[#198754]/8 px-4.5 py-3.5 text-sm text-[#274760]">
             Đặt lại mật khẩu thành công.{' '}
             <button
               type="button"
@@ -46,25 +53,24 @@ export default function ResetPassword() {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleFormSubmit} noValidate>
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mã đặt lại</label>
             <Input
-              required
-              value={token}
-              onChange={e => setToken(e.target.value)}
+              {...register('token')}
               placeholder="Mã được cấp từ quản trị viên"
+              aria-invalid={!!errors.token}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.token?.message} />
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mật khẩu mới</label>
             <Input
               type="password"
-              required
-              minLength={8}
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
+              {...register('newPassword')}
               placeholder="Tối thiểu 8 ký tự"
+              aria-invalid={!!errors.newPassword}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.newPassword?.message} />
 
             {error && (
               <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">

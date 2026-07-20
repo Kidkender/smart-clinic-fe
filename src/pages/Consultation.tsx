@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { getEncounterById, updateEncounterStatus } from '@/api/encounter';
 import { recordVitalSign, listVitalSigns, addDiagnosis, listDiagnoses, updateClinicalNotes } from '@/api/consultation';
 import { searchIcd10 } from '@/api/icd10';
@@ -18,11 +20,13 @@ import {
   prescriptionStatusLabel,
   interactionSeverityLabel,
 } from '@/utils/labels';
+import { vitalSignSchema, diagnosisSchema, orderSchema, type VitalSignFormValues, type DiagnosisFormValues, type OrderFormValues } from '@/schemas/consultation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import FieldError from '@/components/FieldError';
 import {
   Select,
   SelectContent,
@@ -239,24 +243,28 @@ function VitalsSection({
   onRecorded: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(emptyVitalForm());
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const {
+    register, handleSubmit, reset, formState: { errors },
+  } = useForm<VitalSignFormValues>({
+    resolver: zodResolver(vitalSignSchema),
+    defaultValues: emptyVitalForm(),
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setFormError('');
     setSaving(true);
     try {
       await recordVitalSign(encounterId, {
-        temperature: Number(form.temperature) || 0,
-        pulse: Number(form.pulse) || 0,
-        blood_pressure_systolic: Number(form.systolic) || 0,
-        blood_pressure_diastolic: Number(form.diastolic) || 0,
-        respiratory_rate: Number(form.respiratoryRate) || 0,
-        spo2: Number(form.spo2) || 0,
+        temperature: values.temperature,
+        pulse: values.pulse,
+        blood_pressure_systolic: values.systolic,
+        blood_pressure_diastolic: values.diastolic,
+        respiratory_rate: values.respiratoryRate,
+        spo2: values.spo2,
       });
-      setForm(emptyVitalForm());
+      reset(emptyVitalForm());
       setOpen(false);
       await onRecorded();
     } catch (err) {
@@ -264,7 +272,7 @@ function VitalsSection({
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   return (
     <Card className="rounded-2xl border-[#e8edf2] p-6">
@@ -286,14 +294,32 @@ function VitalsSection({
         </ul>
       )}
       {open && canRecord && (
-        <form onSubmit={handleSubmit} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
+        <form onSubmit={handleFormSubmit} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <div className="grid grid-cols-2 gap-2.5">
-            <LabeledInput label="Nhiệt độ (°C)" value={form.temperature} onChange={v => setForm({ ...form, temperature: v })} type="number" step="0.1" />
-            <LabeledInput label="Mạch (nhịp/p)" value={form.pulse} onChange={v => setForm({ ...form, pulse: v })} type="number" />
-            <LabeledInput label="HA tâm thu" value={form.systolic} onChange={v => setForm({ ...form, systolic: v })} type="number" />
-            <LabeledInput label="HA tâm trương" value={form.diastolic} onChange={v => setForm({ ...form, diastolic: v })} type="number" />
-            <LabeledInput label="Nhịp thở" value={form.respiratoryRate} onChange={v => setForm({ ...form, respiratoryRate: v })} type="number" />
-            <LabeledInput label="SpO2 (%)" value={form.spo2} onChange={v => setForm({ ...form, spo2: v })} type="number" />
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Nhiệt độ (°C)</label>
+              <Input type="number" step="0.1" {...register('temperature', { valueAsNumber: true })} aria-invalid={!!errors.temperature} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Mạch (nhịp/p)</label>
+              <Input type="number" {...register('pulse', { valueAsNumber: true })} aria-invalid={!!errors.pulse} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">HA tâm thu</label>
+              <Input type="number" {...register('systolic', { valueAsNumber: true })} aria-invalid={!!errors.systolic} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">HA tâm trương</label>
+              <Input type="number" {...register('diastolic', { valueAsNumber: true })} aria-invalid={!!errors.diastolic} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Nhịp thở</label>
+              <Input type="number" {...register('respiratoryRate', { valueAsNumber: true })} aria-invalid={!!errors.respiratoryRate} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
+            <div>
+              <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">SpO2 (%)</label>
+              <Input type="number" {...register('spo2', { valueAsNumber: true })} aria-invalid={!!errors.spo2} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            </div>
           </div>
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
           <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
@@ -317,17 +343,22 @@ function DiagnosesSection({
   onAdded: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ icd10_code: '', is_primary: false, notes: '' });
   const [icdQuery, setIcdQuery] = useState('');
   const [icdResults, setIcdResults] = useState<Icd10Code[]>([]);
   const [selectedIcd, setSelectedIcd] = useState<Icd10Code | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const {
+    control, handleSubmit, reset, setValue, formState: { errors },
+  } = useForm<DiagnosisFormValues>({
+    resolver: zodResolver(diagnosisSchema),
+    defaultValues: { icd10_code: '', is_primary: false, notes: '' },
+  });
 
   const handleIcdSearch = async (value: string) => {
     setIcdQuery(value);
     setSelectedIcd(null);
-    setForm(f => ({ ...f, icd10_code: '' }));
+    setValue('icd10_code', '');
     if (value.trim().length < 1) {
       setIcdResults([]);
       return;
@@ -344,22 +375,21 @@ function DiagnosesSection({
     setSelectedIcd(icd);
     setIcdQuery(`${icd.Code} — ${icd.Descriptor}`);
     setIcdResults([]);
-    setForm(f => ({ ...f, icd10_code: icd.Code }));
+    setValue('icd10_code', icd.Code, { shouldValidate: true });
   };
 
   const resetForm = () => {
-    setForm({ icd10_code: '', is_primary: false, notes: '' });
+    reset({ icd10_code: '', is_primary: false, notes: '' });
     setIcdQuery('');
     setIcdResults([]);
     setSelectedIcd(null);
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setFormError('');
     setSaving(true);
     try {
-      await addDiagnosis(encounterId, form);
+      await addDiagnosis(encounterId, values);
       resetForm();
       setOpen(false);
       await onAdded();
@@ -368,7 +398,7 @@ function DiagnosesSection({
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   return (
     <Card className="rounded-2xl border-[#e8edf2] p-6">
@@ -390,15 +420,15 @@ function DiagnosesSection({
         </ul>
       )}
       {open && canAdd && (
-        <form onSubmit={handleSubmit} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
+        <form onSubmit={handleFormSubmit} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <div className="relative">
             <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Chẩn đoán (tra cứu ICD-10) *</label>
             <Input
-              required
               value={icdQuery}
               onChange={e => handleIcdSearch(e.target.value)}
               placeholder="Nhập mã hoặc tên bệnh, ví dụ: J00, viêm họng…"
-              className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+              aria-invalid={!!errors.icd10_code}
+              className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
             />
             {icdResults.length > 0 && (
               <div className="absolute z-10 mt-1 max-h-[180px] w-full overflow-y-auto rounded-lg border border-[#dde2e8] bg-white shadow-md">
@@ -416,14 +446,28 @@ function DiagnosesSection({
             {!selectedIcd && icdQuery.trim().length > 0 && icdResults.length === 0 && (
               <p className="mt-1 text-[12px] text-[#dc3545]">Không tìm thấy mã ICD-10 phù hợp. Vui lòng chọn từ danh sách gợi ý.</p>
             )}
+            <FieldError message={errors.icd10_code?.message} />
           </div>
-          <LabeledInput label="Ghi chú" value={form.notes} onChange={v => setForm({ ...form, notes: v })} />
+          <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Ghi chú</label>
+          <Controller
+            control={control}
+            name="notes"
+            render={({ field }) => (
+              <Input {...field} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+            )}
+          />
           <label className="mt-2.5 flex items-center gap-2 text-sm text-[#274760]">
-            <input type="checkbox" checked={form.is_primary} onChange={e => setForm({ ...form, is_primary: e.target.checked })} />
+            <Controller
+              control={control}
+              name="is_primary"
+              render={({ field }) => (
+                <input type="checkbox" checked={field.value} onChange={e => field.onChange(e.target.checked)} />
+              )}
+            />
             Chẩn đoán chính
           </label>
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
-          <Button type="submit" disabled={saving || !form.icd10_code} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
+          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
             {saving ? 'Đang lưu…' : 'Lưu chẩn đoán'}
           </Button>
         </form>
@@ -475,7 +519,7 @@ function ClinicalNotesSection({
         onChange={e => { setValue(e.target.value); setDirty(true); }}
         disabled={!canEdit}
         placeholder={canEdit ? 'Triệu chứng, diễn biến, nhận định lâm sàng…' : 'Chưa có ghi chú.'}
-        className="min-h-[90px] w-full rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+        className="min-h-[90px] w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
       />
       {error && <div className="mt-2.5"><ErrorBox>{error}</ErrorBox></div>}
       {canEdit && (
@@ -508,18 +552,22 @@ function OrdersSection({
   onChanged: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ type: 'lab', name: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [resultDrafts, setResultDrafts] = useState<Record<string, string>>({});
+  const {
+    register, control, handleSubmit, reset, formState: { errors },
+  } = useForm<OrderFormValues>({
+    resolver: zodResolver(orderSchema),
+    defaultValues: { type: 'lab', name: '' },
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setFormError('');
     setSaving(true);
     try {
-      await createOrder(encounterId, form);
-      setForm({ type: 'lab', name: '' });
+      await createOrder(encounterId, values);
+      reset({ type: 'lab', name: '' });
       setOpen(false);
       await onChanged();
     } catch (err) {
@@ -527,7 +575,7 @@ function OrdersSection({
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleStatusChange = async (order: Order, status: string) => {
     try {
@@ -564,7 +612,7 @@ function OrdersSection({
                       placeholder="Kết quả…"
                       value={resultDrafts[o.ID] ?? ''}
                       onChange={e => setResultDrafts({ ...resultDrafts, [o.ID]: e.target.value })}
-                      className="h-auto min-w-[140px] flex-1 rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                      className="h-auto min-w-[140px] flex-1 rounded-xl border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
                     />
                   )}
                   {ORDER_STATUS_NEXT[o.Status].map(next => (
@@ -586,17 +634,29 @@ function OrdersSection({
         </ul>
       )}
       {open && canCreate && (
-        <form onSubmit={handleSubmit} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
+        <form onSubmit={handleFormSubmit} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Loại chỉ định *</label>
-          <Select value={form.type} onValueChange={value => setForm({ ...form, type: value })}>
-            <SelectTrigger className="h-auto w-full rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ORDER_TYPES.map(t => <SelectItem key={t} value={t}>{orderTypeLabel(t)}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <LabeledInput label="Tên dịch vụ *" value={form.name} onChange={v => setForm({ ...form, name: v })} required />
+          <Controller
+            control={control}
+            name="type"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORDER_TYPES.map(t => <SelectItem key={t} value={t}>{orderTypeLabel(t)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Tên dịch vụ *</label>
+          <Input
+            {...register('name')}
+            aria-invalid={!!errors.name}
+            className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+          />
+          <FieldError message={errors.name?.message} />
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
           <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
             {saving ? 'Đang lưu…' : 'Tạo chỉ định'}
@@ -749,7 +809,7 @@ function PrescriptionsSection({
             value={drugQuery}
             onChange={handleDrugSearch}
             placeholder="Nhập tên thuốc…"
-            className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+            className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
           />
           {drugResults.length > 0 && (
             <div className="mt-1.5 max-h-40 overflow-y-auto rounded-lg border border-[#dde2e8]">
@@ -780,7 +840,7 @@ function PrescriptionsSection({
                       placeholder="Liều dùng"
                       value={it.dosage}
                       onChange={e => updateItem(it.drug_id, 'dosage', e.target.value)}
-                      className="h-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                      className="h-auto rounded-xl border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
                     />
                     <Input
                       type="number"
@@ -788,14 +848,14 @@ function PrescriptionsSection({
                       placeholder="SL"
                       value={it.quantity}
                       onChange={e => updateItem(it.drug_id, 'quantity', e.target.value)}
-                      className="h-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                      className="h-auto rounded-xl border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
                     />
                   </div>
                   <Input
                     placeholder="Hướng dẫn sử dụng"
                     value={it.instructions}
                     onChange={e => updateItem(it.drug_id, 'instructions', e.target.value)}
-                    className="mt-2 h-auto w-full rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                    className="mt-2 h-auto w-full rounded-xl border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
                   />
                 </div>
               ))}
@@ -864,36 +924,6 @@ function SectionHeader({
   );
 }
 
-function LabeledInput({
-  label,
-  value,
-  onChange,
-  type = 'text',
-  required,
-  step,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  required?: boolean;
-  step?: string;
-}) {
-  return (
-    <div>
-      <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">{label}</label>
-      <Input
-        required={required}
-        type={type}
-        step={step}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
-      />
-    </div>
-  );
-}
-
 function SectionBadge({ children }: { children: ReactNode }) {
   return (
     <Badge className="shrink-0 rounded-full bg-[#307bc4]/10 px-2.5 py-1 text-xs font-semibold text-[#307bc4] hover:bg-[#307bc4]/10">
@@ -911,6 +941,6 @@ function ErrorBox({ children }: { children: ReactNode }) {
   );
 }
 
-function emptyVitalForm() {
-  return { temperature: '', pulse: '', systolic: '', diastolic: '', respiratoryRate: '', spo2: '' };
+function emptyVitalForm(): VitalSignFormValues {
+  return { temperature: 0, pulse: 0, systolic: 0, diastolic: 0, respiratoryRate: 0, spo2: 0 };
 }

@@ -30,6 +30,28 @@ export function validateFullname(value, { required = true } = {}) {
  * @param {{ required?: boolean }} [opts]
  * @returns {string} error message, or '' when valid
  */
+export function validateFacilityName(value, { required = true } = {}) {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) {
+    return required ? 'Tên không được để trống.' : '';
+  }
+  if (trimmed.length < 2) {
+    return 'Tên phải có ít nhất 2 ký tự.';
+  }
+  if (trimmed.length > 100) {
+    return 'Tên không được vượt quá 100 ký tự.';
+  }
+  if (!/\p{L}/u.test(trimmed)) {
+    return 'Tên phải chứa chữ cái, không thể chỉ gồm số hoặc ký tự đặc biệt.';
+  }
+  return '';
+}
+
+/**
+ * @param {string} value
+ * @param {{ required?: boolean }} [opts]
+ * @returns {string} error message, or '' when valid
+ */
 export function validatePhone(value, { required = false } = {}) {
   const trimmed = (value ?? '').trim();
   if (!trimmed) {

@@ -38,6 +38,7 @@ const ERROR_MESSAGES = {
   'error.lab_test.not_found': 'Không tìm thấy xét nghiệm trong danh mục.',
   'error.lab_test.code_already_exists': 'Mã xét nghiệm này đã tồn tại.',
   'error.lab_test.inactive': 'Xét nghiệm này hiện đã ngừng sử dụng.',
+  'error.lab_test.in_use': 'Xét nghiệm này đã được sử dụng trong hồ sơ khám, không thể xóa. Hãy dùng "Ngừng dùng" thay thế.',
   'error.lab_specimen.not_found': 'Chưa ghi nhận mẫu bệnh phẩm cho chỉ định này.',
   'error.lab_result.not_found': 'Không tìm thấy hạng mục xét nghiệm.',
   'error.lab.invalid_transition': 'Không thể thực hiện thao tác ở bước hiện tại của quy trình xét nghiệm.',

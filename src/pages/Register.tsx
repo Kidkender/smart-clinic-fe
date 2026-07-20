@@ -1,25 +1,31 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { registerApi } from '@/api/auth';
 import { resolveError } from '@/utils/errorMessages';
+import { registerSchema, type RegisterFormValues } from '@/schemas/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import FieldError from '@/components/FieldError';
 
 export default function Register() {
-  const [fullname, setFullname] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const {
+    register, handleSubmit, formState: { errors },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { fullname: '', email: '', password: '' },
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setError('');
     setLoading(true);
     try {
-      await registerApi(email, password, fullname);
+      await registerApi(values.email, values.password, values.fullname);
       setSuccess(true);
       setTimeout(() => navigate('/login'), 1200);
     } catch (err) {
@@ -27,7 +33,7 @@ export default function Register() {
     } finally {
       setLoading(false);
     }
-  };
+  });
 
   return (
     <div className="flex min-h-screen">
@@ -52,34 +58,33 @@ export default function Register() {
         <div className="w-full max-w-[420px] rounded-[20px] bg-white p-10 shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
           <h1 className="mb-1 text-2xl font-bold text-[#1c3a52]">Tạo tài khoản</h1>
           <p className="mb-7 text-[#6c757d]">Đăng ký nhân sự mới cho phòng khám</p>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleFormSubmit} noValidate>
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Họ tên</label>
             <Input
-              required
-              value={fullname}
-              onChange={e => setFullname(e.target.value)}
+              {...register('fullname')}
               placeholder="Nguyễn Văn A"
+              aria-invalid={!!errors.fullname}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.fullname?.message} />
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Email</label>
             <Input
               type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              {...register('email')}
               placeholder="you@smartclinic.local"
+              aria-invalid={!!errors.email}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.email?.message} />
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mật khẩu</label>
             <Input
               type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
+              {...register('password')}
               placeholder="Tối thiểu 8 ký tự"
+              aria-invalid={!!errors.password}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.password?.message} />
 
             {error && (
               <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">

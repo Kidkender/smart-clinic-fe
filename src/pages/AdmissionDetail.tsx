@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   getAdmissionById, transferAdmission, dischargeAdmission,
   listProgressNotes, addProgressNote, listNursingLogs, addNursingLog,
@@ -13,10 +15,16 @@ import { useAuth } from '@/context/AuthContext';
 import { resolveError } from '@/utils/errorMessages';
 import { admissionTypeLabel, encounterTypeLabel } from '@/utils/labels';
 import { cn } from '@/lib/utils';
+import {
+  transferSchema, dischargeSchema, admissionVitalSchema, progressNoteSchema, nursingLogSchema,
+  type TransferFormValues, type DischargeFormValues, type AdmissionVitalFormValues,
+  type ProgressNoteFormValues, type NursingLogFormValues,
+} from '@/schemas/admissionDetail';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import FieldError from '@/components/FieldError';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -215,10 +223,22 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
   const [departments, setDepartments] = useState<Department[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
   const [beds, setBeds] = useState<Bed[]>([]);
-  const [form, setForm] = useState({ department_id: '', ward_id: '', bed_id: '', reason: '' });
-  const [dischargeSummary, setDischargeSummary] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const {
+    control: transferControl, register: registerTransfer, handleSubmit: handleTransferSubmit,
+    reset: resetTransfer, setValue: setTransferValue,
+  } = useForm<TransferFormValues>({
+    resolver: zodResolver(transferSchema),
+    defaultValues: { department_id: '', ward_id: '', bed_id: '', reason: '' },
+  });
+  const {
+    register: registerDischarge, handleSubmit: handleDischargeSubmit,
+    formState: { errors: dischargeErrors },
+  } = useForm<DischargeFormValues>({
+    resolver: zodResolver(dischargeSchema),
+    defaultValues: { summary: '' },
+  });
 
   useEffect(() => {
     getDepartments().then(r => setDepartments(r.data ?? [])).catch(() => setDepartments([]));
@@ -229,7 +249,7 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
       setMode(null);
       return;
     }
-    setForm({ department_id: '', ward_id: '', bed_id: '', reason: '' });
+    resetTransfer({ department_id: '', ward_id: '', bed_id: '', reason: '' });
     setWards([]);
     setBeds([]);
     setFormError('');
@@ -242,7 +262,8 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
   };
 
   const handleWardChange = async (wardId: string) => {
-    setForm(f => ({ ...f, ward_id: wardId, bed_id: '' }));
+    setTransferValue('ward_id', wardId);
+    setTransferValue('bed_id', '');
     if (!wardId) {
       setBeds([]);
       return;
@@ -256,7 +277,9 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
   };
 
   const handleDepartmentChange = async (departmentId: string) => {
-    setForm(f => ({ ...f, department_id: departmentId, ward_id: '', bed_id: '' }));
+    setTransferValue('department_id', departmentId);
+    setTransferValue('ward_id', '');
+    setTransferValue('bed_id', '');
     setBeds([]);
     if (!departmentId) {
       setWards([]);
@@ -270,16 +293,15 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
     }
   };
 
-  const handleTransfer = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleTransfer = handleTransferSubmit(async values => {
     setFormError('');
     setSaving(true);
     try {
       await transferAdmission(admission.ID, {
-        ward_id: form.ward_id ? Number(form.ward_id) : undefined,
-        bed_id: form.bed_id ? Number(form.bed_id) : undefined,
-        department_id: form.department_id ? Number(form.department_id) : undefined,
-        reason: form.reason,
+        ward_id: values.ward_id ? Number(values.ward_id) : undefined,
+        bed_id: values.bed_id ? Number(values.bed_id) : undefined,
+        department_id: values.department_id ? Number(values.department_id) : undefined,
+        reason: values.reason,
       });
       setMode(null);
       await onChanged();
@@ -288,21 +310,20 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
     } finally {
       setSaving(false);
     }
-  };
+  });
 
-  const handleDischarge = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleDischarge = handleDischargeSubmit(async values => {
     setFormError('');
     setSaving(true);
     try {
-      await dischargeAdmission(admission.ID, dischargeSummary);
+      await dischargeAdmission(admission.ID, values.summary);
       onDischarged();
     } catch (err) {
       setFormError(resolveError(err));
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   return (
     <Card className="mt-5 rounded-2xl border-[#e8edf2] p-6">
@@ -331,39 +352,57 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
       </div>
 
       {mode === 'transfer' && (
-        <form onSubmit={handleTransfer} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
+        <form onSubmit={handleTransfer} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Khoa mới (bỏ trống nếu không đổi khoa)</label>
-          <Select value={form.department_id} onValueChange={handleDepartmentChange}>
-            <SelectTrigger className="h-auto w-full rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
-              <SelectValue placeholder="-- Giữ nguyên khoa --" />
-            </SelectTrigger>
-            <SelectContent>
-              {departments.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Controller
+            control={transferControl}
+            name="department_id"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={handleDepartmentChange}>
+                <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
+                  <SelectValue placeholder="-- Giữ nguyên khoa --" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+          />
 
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Khu điều trị mới</label>
-          <Select value={form.ward_id} onValueChange={handleWardChange} disabled={wards.length === 0}>
-            <SelectTrigger className="h-auto w-full rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
-              <SelectValue placeholder="-- Bỏ xếp khu --" />
-            </SelectTrigger>
-            <SelectContent>
-              {wards.map(w => <SelectItem key={w.ID} value={String(w.ID)}>{w.Name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Controller
+            control={transferControl}
+            name="ward_id"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={handleWardChange} disabled={wards.length === 0}>
+                <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
+                  <SelectValue placeholder="-- Bỏ xếp khu --" />
+                </SelectTrigger>
+                <SelectContent>
+                  {wards.map(w => <SelectItem key={w.ID} value={String(w.ID)}>{w.Name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+          />
 
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Giường mới</label>
-          <Select value={form.bed_id} onValueChange={value => setForm({ ...form, bed_id: value })} disabled={beds.length === 0}>
-            <SelectTrigger className="h-auto w-full rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
-              <SelectValue placeholder="-- Bỏ xếp giường --" />
-            </SelectTrigger>
-            <SelectContent>
-              {beds.map(b => <SelectItem key={b.ID} value={String(b.ID)}>Giường {b.BedNumber}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Controller
+            control={transferControl}
+            name="bed_id"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange} disabled={beds.length === 0}>
+                <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
+                  <SelectValue placeholder="-- Bỏ xếp giường --" />
+                </SelectTrigger>
+                <SelectContent>
+                  {beds.map(b => <SelectItem key={b.ID} value={String(b.ID)}>Giường {b.BedNumber}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+          />
 
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Lý do</label>
-          <Input value={form.reason} onChange={e => setForm({ ...form, reason: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <Input {...registerTransfer('reason')} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
 
           {formError && (
             <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
@@ -379,9 +418,10 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
       )}
 
       {mode === 'discharge' && (
-        <form onSubmit={handleDischarge} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
+        <form onSubmit={handleDischarge} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Tóm tắt bệnh án xuất viện *</label>
-          <Textarea required value={dischargeSummary} onChange={e => setDischargeSummary(e.target.value)} className="min-h-[90px] rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <Textarea {...registerDischarge('summary')} aria-invalid={!!dischargeErrors.summary} className="min-h-[90px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <FieldError message={dischargeErrors.summary?.message} />
           {formError && (
             <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
           )}
@@ -398,8 +438,8 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
   );
 }
 
-const EMPTY_VITAL_FORM = {
-  temperature: '', pulse: '', blood_pressure_systolic: '', blood_pressure_diastolic: '', respiratory_rate: '', spo2: '',
+const EMPTY_VITAL_FORM: AdmissionVitalFormValues = {
+  temperature: 0, pulse: 0, blood_pressure_systolic: 0, blood_pressure_diastolic: 0, respiratory_rate: 0, spo2: 0,
 };
 
 interface VitalSignsSectionProps {
@@ -411,24 +451,21 @@ interface VitalSignsSectionProps {
 
 function VitalSignsSection({ admissionId, vitals, canAdd, onAdded }: VitalSignsSectionProps) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY_VITAL_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const {
+    register, handleSubmit, reset, formState: { errors },
+  } = useForm<AdmissionVitalFormValues>({
+    resolver: zodResolver(admissionVitalSchema),
+    defaultValues: EMPTY_VITAL_FORM,
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setFormError('');
     setSaving(true);
     try {
-      await recordAdmissionVital(admissionId, {
-        temperature: Number(form.temperature) || 0,
-        pulse: Number(form.pulse) || 0,
-        blood_pressure_systolic: Number(form.blood_pressure_systolic) || 0,
-        blood_pressure_diastolic: Number(form.blood_pressure_diastolic) || 0,
-        respiratory_rate: Number(form.respiratory_rate) || 0,
-        spo2: Number(form.spo2) || 0,
-      });
-      setForm(EMPTY_VITAL_FORM);
+      await recordAdmissionVital(admissionId, values);
+      reset(EMPTY_VITAL_FORM);
       setOpen(false);
       await onAdded();
     } catch (err) {
@@ -436,7 +473,7 @@ function VitalSignsSection({ admissionId, vitals, canAdd, onAdded }: VitalSignsS
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   return (
     <Card className="rounded-2xl border-[#e8edf2] p-6">
@@ -458,31 +495,31 @@ function VitalSignsSection({ admissionId, vitals, canAdd, onAdded }: VitalSignsS
         </ul>
       )}
       {open && canAdd && (
-        <form onSubmit={handleSubmit} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
+        <form onSubmit={handleFormSubmit} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Nhiệt độ (°C)</label>
-              <Input type="number" step="0.1" value={form.temperature} onChange={e => setForm({ ...form, temperature: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <Input type="number" step="0.1" {...register('temperature', { valueAsNumber: true })} aria-invalid={!!errors.temperature} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
             </div>
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Mạch (lần/phút)</label>
-              <Input type="number" value={form.pulse} onChange={e => setForm({ ...form, pulse: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <Input type="number" {...register('pulse', { valueAsNumber: true })} aria-invalid={!!errors.pulse} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
             </div>
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Huyết áp tâm thu</label>
-              <Input type="number" value={form.blood_pressure_systolic} onChange={e => setForm({ ...form, blood_pressure_systolic: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <Input type="number" {...register('blood_pressure_systolic', { valueAsNumber: true })} aria-invalid={!!errors.blood_pressure_systolic} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
             </div>
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Huyết áp tâm trương</label>
-              <Input type="number" value={form.blood_pressure_diastolic} onChange={e => setForm({ ...form, blood_pressure_diastolic: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <Input type="number" {...register('blood_pressure_diastolic', { valueAsNumber: true })} aria-invalid={!!errors.blood_pressure_diastolic} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
             </div>
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Nhịp thở (lần/phút)</label>
-              <Input type="number" value={form.respiratory_rate} onChange={e => setForm({ ...form, respiratory_rate: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <Input type="number" {...register('respiratory_rate', { valueAsNumber: true })} aria-invalid={!!errors.respiratory_rate} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
             </div>
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">SpO2 (%)</label>
-              <Input type="number" value={form.spo2} onChange={e => setForm({ ...form, spo2: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <Input type="number" {...register('spo2', { valueAsNumber: true })} aria-invalid={!!errors.spo2} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
             </div>
           </div>
           {formError && (
@@ -510,17 +547,21 @@ interface ProgressNotesSectionProps {
 
 function ProgressNotesSection({ admissionId, notes, canAdd, onAdded }: ProgressNotesSectionProps) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ content: '', doctor_orders: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const {
+    register, handleSubmit, reset, formState: { errors },
+  } = useForm<ProgressNoteFormValues>({
+    resolver: zodResolver(progressNoteSchema),
+    defaultValues: { content: '', doctor_orders: '' },
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setFormError('');
     setSaving(true);
     try {
-      await addProgressNote(admissionId, form);
-      setForm({ content: '', doctor_orders: '' });
+      await addProgressNote(admissionId, values);
+      reset({ content: '', doctor_orders: '' });
       setOpen(false);
       await onAdded();
     } catch (err) {
@@ -528,7 +569,7 @@ function ProgressNotesSection({ admissionId, notes, canAdd, onAdded }: ProgressN
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   return (
     <Card className="rounded-2xl border-[#e8edf2] p-6">
@@ -549,11 +590,12 @@ function ProgressNotesSection({ admissionId, notes, canAdd, onAdded }: ProgressN
         </ul>
       )}
       {open && canAdd && (
-        <form onSubmit={handleSubmit} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
+        <form onSubmit={handleFormSubmit} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Diễn biến bệnh *</label>
-          <Textarea required value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className="min-h-[70px] rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <Textarea {...register('content')} aria-invalid={!!errors.content} className="min-h-[70px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <FieldError message={errors.content?.message} />
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Y lệnh trong ngày</label>
-          <Textarea value={form.doctor_orders} onChange={e => setForm({ ...form, doctor_orders: e.target.value })} className="min-h-[70px] rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <Textarea {...register('doctor_orders')} className="min-h-[70px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
           {formError && (
             <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
           )}
@@ -580,21 +622,25 @@ interface NursingLogsSectionProps {
 
 function NursingLogsSection({ admissionId, logs, progressNotes, canAdd, onAdded }: NursingLogsSectionProps) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ progress_note_id: '', action: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const {
+    register, control, handleSubmit, reset, formState: { errors },
+  } = useForm<NursingLogFormValues>({
+    resolver: zodResolver(nursingLogSchema),
+    defaultValues: { progress_note_id: '', action: '', notes: '' },
+  });
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     setFormError('');
     setSaving(true);
     try {
       await addNursingLog(admissionId, {
-        progress_note_id: form.progress_note_id ? Number(form.progress_note_id) : undefined,
-        action: form.action,
-        notes: form.notes,
+        progress_note_id: values.progress_note_id ? Number(values.progress_note_id) : undefined,
+        action: values.action,
+        notes: values.notes,
       });
-      setForm({ progress_note_id: '', action: '', notes: '' });
+      reset({ progress_note_id: '', action: '', notes: '' });
       setOpen(false);
       await onAdded();
     } catch (err) {
@@ -602,7 +648,7 @@ function NursingLogsSection({ admissionId, logs, progressNotes, canAdd, onAdded 
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   return (
     <Card className="rounded-2xl border-[#e8edf2] p-6">
@@ -623,20 +669,27 @@ function NursingLogsSection({ admissionId, logs, progressNotes, canAdd, onAdded 
         </ul>
       )}
       {open && canAdd && (
-        <form onSubmit={handleSubmit} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
+        <form onSubmit={handleFormSubmit} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Y lệnh liên quan</label>
-          <Select value={form.progress_note_id} onValueChange={value => setForm({ ...form, progress_note_id: value })}>
-            <SelectTrigger className="h-auto w-full rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
-              <SelectValue placeholder="-- Không gắn y lệnh --" />
-            </SelectTrigger>
-            <SelectContent>
-              {progressNotes.map(n => <SelectItem key={n.ID} value={String(n.ID)}>{n.DoctorOrders || n.Content}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Controller
+            control={control}
+            name="progress_note_id"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
+                  <SelectValue placeholder="-- Không gắn y lệnh --" />
+                </SelectTrigger>
+                <SelectContent>
+                  {progressNotes.map(n => <SelectItem key={n.ID} value={String(n.ID)}>{n.DoctorOrders || n.Content}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+          />
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Hành động *</label>
-          <Input required placeholder="VD: Tiêm thuốc, truyền dịch, thay băng…" value={form.action} onChange={e => setForm({ ...form, action: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <Input placeholder="VD: Tiêm thuốc, truyền dịch, thay băng…" {...register('action')} aria-invalid={!!errors.action} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <FieldError message={errors.action?.message} />
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Ghi chú</label>
-          <Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <Input {...register('notes')} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
           {formError && (
             <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
           )}

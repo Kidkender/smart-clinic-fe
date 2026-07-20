@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   getPatientById, updatePatient, getPatientHistory,
   listContacts, addContact, updateContact, deleteContact,
@@ -8,7 +10,7 @@ import {
 } from '@/api/patient';
 import { resolveError } from '@/utils/errorMessages';
 import { genderLabel, encounterStatusLabel, encounterTypeLabel, prescriptionStatusLabel, orderStatusLabel, orderTypeLabel, attachmentCategoryLabel, ATTACHMENT_CATEGORIES } from '@/utils/labels';
-import { validateFullname, validatePhone } from '@/utils/validation';
+import { patientSchema, contactSchema, type PatientFormValues, type ContactFormValues } from '@/schemas/patient';
 import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { Button } from '@/components/ui/button';
@@ -16,6 +18,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import DateOfBirthSelect from '@/components/DateOfBirthSelect';
 import { Textarea } from '@/components/ui/textarea';
+import FieldError from '@/components/FieldError';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -81,26 +84,11 @@ interface PatientHistory {
   orders?: Order[];
 }
 
-interface EditForm {
-  fullname: string;
-  gender: string;
-  phone: string;
-  cccd: string;
-  address: string;
-  insurance_number: string;
-  allergies: string;
-  date_of_birth: string;
-}
-
 const GENDERS = ['male', 'female', 'other'];
 
 function toDateInput(value?: string) {
   if (!value) return '';
   return String(value).slice(0, 10);
-}
-
-function todayDateInput() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 export default function PatientDetail() {
@@ -119,14 +107,29 @@ export default function PatientDetail() {
   const [error, setError] = useState('');
 
   const [editOpen, setEditOpen] = useState(false);
-  const [form, setForm] = useState<EditForm | null>(null);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const {
+    register: registerEdit, handleSubmit: handleSubmitEdit, control: editControl, reset: resetEdit,
+    formState: { errors: editErrors },
+  } = useForm<PatientFormValues>({
+    resolver: zodResolver(patientSchema),
+    defaultValues: {
+      fullname: '', gender: 'other', phone: '', cccd: '', address: '',
+      insurance_number: '', allergies: '', date_of_birth: '',
+    },
+  });
 
-  const [contactForm, setContactForm] = useState({ fullname: '', relationship: '', phone: '' });
   const [editingContactId, setEditingContactId] = useState<number | string | null>(null);
   const [contactError, setContactError] = useState('');
   const [savingContact, setSavingContact] = useState(false);
+  const {
+    register: registerContact, handleSubmit: handleSubmitContact, reset: resetContact,
+    formState: { errors: contactErrors },
+  } = useForm<ContactFormValues>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: { fullname: '', relationship: '', phone: '' },
+  });
 
   const [uploading, setUploading] = useState(false);
   const [attachmentError, setAttachmentError] = useState('');
@@ -172,9 +175,9 @@ export default function PatientDetail() {
 
   const openEdit = () => {
     if (!patient) return;
-    setForm({
+    resetEdit({
       fullname: patient.Fullname ?? '',
-      gender: patient.Gender ?? 'other',
+      gender: (patient.Gender as PatientFormValues['gender']) ?? 'other',
       phone: patient.Phone ?? '',
       cccd: patient.CCCD ?? '',
       address: patient.Address ?? '',
@@ -186,27 +189,11 @@ export default function PatientDetail() {
     setEditOpen(true);
   };
 
-  const handleSaveEdit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSaveEdit = handleSubmitEdit(async values => {
     setFormError('');
-    if (!form) return;
-    const fullnameError = validateFullname(form.fullname);
-    if (fullnameError) {
-      setFormError(fullnameError);
-      return;
-    }
-    const phoneError = validatePhone(form.phone);
-    if (phoneError) {
-      setFormError(phoneError);
-      return;
-    }
-    if (form.date_of_birth && form.date_of_birth > todayDateInput()) {
-      setFormError('Ngày sinh không được ở tương lai.');
-      return;
-    }
     setSaving(true);
     try {
-      await updatePatient(id, { ...form, fullname: form.fullname.trim(), date_of_birth: form.date_of_birth || null });
+      await updatePatient(id, { ...values, fullname: values.fullname.trim(), date_of_birth: values.date_of_birth || null });
       const p = await getPatientById(id);
       setPatient(p.data);
       setEditOpen(false);
@@ -215,36 +202,25 @@ export default function PatientDetail() {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const openAddContact = () => {
     setEditingContactId(null);
-    setContactForm({ fullname: '', relationship: '', phone: '' });
+    resetContact({ fullname: '', relationship: '', phone: '' });
     setContactError('');
   };
 
   const openEditContact = (contact: Contact) => {
     setEditingContactId(contact.ID);
-    setContactForm({ fullname: contact.Fullname, relationship: contact.Relationship ?? '', phone: contact.Phone ?? '' });
+    resetContact({ fullname: contact.Fullname, relationship: contact.Relationship ?? '', phone: contact.Phone ?? '' });
     setContactError('');
   };
 
-  const handleSaveContact = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSaveContact = handleSubmitContact(async values => {
     setContactError('');
-    const fullnameError = validateFullname(contactForm.fullname);
-    if (fullnameError) {
-      setContactError(fullnameError);
-      return;
-    }
-    const phoneError = validatePhone(contactForm.phone);
-    if (phoneError) {
-      setContactError(phoneError);
-      return;
-    }
     setSavingContact(true);
     try {
-      const payload = { ...contactForm, fullname: contactForm.fullname.trim() };
+      const payload = { ...values, fullname: values.fullname.trim() };
       if (editingContactId) {
         await updateContact(id, editingContactId, payload);
       } else {
@@ -253,13 +229,13 @@ export default function PatientDetail() {
       const c = await listContacts(id);
       setContacts(c.data ?? []);
       setEditingContactId(null);
-      setContactForm({ fullname: '', relationship: '', phone: '' });
+      resetContact({ fullname: '', relationship: '', phone: '' });
     } catch (err) {
       setContactError(resolveError(err));
     } finally {
       setSavingContact(false);
     }
-  };
+  });
 
   const handleDeleteContact = async (contact: Contact) => {
     if (!(await confirm(`Xóa người liên hệ "${contact.Fullname}"?`))) return;
@@ -383,12 +359,16 @@ export default function PatientDetail() {
             </ul>
           )}
           {canManage && (
-            <form onSubmit={handleSaveContact} className="border-t border-[#f0f4f8] pt-3.5">
+            <form onSubmit={handleSaveContact} className="border-t border-[#f0f4f8] pt-3.5" noValidate>
               <div className="grid grid-cols-2 gap-2.5">
-                <Input required placeholder="Họ tên" value={contactForm.fullname} onChange={e => setContactForm({ ...contactForm, fullname: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]" />
-                <Input placeholder="Quan hệ" value={contactForm.relationship} onChange={e => setContactForm({ ...contactForm, relationship: e.target.value })} className="h-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]" />
+                <div>
+                  <Input {...registerContact('fullname')} placeholder="Họ tên" aria-invalid={!!contactErrors.fullname} className="h-auto rounded-xl border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]" />
+                  <FieldError message={contactErrors.fullname?.message} />
+                </div>
+                <Input {...registerContact('relationship')} placeholder="Quan hệ" className="h-auto rounded-xl border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]" />
               </div>
-              <Input placeholder="SĐT" value={contactForm.phone} onChange={e => setContactForm({ ...contactForm, phone: e.target.value })} className="mt-2.5 h-auto w-full rounded-lg border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]" />
+              <Input {...registerContact('phone')} placeholder="SĐT" aria-invalid={!!contactErrors.phone} className="mt-2.5 h-auto w-full rounded-xl border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]" />
+              <FieldError message={contactErrors.phone?.message} />
               {contactError && (
                 <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{contactError}</div>
               )}
@@ -419,7 +399,7 @@ export default function PatientDetail() {
           <div className="flex flex-wrap items-center justify-between gap-2.5">
             <h2 className="m-0 text-[17px] font-bold text-[#274760]">Tệp đính kèm</h2>
             <Select value={attachmentFilter || 'all'} onValueChange={value => setAttachmentFilter(value === 'all' ? '' : value)}>
-              <SelectTrigger className="h-auto w-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]">
+              <SelectTrigger className="h-auto w-auto rounded-xl border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -468,7 +448,7 @@ export default function PatientDetail() {
           {canManage && (
             <div className="flex flex-wrap items-center gap-2">
               <Select value={uploadCategory} onValueChange={setUploadCategory} disabled={uploading}>
-                <SelectTrigger className="h-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]">
+                <SelectTrigger className="h-auto rounded-xl border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -521,68 +501,79 @@ export default function PatientDetail() {
         </Card>
       )}
 
-      <Dialog open={editOpen && !!form} onOpenChange={open => { if (!saving) setEditOpen(open); }}>
+      <Dialog open={editOpen} onOpenChange={open => { if (!saving) setEditOpen(open); }}>
         <DialogContent className="max-h-[90vh] sm:max-w-[560px] overflow-y-auto rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Sửa thông tin bệnh nhân</DialogTitle>
           </DialogHeader>
-          {form && (
-            <form onSubmit={handleSaveEdit}>
-              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Họ tên *</label>
-              <Input required value={form.fullname} onChange={e => setForm({ ...form, fullname: e.target.value })} className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
+          <form onSubmit={handleSaveEdit} noValidate>
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Họ tên *</label>
+            <Input {...registerEdit('fullname')} aria-invalid={!!editErrors.fullname} className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
+            <FieldError message={editErrors.fullname?.message} />
 
-              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giới tính *</label>
-              <Select value={form.gender} onValueChange={value => setForm({ ...form, gender: value })}>
-                <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {GENDERS.map(g => <SelectItem key={g} value={g}>{genderLabel(g)}</SelectItem>)}
-                </SelectContent>
-              </Select>
-
-              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Ngày sinh</label>
-              <DateOfBirthSelect value={form.date_of_birth} onChange={value => setForm({ ...form, date_of_birth: value })} />
-
-              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số điện thoại</label>
-              <Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
-
-              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">CCCD</label>
-              <Input value={form.cccd} onChange={e => setForm({ ...form, cccd: e.target.value })} className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
-
-              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Địa chỉ</label>
-              <Input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
-
-              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số BHYT</label>
-              <Input value={form.insurance_number} onChange={e => setForm({ ...form, insurance_number: e.target.value })} className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
-
-              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Tiền sử dị ứng</label>
-              <Textarea value={form.allergies} onChange={e => setForm({ ...form, allergies: e.target.value })} className="min-h-[70px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
-
-              {formError && (
-                <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giới tính *</label>
+            <Controller
+              control={editControl}
+              name="gender"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENDERS.map(g => <SelectItem key={g} value={g}>{genderLabel(g)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               )}
+            />
 
-              <DialogFooter className="mx-0 mt-6 mb-0 justify-end gap-3 rounded-none border-t-0 bg-transparent p-0">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setEditOpen(false)}
-                  disabled={saving}
-                  className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
-                >
-                  Hủy
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
-                >
-                  {saving ? 'Đang lưu…' : 'Lưu'}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Ngày sinh</label>
+            <Controller
+              control={editControl}
+              name="date_of_birth"
+              render={({ field }) => <DateOfBirthSelect value={field.value} onChange={field.onChange} />}
+            />
+            <FieldError message={editErrors.date_of_birth?.message} />
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số điện thoại</label>
+            <Input {...registerEdit('phone')} aria-invalid={!!editErrors.phone} className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
+            <FieldError message={editErrors.phone?.message} />
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">CCCD</label>
+            <Input {...registerEdit('cccd')} className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Địa chỉ</label>
+            <Input {...registerEdit('address')} className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số BHYT</label>
+            <Input {...registerEdit('insurance_number')} className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Tiền sử dị ứng</label>
+            <Textarea {...registerEdit('allergies')} className="min-h-[70px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
+
+            {formError && (
+              <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
+            )}
+
+            <DialogFooter className="mx-0 mt-6 mb-0 justify-end gap-3 rounded-none border-t-0 bg-transparent p-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditOpen(false)}
+                disabled={saving}
+                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+              >
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                disabled={saving}
+                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              >
+                {saving ? 'Đang lưu…' : 'Lưu'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 

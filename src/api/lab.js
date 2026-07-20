@@ -20,6 +20,11 @@ export async function updateLabTest(id, payload) {
   return data;
 }
 
+export async function deleteLabTest(id) {
+  const { data } = await client.delete(`/lab-tests/${id}`);
+  return data;
+}
+
 export async function listLabWorklist(status) {
   const { data } = await client.get('/lab/worklist', { params: status ? { status } : {} });
   return data;

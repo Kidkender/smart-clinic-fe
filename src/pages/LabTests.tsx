@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
-import { searchLabTests, createLabTest, updateLabTest } from '@/api/lab';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { searchLabTests, createLabTest, updateLabTest, deleteLabTest } from '@/api/lab';
 import { resolveError } from '@/utils/errorMessages';
 import { labTestCategoryLabel, LAB_TEST_CATEGORIES } from '@/utils/labels';
+import { labTestSchema, type LabTestFormValues } from '@/schemas/labTest';
+import useConfirm from '@/hooks/useConfirm';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import FieldError from '@/components/FieldError';
 import {
   Table,
   TableBody,
@@ -45,19 +50,17 @@ interface LabTest {
 
 type Modal = { mode: 'create' } | { mode: 'edit'; labTest: LabTest };
 
-function emptyForm() {
-  return {
-    code: '',
-    name: '',
-    category: 'hematology',
-    unit: '',
-    refRangeLow: '',
-    refRangeHigh: '',
-    refRangeText: '',
-    price: '',
-    active: true,
-  };
-}
+const EMPTY_FORM: LabTestFormValues = {
+  code: '',
+  name: '',
+  category: 'hematology',
+  unit: '',
+  refRangeLow: '',
+  refRangeHigh: '',
+  refRangeText: '',
+  price: 0,
+  active: true,
+};
 
 export default function LabTests() {
   const [labTests, setLabTests] = useState<LabTest[]>([]);
@@ -66,9 +69,15 @@ export default function LabTests() {
   const [nameQuery, setNameQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [modal, setModal] = useState<Modal | null>(null);
-  const [form, setForm] = useState(emptyForm());
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [confirm, ConfirmDialog] = useConfirm();
+  const {
+    register, control, handleSubmit, reset, formState: { errors },
+  } = useForm<LabTestFormValues>({
+    resolver: zodResolver(labTestSchema),
+    defaultValues: EMPTY_FORM,
+  });
 
   const fetchLabTests = useCallback(async () => {
     setLoading(true);
@@ -93,13 +102,13 @@ export default function LabTests() {
   }, [fetchLabTests]);
 
   const openCreate = () => {
-    setForm(emptyForm());
+    reset(EMPTY_FORM);
     setFormError('');
     setModal({ mode: 'create' });
   };
 
   const openEdit = (labTest: LabTest) => {
-    setForm({
+    reset({
       code: labTest.Code,
       name: labTest.Name,
       category: labTest.Category,
@@ -107,7 +116,7 @@ export default function LabTests() {
       refRangeLow: labTest.RefRangeLow != null ? String(labTest.RefRangeLow) : '',
       refRangeHigh: labTest.RefRangeHigh != null ? String(labTest.RefRangeHigh) : '',
       refRangeText: labTest.RefRangeText ?? '',
-      price: String(labTest.Price ?? 0),
+      price: labTest.Price ?? 0,
       active: labTest.Active,
     });
     setFormError('');
@@ -119,25 +128,24 @@ export default function LabTests() {
     setModal(null);
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = handleSubmit(async values => {
     if (!modal) return;
     setFormError('');
     setSaving(true);
     try {
       const payload = {
-        name: form.name.trim(),
-        category: form.category,
-        unit: form.unit.trim(),
-        ref_range_low: form.refRangeLow.trim() === '' ? null : Number(form.refRangeLow),
-        ref_range_high: form.refRangeHigh.trim() === '' ? null : Number(form.refRangeHigh),
-        ref_range_text: form.refRangeText.trim(),
-        price: Number(form.price) || 0,
+        name: values.name.trim(),
+        category: values.category,
+        unit: values.unit.trim(),
+        ref_range_low: values.refRangeLow.trim() === '' ? null : Number(values.refRangeLow),
+        ref_range_high: values.refRangeHigh.trim() === '' ? null : Number(values.refRangeHigh),
+        ref_range_text: values.refRangeText.trim(),
+        price: values.price,
       };
       if (modal.mode === 'create') {
-        await createLabTest({ code: form.code.trim(), ...payload });
+        await createLabTest({ code: values.code.trim(), ...payload });
       } else {
-        await updateLabTest(modal.labTest.ID, { ...payload, active: form.active });
+        await updateLabTest(modal.labTest.ID, { ...payload, active: values.active });
       }
       await fetchLabTests();
       setModal(null);
@@ -145,6 +153,16 @@ export default function LabTests() {
       setFormError(resolveError(err));
     } finally {
       setSaving(false);
+    }
+  });
+
+  const handleDelete = async (labTest: LabTest) => {
+    if (!(await confirm(`Xóa xét nghiệm "${labTest.Name}"?`, { confirmLabel: 'Xóa' }))) return;
+    try {
+      await deleteLabTest(labTest.ID);
+      await fetchLabTests();
+    } catch (err) {
+      setError(resolveError(err));
     }
   };
 
@@ -179,10 +197,10 @@ export default function LabTests() {
           value={nameQuery}
           onChange={e => setNameQuery(e.target.value)}
           placeholder="Tìm theo tên xét nghiệm…"
-          className="h-auto min-w-[240px] flex-1 rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+          className="h-auto min-w-[240px] flex-1 rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
         />
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="h-auto w-[200px] rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
+          <SelectTrigger className="h-auto w-[200px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -240,7 +258,7 @@ export default function LabTests() {
                     <Badge
                       className={
                         t.Active
-                          ? 'rounded-full bg-[#28a745]/10 px-2.5 py-1 text-xs font-semibold text-[#28a745] hover:bg-[#28a745]/10'
+                          ? 'rounded-full bg-[#198754]/10 px-2.5 py-1 text-xs font-semibold text-[#198754] hover:bg-[#198754]/10'
                           : 'rounded-full bg-[#6c757d]/10 px-2.5 py-1 text-xs font-semibold text-[#6c757d] hover:bg-[#6c757d]/10'
                       }
                     >
@@ -255,6 +273,14 @@ export default function LabTests() {
                       className="inline-flex size-[30px] cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#6c757d]"
                     >
                       <Icon icon="fa6-solid:pen" className="text-[13px]" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(t)}
+                      title="Xóa"
+                      className="ml-2 inline-flex size-[30px] cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#dc3545]"
+                    >
+                      <Icon icon="fa6-solid:trash" className="text-[13px]" />
                     </button>
                   </TableCell>
                 </TableRow>
@@ -271,47 +297,52 @@ export default function LabTests() {
               {modal?.mode === 'create' ? 'Thêm xét nghiệm' : 'Sửa xét nghiệm'}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleFormSubmit} noValidate>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mã xét nghiệm *</label>
                 <Input
-                  required
+                  {...register('code')}
                   disabled={modal?.mode === 'edit'}
-                  value={form.code}
-                  onChange={e => setForm({ ...form, code: e.target.value })}
                   placeholder="VD: WBC"
+                  aria-invalid={!!errors.code}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
+                <FieldError message={errors.code?.message} />
               </div>
               <div>
                 <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Nhóm *</label>
-                <Select value={form.category} onValueChange={value => setForm({ ...form, category: value })}>
-                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LAB_TEST_CATEGORIES.map(c => <SelectItem key={c} value={c}>{labTestCategoryLabel(c)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={control}
+                  name="category"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LAB_TEST_CATEGORIES.map(c => <SelectItem key={c} value={c}>{labTestCategoryLabel(c)}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Tên xét nghiệm *</label>
             <Input
-              required
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
+              {...register('name')}
               placeholder="VD: Bạch cầu (WBC)"
+              aria-invalid={!!errors.name}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.name?.message} />
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Đơn vị</label>
                 <Input
-                  value={form.unit}
-                  onChange={e => setForm({ ...form, unit: e.target.value })}
+                  {...register('unit')}
                   placeholder="VD: 10^9/L"
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
@@ -321,10 +352,11 @@ export default function LabTests() {
                 <Input
                   type="number"
                   min="0"
-                  value={form.price}
-                  onChange={e => setForm({ ...form, price: e.target.value })}
+                  {...register('price', { valueAsNumber: true })}
+                  aria-invalid={!!errors.price}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
+                <FieldError message={errors.price?.message} />
               </div>
             </div>
 
@@ -334,8 +366,7 @@ export default function LabTests() {
                 <Input
                   type="number"
                   step="any"
-                  value={form.refRangeLow}
-                  onChange={e => setForm({ ...form, refRangeLow: e.target.value })}
+                  {...register('refRangeLow')}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
               </div>
@@ -344,8 +375,7 @@ export default function LabTests() {
                 <Input
                   type="number"
                   step="any"
-                  value={form.refRangeHigh}
-                  onChange={e => setForm({ ...form, refRangeHigh: e.target.value })}
+                  {...register('refRangeHigh')}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
               </div>
@@ -353,8 +383,7 @@ export default function LabTests() {
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Khoảng tham chiếu (định tính)</label>
             <Input
-              value={form.refRangeText}
-              onChange={e => setForm({ ...form, refRangeText: e.target.value })}
+              {...register('refRangeText')}
               placeholder="VD: Âm tính, dùng cho xét nghiệm không có giá trị số"
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
@@ -363,8 +392,7 @@ export default function LabTests() {
               <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#274760]">
                 <input
                   type="checkbox"
-                  checked={form.active}
-                  onChange={e => setForm({ ...form, active: e.target.checked })}
+                  {...register('active')}
                   className="size-4"
                 />
                 Đang sử dụng
@@ -398,6 +426,8 @@ export default function LabTests() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {ConfirmDialog}
     </>
   );
 }

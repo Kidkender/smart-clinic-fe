@@ -1,12 +1,16 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { getDepartments, getDoctorsByDepartment } from '@/api/department';
 import { listDoctorSchedules, createDoctorSchedule, deleteDoctorSchedule } from '@/api/doctorSchedule';
 import { resolveError } from '@/utils/errorMessages';
 import useConfirm from '@/hooks/useConfirm';
+import { doctorWorkingHoursSchema, type DoctorWorkingHoursFormValues } from '@/schemas/doctorSchedule';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import FieldError from '@/components/FieldError';
 import {
   Select,
   SelectContent,
@@ -56,10 +60,15 @@ export default function DoctorSchedules() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const [form, setForm] = useState({ day_of_week: 1, start_time: '08:00', end_time: '17:00', slot_minutes: 30 });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirm, ConfirmDialog] = useConfirm();
+  const {
+    control, handleSubmit, reset, formState: { errors },
+  } = useForm<DoctorWorkingHoursFormValues>({
+    resolver: zodResolver(doctorWorkingHoursSchema),
+    defaultValues: { day_of_week: 1, start_time: '08:00', end_time: '17:00', slot_minutes: 30 },
+  });
 
   useEffect(() => {
     getDepartments().then(r => {
@@ -103,26 +112,25 @@ export default function DoctorSchedules() {
     }
   };
 
-  const handleCreate = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleCreate = handleSubmit(async values => {
     setFormError('');
     setSaving(true);
     try {
       await createDoctorSchedule(doctorId, {
         department_id: Number(departmentId),
-        day_of_week: Number(form.day_of_week),
-        start_time: form.start_time,
-        end_time: form.end_time,
-        slot_minutes: Number(form.slot_minutes),
+        day_of_week: values.day_of_week,
+        start_time: values.start_time,
+        end_time: values.end_time,
+        slot_minutes: values.slot_minutes,
       });
       await fetchSchedules();
-      setForm({ day_of_week: 1, start_time: '08:00', end_time: '17:00', slot_minutes: 30 });
+      reset({ day_of_week: 1, start_time: '08:00', end_time: '17:00', slot_minutes: 30 });
     } catch (err) {
       setFormError(resolveError(err));
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleDelete = async (schedule: Schedule) => {
     if (!(await confirm('Xóa ca làm việc này?'))) return;
@@ -207,53 +215,75 @@ export default function DoctorSchedules() {
 
           <Card className="rounded-2xl border-[#e8edf2] p-6">
             <h2 className="m-0 mb-4 text-[17px] font-bold text-[#274760]">Thêm ca làm việc</h2>
-            <form onSubmit={handleCreate}>
+            <form onSubmit={handleCreate} noValidate>
               <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Thứ trong tuần</label>
-              <Select
-                value={String(form.day_of_week)}
-                onValueChange={value => setForm({ ...form, day_of_week: Number(value) })}
-              >
-                <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DAYS.map(d => <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control}
+                name="day_of_week"
+                render={({ field }) => (
+                  <Select value={String(field.value)} onValueChange={value => field.onChange(Number(value))}>
+                    <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DAYS.map(d => <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
 
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giờ bắt đầu</label>
-                  <Input
-                    type="time"
-                    required
-                    value={form.start_time}
-                    onChange={e => setForm({ ...form, start_time: e.target.value })}
-                    className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                  <Controller
+                    control={control}
+                    name="start_time"
+                    render={({ field }) => (
+                      <Input
+                        type="time"
+                        value={field.value}
+                        onChange={field.onChange}
+                        className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                      />
+                    )}
                   />
                 </div>
                 <div>
                   <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giờ kết thúc</label>
-                  <Input
-                    type="time"
-                    required
-                    value={form.end_time}
-                    onChange={e => setForm({ ...form, end_time: e.target.value })}
-                    className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                  <Controller
+                    control={control}
+                    name="end_time"
+                    render={({ field }) => (
+                      <Input
+                        type="time"
+                        value={field.value}
+                        onChange={field.onChange}
+                        aria-invalid={!!errors.end_time}
+                        className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                      />
+                    )}
                   />
                 </div>
               </div>
+              <FieldError message={errors.end_time?.message} />
 
               <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Độ dài mỗi khung giờ (phút)</label>
-              <Input
-                type="number"
-                required
-                min={5}
-                step={5}
-                value={form.slot_minutes}
-                onChange={e => setForm({ ...form, slot_minutes: Number(e.target.value) })}
-                className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+              <Controller
+                control={control}
+                name="slot_minutes"
+                render={({ field }) => (
+                  <Input
+                    type="number"
+                    min={5}
+                    step={5}
+                    value={field.value}
+                    onChange={e => field.onChange(Number(e.target.value))}
+                    aria-invalid={!!errors.slot_minutes}
+                    className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                  />
+                )}
               />
+              <FieldError message={errors.slot_minutes?.message} />
 
               {formError && (
                 <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">

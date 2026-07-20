@@ -170,7 +170,7 @@ export default function Users() {
                       onValueChange={value => handleRoleChange(user, value)}
                       disabled={busyId === user.ID || String(user.ID) === String(userId)}
                     >
-                      <SelectTrigger className="h-auto w-[170px] rounded-lg border-[#dde2e8] px-3 py-2 text-sm text-[#274760]">
+                      <SelectTrigger className="h-auto w-[170px] rounded-xl border-[#dde2e8] px-3 py-2 text-sm text-[#274760]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

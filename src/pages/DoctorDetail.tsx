@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { getDepartments } from '@/api/department';
 import {
   getDoctor,
@@ -15,10 +17,12 @@ import {
 import { resolveError } from '@/utils/errorMessages';
 import { shiftTypeLabel, leaveStatusLabel } from '@/utils/labels';
 import useConfirm from '@/hooks/useConfirm';
+import { doctorShiftSchema, doctorLeaveSchema, type DoctorShiftFormValues, type DoctorLeaveFormValues } from '@/schemas/doctorSchedule';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import FieldError from '@/components/FieldError';
 import {
   Select,
   SelectContent,
@@ -94,14 +98,27 @@ export default function DoctorDetail() {
   const [error, setError] = useState('');
 
   const [shifts, setShifts] = useState<Shift[]>([]);
-  const [shiftForm, setShiftForm] = useState({ department_id: '', shift_date: todayIso(), shift_type: 'morning' });
   const [savingShift, setSavingShift] = useState(false);
   const [shiftError, setShiftError] = useState('');
+  const {
+    control: shiftControl, handleSubmit: handleShiftSubmit, setValue: setShiftValue, watch: watchShift,
+    formState: { errors: shiftErrors },
+  } = useForm<DoctorShiftFormValues>({
+    resolver: zodResolver(doctorShiftSchema),
+    defaultValues: { department_id: '', shift_date: todayIso(), shift_type: 'morning' },
+  });
+  const shiftDepartmentId = watchShift('department_id');
 
   const [leaves, setLeaves] = useState<Leave[]>([]);
-  const [leaveForm, setLeaveForm] = useState({ start_date: todayIso(), end_date: todayIso(), reason: '' });
   const [savingLeave, setSavingLeave] = useState(false);
   const [leaveError, setLeaveError] = useState('');
+  const {
+    register: registerLeave, handleSubmit: handleLeaveFormSubmit, reset: resetLeave,
+    formState: { errors: leaveErrors },
+  } = useForm<DoctorLeaveFormValues>({
+    resolver: zodResolver(doctorLeaveSchema),
+    defaultValues: { start_date: todayIso(), end_date: todayIso(), reason: '' },
+  });
 
   const [perfRange, setPerfRange] = useState({ from: firstDayOfMonthIso(), to: todayIso() });
   const [performance, setPerformance] = useState<Performance | null>(null);
@@ -122,8 +139,8 @@ export default function DoctorDetail() {
       setDoctor(doctorResult.data ?? null);
       setShifts(shiftsResult.data ?? []);
       setLeaves(leavesResult.data ?? []);
-      if (!shiftForm.department_id && doctorResult.data?.DepartmentID) {
-        setShiftForm(f => ({ ...f, department_id: String(doctorResult.data.DepartmentID) }));
+      if (doctorResult.data?.DepartmentID) {
+        setShiftValue('department_id', String(doctorResult.data.DepartmentID));
       }
     } catch (err) {
       setError(resolveError(err));
@@ -141,15 +158,14 @@ export default function DoctorDetail() {
     fetchAll();
   }, [fetchAll]);
 
-  const handleCreateShift = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleCreateShift = handleShiftSubmit(async values => {
     setShiftError('');
     setSavingShift(true);
     try {
       await createDoctorShift(id, {
-        department_id: Number(shiftForm.department_id),
-        shift_date: shiftForm.shift_date,
-        shift_type: shiftForm.shift_type,
+        department_id: Number(values.department_id),
+        shift_date: values.shift_date,
+        shift_type: values.shift_type,
       });
       const result = await listDoctorShifts(id);
       setShifts(result.data ?? []);
@@ -158,7 +174,7 @@ export default function DoctorDetail() {
     } finally {
       setSavingShift(false);
     }
-  };
+  });
 
   const handleDeleteShift = async (shift: Shift) => {
     if (!(await confirm('Xóa ca trực này?'))) return;
@@ -171,21 +187,20 @@ export default function DoctorDetail() {
     }
   };
 
-  const handleCreateLeave = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleCreateLeave = handleLeaveFormSubmit(async values => {
     setLeaveError('');
     setSavingLeave(true);
     try {
-      await createDoctorLeave(id, leaveForm);
+      await createDoctorLeave(id, values);
       const result = await listDoctorLeaves(id, { limit: 50 });
       setLeaves(result.data ?? []);
-      setLeaveForm({ start_date: todayIso(), end_date: todayIso(), reason: '' });
+      resetLeave({ start_date: todayIso(), end_date: todayIso(), reason: '' });
     } catch (err) {
       setLeaveError(resolveError(err));
     } finally {
       setSavingLeave(false);
     }
-  };
+  });
 
   const handleReviewLeave = async (leave: Leave, status: 'approved' | 'rejected') => {
     const label = status === 'approved' ? 'Duyệt đơn nghỉ phép này?' : 'Từ chối đơn nghỉ phép này?';
@@ -280,46 +295,58 @@ export default function DoctorDetail() {
             </ul>
           )}
 
-          <form onSubmit={handleCreateShift} className="border-t border-[#f0f4f8] pt-4">
+          <form onSubmit={handleCreateShift} noValidate className="border-t border-[#f0f4f8] pt-4">
             <label className="mt-2 mb-1.5 block text-sm font-semibold text-[#274760]">Khoa/Phòng</label>
-            <Select
-              value={shiftForm.department_id}
-              onValueChange={value => setShiftForm({ ...shiftForm, department_id: value })}
-            >
-              <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                <SelectValue placeholder="Chọn khoa/phòng" />
-              </SelectTrigger>
-              <SelectContent>
-                {departments.map(d => (
-                  <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              control={shiftControl}
+              name="department_id"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                    <SelectValue placeholder="Chọn khoa/phòng" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(d => (
+                      <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <FieldError message={shiftErrors.department_id?.message} />
 
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Ngày trực</label>
-                <Input
-                  type="date"
-                  required
-                  value={shiftForm.shift_date}
-                  onChange={e => setShiftForm({ ...shiftForm, shift_date: e.target.value })}
-                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                <Controller
+                  control={shiftControl}
+                  name="shift_date"
+                  render={({ field }) => (
+                    <Input
+                      type="date"
+                      value={field.value}
+                      onChange={field.onChange}
+                      className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                    />
+                  )}
                 />
               </div>
               <div>
                 <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Loại ca</label>
-                <Select
-                  value={shiftForm.shift_type}
-                  onValueChange={value => setShiftForm({ ...shiftForm, shift_type: value })}
-                >
-                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SHIFT_TYPES.map(t => <SelectItem key={t} value={t}>{shiftTypeLabel(t)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  control={shiftControl}
+                  name="shift_type"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SHIFT_TYPES.map(t => <SelectItem key={t} value={t}>{shiftTypeLabel(t)}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
             </div>
 
@@ -331,7 +358,7 @@ export default function DoctorDetail() {
 
             <Button
               type="submit"
-              disabled={savingShift || !shiftForm.department_id}
+              disabled={savingShift || !shiftDepartmentId}
               className="mt-5 h-auto w-full justify-center rounded-full bg-[#307bc4] py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
             >
               {savingShift ? 'Đang lưu…' : 'Thêm ca trực'}
@@ -361,7 +388,7 @@ export default function DoctorDetail() {
                       <Button
                         type="button"
                         onClick={() => handleReviewLeave(l, 'approved')}
-                        className="h-auto rounded-full bg-[#2e9e5b] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#2e9e5b]/90"
+                        className="h-auto rounded-full bg-[#198754] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#198754]/90"
                       >
                         Duyệt
                       </Button>
@@ -380,15 +407,13 @@ export default function DoctorDetail() {
             </ul>
           )}
 
-          <form onSubmit={handleCreateLeave} className="border-t border-[#f0f4f8] pt-4">
+          <form onSubmit={handleCreateLeave} noValidate className="border-t border-[#f0f4f8] pt-4">
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="mt-2 mb-1.5 block text-sm font-semibold text-[#274760]">Từ ngày</label>
                 <Input
                   type="date"
-                  required
-                  value={leaveForm.start_date}
-                  onChange={e => setLeaveForm({ ...leaveForm, start_date: e.target.value })}
+                  {...registerLeave('start_date')}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
               </div>
@@ -396,17 +421,16 @@ export default function DoctorDetail() {
                 <label className="mt-2 mb-1.5 block text-sm font-semibold text-[#274760]">Đến ngày</label>
                 <Input
                   type="date"
-                  required
-                  value={leaveForm.end_date}
-                  onChange={e => setLeaveForm({ ...leaveForm, end_date: e.target.value })}
+                  {...registerLeave('end_date')}
+                  aria-invalid={!!leaveErrors.end_date}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
               </div>
             </div>
+            <FieldError message={leaveErrors.end_date?.message} />
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Lý do</label>
             <Input
-              value={leaveForm.reason}
-              onChange={e => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+              {...registerLeave('reason')}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
 
