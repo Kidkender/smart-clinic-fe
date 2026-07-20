@@ -29,6 +29,9 @@ const ERROR_MESSAGES = {
   'error.appointment.invalid_status': 'Trạng thái lịch hẹn không hợp lệ.',
   'error.appointment.in_past': 'Không thể đặt lịch hẹn trong quá khứ.',
   'error.appointment.duplicate': 'Bạn đã có lịch hẹn khác vào đúng thời điểm này.',
+  'error.appointment.slot_unavailable': 'Khung giờ này vừa có người đặt trước. Vui lòng chọn giờ khác.',
+  'error.appointment.outside_schedule': 'Bác sĩ không làm việc vào khung giờ này. Vui lòng chọn giờ trong khung lịch làm việc.',
+  'error.appointment.doctor_on_leave': 'Bác sĩ đang nghỉ phép vào ngày này. Vui lòng chọn bác sĩ hoặc ngày khác.',
 
   'error.order.not_found': 'Không tìm thấy chỉ định.',
   'error.order.invalid_transition': 'Không thể chuyển sang trạng thái này.',

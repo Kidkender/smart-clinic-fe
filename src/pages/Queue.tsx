@@ -45,6 +45,8 @@ interface Encounter {
   QueueNumber: number;
   PatientID: number | string;
   Patient?: { Fullname?: string };
+  DepartmentID: number | string;
+  Department?: { Name?: string };
   Type: string;
   CheckedInAt?: string;
   Status: 'waiting' | 'in_progress' | 'completed' | 'cancelled';
@@ -93,11 +95,6 @@ export default function Queue() {
   const [confirm, ConfirmDialog] = useConfirm();
 
   const fetchQueue = useCallback(async (deptId: string) => {
-    if (!deptId) {
-      setQueue([]);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError('');
     try {
@@ -112,20 +109,12 @@ export default function Queue() {
 
   useEffect(() => {
     getDepartments()
-      .then(r => {
-        const list = r.data ?? [];
-        setDepartments(list);
-        if (list.length > 0) setDepartmentId(String(list[0].ID));
-        else setLoading(false);
-      })
-      .catch(err => {
-        setError(resolveError(err));
-        setLoading(false);
-      });
+      .then(r => setDepartments(r.data ?? []))
+      .catch(err => setError(resolveError(err)));
   }, []);
 
   useEffect(() => {
-    if (departmentId) fetchQueue(departmentId);
+    fetchQueue(departmentId);
   }, [departmentId, fetchQueue]);
 
   const handlePatientSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,11 +200,15 @@ export default function Queue() {
           </p>
         </div>
         <div className="flex items-center gap-2.5">
-          <Select value={departmentId} onValueChange={setDepartmentId}>
+          <Select
+            value={departmentId || 'all'}
+            onValueChange={value => setDepartmentId(value === 'all' ? '' : value)}
+          >
             <SelectTrigger className="h-auto min-w-[180px] max-w-[220px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-              <SelectValue placeholder="Chọn khoa/phòng" />
+              <SelectValue placeholder="Tất cả khoa/phòng" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Tất cả khoa/phòng</SelectItem>
               {departments.map(d => (
                 <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
               ))}
@@ -254,7 +247,8 @@ export default function Queue() {
             <Button
               variant="outline"
               onClick={handleCallNext}
-              disabled={calling || waitingCount === 0}
+              disabled={calling || waitingCount === 0 || !departmentId}
+              title={!departmentId ? 'Chọn một khoa/phòng cụ thể để gọi số' : undefined}
               className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
             >
               {calling ? 'Đang gọi…' : 'Gọi tiếp theo'}
@@ -266,8 +260,6 @@ export default function Queue() {
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
         {loading ? (
           <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>
-        ) : !departmentId ? (
-          <div className="p-15 text-center text-[#6c757d]">Chưa có khoa/phòng nào.</div>
         ) : queue.length === 0 ? (
           <div className="p-15 text-center text-[#6c757d]">Hàng đợi trống.</div>
         ) : (
@@ -276,6 +268,9 @@ export default function Queue() {
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">STT</TableHead>
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Bệnh nhân</TableHead>
+                {!departmentId && (
+                  <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Khoa/phòng</TableHead>
+                )}
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Loại</TableHead>
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Check-in</TableHead>
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Trạng thái</TableHead>
@@ -287,6 +282,9 @@ export default function Queue() {
                 <TableRow key={q.ID} className="border-t border-[#f0f4f8]">
                   <TableCell className="px-4 py-3 text-sm font-bold text-[#274760]">{q.QueueNumber}</TableCell>
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">{q.Patient?.Fullname ?? `#${q.PatientID}`}</TableCell>
+                  {!departmentId && (
+                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{q.Department?.Name ?? `#${q.DepartmentID}`}</TableCell>
+                  )}
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">{encounterTypeLabel(q.Type)}</TableCell>
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">
                     {q.CheckedInAt ? new Date(q.CheckedInAt).toLocaleTimeString('vi-VN') : '—'}

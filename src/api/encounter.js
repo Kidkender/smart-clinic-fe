@@ -6,7 +6,9 @@ export async function checkIn(payload) {
 }
 
 export async function getTodayQueue(departmentId) {
-  const { data } = await client.get('/encounters/queue', { params: { department_id: departmentId } });
+  const { data } = await client.get('/encounters/queue', {
+    params: departmentId ? { department_id: departmentId } : {},
+  });
   return data;
 }
 

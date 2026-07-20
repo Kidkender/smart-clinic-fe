@@ -198,7 +198,7 @@ export default function Admissions() {
       });
       setModalOpen(false);
       await fetchAdmissions();
-      window.location.assign(`/admissions/${admission.data.ID}`);
+      navigate(`/admissions/${admission.data.ID}`);
     } catch (err) {
       setFormError(resolveError(err));
     } finally {

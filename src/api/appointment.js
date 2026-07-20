@@ -20,7 +20,7 @@ export async function markNoShow(id) {
   return data;
 }
 
-export async function checkInAppointment(id) {
-  const { data } = await client.post(`/appointments/${id}/check-in`);
+export async function checkInAppointment(id, type) {
+  const { data } = await client.post(`/appointments/${id}/check-in`, type ? { type } : undefined);
   return data;
 }

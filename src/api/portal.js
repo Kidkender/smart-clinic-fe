@@ -30,6 +30,18 @@ export async function getMyInvoices() {
   return data;
 }
 
+export async function listMyAttachments() {
+  const { data } = await portalClient.get('/attachments');
+  return data;
+}
+
+export async function downloadMyAttachment(attachmentId) {
+  const { data } = await portalClient.get(`/attachments/${attachmentId}/file`, {
+    responseType: 'blob',
+  });
+  return data;
+}
+
 export async function getPortalDepartments() {
   const { data } = await portalClient.get('/departments');
   return data;

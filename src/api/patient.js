@@ -64,3 +64,10 @@ export async function deleteAttachment(id, attachmentId) {
   const { data } = await client.delete(`/patients/${id}/attachments/${attachmentId}`);
   return data;
 }
+
+export async function downloadAttachment(id, attachmentId) {
+  const { data } = await client.get(`/patients/${id}/attachments/${attachmentId}/file`, {
+    responseType: 'blob',
+  });
+  return data;
+}

@@ -4,7 +4,7 @@ import { Icon } from '@iconify/react';
 import {
   getPatientById, updatePatient, getPatientHistory,
   listContacts, addContact, updateContact, deleteContact,
-  listAttachments, uploadAttachment, deleteAttachment,
+  listAttachments, uploadAttachment, deleteAttachment, downloadAttachment,
 } from '@/api/patient';
 import { resolveError } from '@/utils/errorMessages';
 import { genderLabel, encounterStatusLabel, encounterTypeLabel, prescriptionStatusLabel, orderStatusLabel, orderTypeLabel, attachmentCategoryLabel, ATTACHMENT_CATEGORIES } from '@/utils/labels';
@@ -132,6 +132,7 @@ export default function PatientDetail() {
   const [attachmentError, setAttachmentError] = useState('');
   const [uploadCategory, setUploadCategory] = useState('document');
   const [attachmentFilter, setAttachmentFilter] = useState('');
+  const [openingAttachmentId, setOpeningAttachmentId] = useState<number | string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [confirm, ConfirmDialog] = useConfirm();
@@ -299,6 +300,21 @@ export default function PatientDetail() {
     }
   };
 
+  const handleViewAttachment = async (attachment: Attachment) => {
+    setAttachmentError('');
+    setOpeningAttachmentId(attachment.ID);
+    try {
+      const blob = await downloadAttachment(id, attachment.ID);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      setAttachmentError(resolveError(err));
+    } finally {
+      setOpeningAttachmentId(null);
+    }
+  };
+
   if (loading) {
     return <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>;
   }
@@ -428,9 +444,19 @@ export default function PatientDetail() {
                         {' · '}{a.ContentType || 'file'} · {a.FileSize ? `${(a.FileSize / 1024).toFixed(0)} KB` : ''}
                       </div>
                     </div>
-                    {canManage && (
-                      <IconButton onClick={() => handleDeleteAttachment(a)} title="Xóa" className="shrink-0 text-[#dc3545]"><Icon icon="fa6-solid:xmark" className="text-xs" /></IconButton>
-                    )}
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <IconButton
+                        onClick={() => handleViewAttachment(a)}
+                        title="Xem"
+                        disabled={openingAttachmentId === a.ID}
+                        className="text-[#307bc4]"
+                      >
+                        <Icon icon={openingAttachmentId === a.ID ? 'fa6-solid:spinner' : 'fa6-solid:eye'} className={openingAttachmentId === a.ID ? 'animate-spin text-xs' : 'text-xs'} />
+                      </IconButton>
+                      {canManage && (
+                        <IconButton onClick={() => handleDeleteAttachment(a)} title="Xóa" className="text-[#dc3545]"><Icon icon="fa6-solid:xmark" className="text-xs" /></IconButton>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -578,16 +604,18 @@ interface IconButtonProps {
   onClick: () => void;
   title: string;
   className?: string;
+  disabled?: boolean;
   children: ReactNode;
 }
 
-function IconButton({ onClick, title, className, children }: IconButtonProps) {
+function IconButton({ onClick, title, className, disabled, children }: IconButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={title}
-      className={`inline-flex size-[30px] cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#6c757d] ${className ?? ''}`}
+      disabled={disabled}
+      className={`inline-flex size-[30px] cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#6c757d] disabled:cursor-not-allowed disabled:opacity-50 ${className ?? ''}`}
     >
       {children}
     </button>

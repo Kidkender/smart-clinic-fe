@@ -5,10 +5,12 @@ import {
   getMyProfile, getPortalDepartments, getPortalDoctors, getPortalAvailableSlots,
   listMyAppointments, bookMyAppointment, cancelMyAppointment,
   getMyHistory, getMyInvoices, updateMyProfile,
+  listMyAttachments, downloadMyAttachment,
 } from '@/api/portal';
 import { resolveError } from '@/utils/errorMessages';
 import {
   appointmentStatusLabel, encounterStatusLabel, encounterTypeLabel, invoiceStatusLabel,
+  attachmentCategoryLabel,
 } from '@/utils/labels';
 import { usePatientAuth } from '@/context/PatientAuthContext';
 import useConfirm from '@/hooks/useConfirm';
@@ -107,10 +109,20 @@ interface ProfileForm {
   allergies: string;
 }
 
+interface Attachment {
+  ID: number | string;
+  FileName: string;
+  Category: string;
+  ContentType?: string;
+  FileSize?: number;
+  CreatedAt: string;
+}
+
 const TABS = [
   { key: 'appointments', label: 'Lịch hẹn' },
   { key: 'history', label: 'Lịch sử khám' },
   { key: 'invoices', label: 'Hóa đơn' },
+  { key: 'attachments', label: 'Tệp đính kèm' },
   { key: 'profile', label: 'Hồ sơ của tôi' },
 ];
 
@@ -152,6 +164,10 @@ export default function PortalHome() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[] | null>(null);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [openingAttachmentId, setOpeningAttachmentId] = useState<number | string | null>(null);
+  const [attachmentError, setAttachmentError] = useState('');
   const [profileForm, setProfileForm] = useState<ProfileForm | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState('');
@@ -309,6 +325,28 @@ export default function PortalHome() {
         .then(r => setInvoices(r.data ?? []))
         .catch(err => setError(resolveError(err)))
         .finally(() => setLoadingInvoices(false));
+    }
+    if (tabName === 'attachments' && !attachments) {
+      setLoadingAttachments(true);
+      listMyAttachments()
+        .then(r => setAttachments(r.data ?? []))
+        .catch(err => setError(resolveError(err)))
+        .finally(() => setLoadingAttachments(false));
+    }
+  };
+
+  const handleViewAttachment = async (attachment: Attachment) => {
+    setAttachmentError('');
+    setOpeningAttachmentId(attachment.ID);
+    try {
+      const blob = await downloadMyAttachment(attachment.ID);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      setAttachmentError(resolveError(err));
+    } finally {
+      setOpeningAttachmentId(null);
     }
   };
 
@@ -509,6 +547,43 @@ export default function PortalHome() {
                             ))}
                           </ul>
                         )}
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === 'attachments' && (
+              <div className="mt-5">
+                <h2 className="m-0 mb-4 text-lg font-bold text-[#134e48]">Tệp đính kèm của tôi</h2>
+                {attachmentError && <div className={cn(PORTAL_ERROR, 'mb-4')}>{attachmentError}</div>}
+                {loadingAttachments ? (
+                  <Card className="rounded-2xl border-[#d1fae5] p-5 text-center text-[#6c757d]">Đang tải…</Card>
+                ) : !attachments || attachments.length === 0 ? (
+                  <Card className="rounded-2xl border-[#d1fae5] p-5 text-center text-[#6c757d]">Chưa có tệp đính kèm nào.</Card>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {attachments.map(a => (
+                      <Card key={a.ID} className="rounded-2xl border-[#d1fae5] p-5">
+                        <div className="flex flex-wrap items-center justify-between gap-2.5">
+                          <div className="min-w-0">
+                            <div className="overflow-hidden font-bold text-ellipsis whitespace-nowrap text-[#134e48]">{a.FileName}</div>
+                            <div className="mt-1 text-[13px] text-[#6c757d]">
+                              <span className="inline-block rounded-full bg-[#0d9488]/10 px-2 py-0.5 text-xs font-semibold text-[#0d9488]">{attachmentCategoryLabel(a.Category)}</span>
+                              {' · '}{new Date(a.CreatedAt).toLocaleDateString('vi-VN')}
+                              {a.FileSize ? ` · ${(a.FileSize / 1024).toFixed(0)} KB` : ''}
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            disabled={openingAttachmentId === a.ID}
+                            onClick={() => handleViewAttachment(a)}
+                            className="h-auto shrink-0 rounded-full bg-[#0d9488] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d9488]/90"
+                          >
+                            {openingAttachmentId === a.ID ? 'Đang mở…' : 'Xem'}
+                          </Button>
+                        </div>
                       </Card>
                     ))}
                   </div>

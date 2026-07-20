@@ -99,22 +99,27 @@ export default function AdmissionDetail() {
     setLoading(true);
     setError('');
     try {
-      const [a, p, n, v] = await Promise.all([
-        getAdmissionById(id),
-        listProgressNotes(id),
-        listNursingLogs(id),
-        listAdmissionVitals(id),
-      ]);
+      const a = await getAdmissionById(id);
       setAdmission(a.data);
-      setProgressNotes(p.data ?? []);
-      setNursingLogs(n.data ?? []);
-      setVitals(v.data ?? []);
     } catch (err) {
       setError(resolveError(err));
-    } finally {
       setLoading(false);
+      return;
     }
-  }, [id]);
+
+    // These are fetched independently: a role that can view the admission
+    // (e.g. receptionist) may not have access to every sub-resource (e.g.
+    // vitals is doctor/nurse/admin-only), and that shouldn't block the
+    // whole page behind a single forbidden error.
+    listProgressNotes(id).then(r => setProgressNotes(r.data ?? [])).catch(() => setProgressNotes([]));
+    listNursingLogs(id).then(r => setNursingLogs(r.data ?? [])).catch(() => setNursingLogs([]));
+    if (canAddVital) {
+      listAdmissionVitals(id).then(r => setVitals(r.data ?? [])).catch(() => setVitals([]));
+    } else {
+      setVitals([]);
+    }
+    setLoading(false);
+  }, [id, canAddVital]);
 
   useEffect(() => {
     loadAll();

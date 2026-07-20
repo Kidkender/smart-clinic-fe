@@ -46,15 +46,25 @@ export default function DateOfBirthSelect({ value, onChange, disabled, className
     onChange(nextDay && nextMonth && nextYear ? `${nextYear}-${pad2(nextMonth)}-${pad2(nextDay)}` : '');
   };
 
-  const handleDayChange = (v: string) => commit(Number(v), month, year);
+  // Radix's Select fires a spurious onValueChange('') of its own when the
+  // item-aligned SelectContent re-renders after a controlled value changes
+  // (observed right after the sync effect above sets day/month/year from
+  // props). That's not a real user selection, so empty/invalid values are
+  // ignored here rather than treated as "clear the field".
+  const handleDayChange = (v: string) => {
+    if (!v) return;
+    commit(Number(v), month, year);
+  };
 
   const handleMonthChange = (v: string) => {
+    if (!v) return;
     const nextMonth = Number(v);
     const maxDay = daysInMonth(year, nextMonth);
     commit(day && day > maxDay ? maxDay : day, nextMonth, year);
   };
 
   const handleYearChange = (v: string) => {
+    if (!v) return;
     const nextYear = Number(v);
     const maxDay = daysInMonth(nextYear, month);
     commit(day && day > maxDay ? maxDay : day, month, nextYear);

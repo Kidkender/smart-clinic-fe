@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Icon } from '@iconify/react';
 import { searchAppointments, createAppointment, cancelAppointment, markNoShow, checkInAppointment } from '@/api/appointment';
+import { searchPatients } from '@/api/patient';
 import { getDepartments, getDoctorsByDepartment } from '@/api/department';
+import { listDoctors } from '@/api/doctor';
 import { getAvailableSlots } from '@/api/doctorSchedule';
 import { resolveError } from '@/utils/errorMessages';
 import { appointmentStatusLabel } from '@/utils/labels';
@@ -44,6 +46,11 @@ interface Doctor {
   fullname: string;
 }
 
+interface DoctorFilterOption {
+  ID: number | string;
+  Fullname: string;
+}
+
 interface Appointment {
   ID: number | string;
   PatientID: number | string;
@@ -59,6 +66,12 @@ interface Slot {
   start_time: string;
 }
 
+interface PatientOption {
+  ID: number | string;
+  Fullname: string;
+  MRN: string;
+}
+
 const STATUS_STYLES: Record<string, string> = {
   booked: 'bg-[#307bc4]/10 text-[#307bc4]',
   checked_in: 'bg-[#198754]/10 text-[#198754]',
@@ -67,6 +80,13 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const PAGE_LIMIT = 20;
+
+const CHECKIN_TYPES = [
+  { value: 'new', label: 'Khám mới' },
+  { value: 'follow_up', label: 'Tái khám' },
+  { value: 'insurance', label: 'BHYT' },
+  { value: 'service', label: 'Dịch vụ' },
+];
 
 function toLocalDateTimeInput(isoString: string) {
   const d = new Date(isoString);
@@ -90,11 +110,21 @@ export default function Appointments() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [confirm, ConfirmDialog] = useConfirm();
+  const [checkInTarget, setCheckInTarget] = useState<Appointment | null>(null);
+  const [checkInType, setCheckInType] = useState('follow_up');
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [patientQuery, setPatientQuery] = useState('');
+  const [patientResults, setPatientResults] = useState<PatientOption[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<PatientOption | null>(null);
 
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [doctorFilter, setDoctorFilter] = useState('all');
+  const [doctorOptions, setDoctorOptions] = useState<DoctorFilterOption[]>([]);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -107,7 +137,7 @@ export default function Appointments() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, departmentFilter, sortOrder]);
+  }, [search, statusFilter, departmentFilter, doctorFilter, dateFrom, dateTo, sortOrder]);
 
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
@@ -119,6 +149,9 @@ export default function Appointments() {
         q: search || undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
         department_id: departmentFilter === 'all' ? undefined : departmentFilter,
+        doctor_id: doctorFilter === 'all' ? undefined : doctorFilter,
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
         sort: sortOrder,
       });
       setAppointments(result.data ?? []);
@@ -129,14 +162,29 @@ export default function Appointments() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter, departmentFilter, sortOrder]);
+  }, [page, search, statusFilter, departmentFilter, doctorFilter, dateFrom, dateTo, sortOrder]);
 
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
 
+  const hasActiveFilters = !!searchInput || statusFilter !== 'all' || departmentFilter !== 'all'
+    || doctorFilter !== 'all' || !!dateFrom || !!dateTo || sortOrder !== 'asc';
+
+  const handleResetFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setStatusFilter('all');
+    setDepartmentFilter('all');
+    setDoctorFilter('all');
+    setDateFrom('');
+    setDateTo('');
+    setSortOrder('asc');
+  };
+
   useEffect(() => {
     getDepartments().then(r => setDepartments(r.data ?? [])).catch(() => {});
+    listDoctors({ page: 1, limit: 200 }).then(r => setDoctorOptions(r.data ?? [])).catch(() => {});
   }, []);
 
   const openCreate = () => {
@@ -145,6 +193,9 @@ export default function Appointments() {
     setFormError('');
     setSlotDate('');
     setSlots([]);
+    setPatientQuery('');
+    setPatientResults([]);
+    setSelectedPatient(null);
     setModalOpen(true);
     if (departmentId) {
       getDoctorsByDepartment(departmentId).then(r => setDoctors(r.data ?? [])).catch(() => setDoctors([]));
@@ -154,7 +205,7 @@ export default function Appointments() {
   };
 
   const handleDepartmentChange = async (departmentId: string) => {
-    setForm(f => ({ ...f, department_id: departmentId, doctor_id: '' }));
+    setForm(f => ({ ...f, department_id: departmentId, doctor_id: '', scheduled_at: '' }));
     setSlotDate('');
     setSlots([]);
     if (!departmentId) {
@@ -170,7 +221,7 @@ export default function Appointments() {
   };
 
   const handleDoctorChange = (doctorId: string) => {
-    setForm(f => ({ ...f, doctor_id: doctorId }));
+    setForm(f => ({ ...f, doctor_id: doctorId, scheduled_at: '' }));
     setSlotDate('');
     setSlots([]);
   };
@@ -194,16 +245,62 @@ export default function Appointments() {
     setForm(f => ({ ...f, scheduled_at: toLocalDateTimeInput(slot.start_time) }));
   };
 
+  const handlePatientSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPatientQuery(value);
+    if (value.trim().length < 2) {
+      setPatientResults([]);
+      return;
+    }
+    try {
+      const result = await searchPatients({ q: value.trim(), page: 1, limit: 10 });
+      setPatientResults(result.data ?? []);
+    } catch {
+      setPatientResults([]);
+    }
+  };
+
+  const handleSelectPatient = (patient: PatientOption) => {
+    setSelectedPatient(patient);
+    setForm(f => ({ ...f, patient_id: String(patient.ID) }));
+    setPatientQuery('');
+    setPatientResults([]);
+  };
+
+  const handleClearPatient = () => {
+    setSelectedPatient(null);
+    setForm(f => ({ ...f, patient_id: '' }));
+    setPatientQuery('');
+    setPatientResults([]);
+  };
+
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     setFormError('');
+    if (!form.patient_id) {
+      setFormError('Vui lòng chọn bệnh nhân.');
+      return;
+    }
+    if (!form.scheduled_at) {
+      setFormError(
+        form.doctor_id
+          ? 'Bác sĩ không có khung giờ trống ngày này. Vui lòng chọn ngày khác hoặc bỏ chọn bác sĩ.'
+          : 'Vui lòng chọn thời gian hẹn.',
+      );
+      return;
+    }
+    const scheduledDate = new Date(form.scheduled_at);
+    if (Number.isNaN(scheduledDate.getTime())) {
+      setFormError('Thời gian hẹn không hợp lệ.');
+      return;
+    }
     setSaving(true);
     try {
       await createAppointment({
         patient_id: Number(form.patient_id),
         department_id: Number(form.department_id),
         doctor_id: form.doctor_id ? Number(form.doctor_id) : undefined,
-        scheduled_at: new Date(form.scheduled_at).toISOString(),
+        scheduled_at: scheduledDate.toISOString(),
         reason: form.reason,
       });
       await fetchAppointments();
@@ -235,13 +332,22 @@ export default function Appointments() {
     }
   };
 
-  const handleCheckIn = async (appt: Appointment) => {
-    if (!(await confirm('Check-in cho bệnh nhân này?', { danger: false, confirmLabel: 'Check-in' }))) return;
+  const openCheckIn = (appt: Appointment) => {
+    setCheckInTarget(appt);
+    setCheckInType('follow_up');
+  };
+
+  const handleCheckIn = async () => {
+    if (!checkInTarget) return;
+    setCheckingIn(true);
     try {
-      await checkInAppointment(appt.ID);
+      await checkInAppointment(checkInTarget.ID, checkInType);
       await fetchAppointments();
+      setCheckInTarget(null);
     } catch (err) {
       setError(resolveError(err));
+    } finally {
+      setCheckingIn(false);
     }
   };
 
@@ -276,7 +382,7 @@ export default function Appointments() {
           <Input
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
-            placeholder="Tìm theo tên, SĐT, MRN bệnh nhân…"
+            placeholder="Tìm theo tên, SĐT, CCCD, MRN…"
             className="h-auto rounded-full border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
           />
         </div>
@@ -301,15 +407,56 @@ export default function Appointments() {
             {departments.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={sortOrder} onValueChange={value => setSortOrder(value as 'asc' | 'desc')}>
-          <SelectTrigger className="h-auto w-[160px] rounded-full px-4 py-2.75 text-sm">
+        <Select value={doctorFilter} onValueChange={setDoctorFilter}>
+          <SelectTrigger className="h-auto w-[180px] rounded-full px-4 py-2.75 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="asc">Sắp tới trước</SelectItem>
-            <SelectItem value="desc">Gần đây trước</SelectItem>
+            <SelectItem value="all">Tất cả bác sĩ</SelectItem>
+            {doctorOptions.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Fullname}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="flex items-center rounded-full border border-[#dde2e8] py-1.5 pr-3.5 pl-4">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Từ ngày</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              className="w-[125px] border-0 bg-transparent p-0 text-sm text-[#274760] outline-none"
+            />
+          </div>
+          <div className="mx-3 h-4.5 w-px bg-[#dde2e8]" />
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Đến ngày</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              className="w-[125px] border-0 bg-transparent p-0 text-sm text-[#274760] outline-none"
+            />
+          </div>
+        </div>
+        <Select value={sortOrder} onValueChange={value => setSortOrder(value as 'asc' | 'desc')}>
+          <SelectTrigger className="h-auto w-[180px] rounded-full px-4 py-2.75 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="asc">Ngày hẹn: sớm nhất trước</SelectItem>
+            <SelectItem value="desc">Ngày hẹn: muộn nhất trước</SelectItem>
+          </SelectContent>
+        </Select>
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleResetFilters}
+            className="h-auto rounded-full border-[#dde2e8] px-4 py-2.75 text-sm font-medium text-[#6c757d] hover:text-[#dc3545]"
+          >
+            <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
+            Xóa bộ lọc
+          </Button>
+        )}
       </div>
 
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
@@ -317,7 +464,7 @@ export default function Appointments() {
           <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>
         ) : appointments.length === 0 ? (
           <div className="p-15 text-center text-[#6c757d]">
-            {search || statusFilter !== 'all' || departmentFilter !== 'all' ? 'Không tìm thấy lịch hẹn phù hợp.' : 'Chưa có lịch hẹn nào.'}
+            {search || statusFilter !== 'all' || departmentFilter !== 'all' || doctorFilter !== 'all' || dateFrom || dateTo ? 'Không tìm thấy lịch hẹn phù hợp.' : 'Chưa có lịch hẹn nào.'}
           </div>
         ) : (
           <Table>
@@ -348,7 +495,7 @@ export default function Appointments() {
                       <>
                         <button
                           type="button"
-                          onClick={() => handleCheckIn(a)}
+                          onClick={() => openCheckIn(a)}
                           title="Check-in"
                           className="inline-flex size-[30px] cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#198754]"
                         >
@@ -416,14 +563,43 @@ export default function Appointments() {
             <DialogTitle className="text-xl font-bold text-[#274760]">Đặt lịch hẹn</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreate}>
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mã bệnh nhân (ID) *</label>
-            <Input
-              required
-              type="number"
-              value={form.patient_id}
-              onChange={e => setForm({ ...form, patient_id: e.target.value })}
-              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-            />
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Bệnh nhân *</label>
+            {selectedPatient ? (
+              <div className="flex items-center justify-between rounded-xl border border-[#dde2e8] px-4 py-3">
+                <span className="text-[15px] text-[#274760]">
+                  {selectedPatient.Fullname} <span className="text-xs text-[#6c757d]">({selectedPatient.MRN})</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleClearPatient}
+                  className="inline-flex size-[26px] cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#6c757d]"
+                >
+                  <Icon icon="fa6-solid:xmark" className="text-xs" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <Input
+                  value={patientQuery}
+                  onChange={handlePatientSearch}
+                  placeholder="Nhập tên, SĐT, CCCD, MRN…"
+                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                />
+                {patientResults.length > 0 && (
+                  <div className="mt-1.5 max-h-40 overflow-y-auto rounded-lg border border-[#dde2e8]">
+                    {patientResults.map(p => (
+                      <div
+                        key={p.ID}
+                        onClick={() => handleSelectPatient(p)}
+                        className="cursor-pointer px-3.5 py-2.5 text-sm text-[#274760] hover:bg-[#f4f7fa]"
+                      >
+                        {p.Fullname} <span className="text-xs text-[#6c757d]">· {p.MRN}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Khoa *</label>
             <Select value={form.department_id} onValueChange={handleDepartmentChange}>
@@ -459,7 +635,7 @@ export default function Appointments() {
                 />
                 {loadingSlots && <p className="mt-2 text-[13px] text-[#6c757d]">Đang tải khung giờ…</p>}
                 {!loadingSlots && slotDate && slots.length === 0 && (
-                  <p className="mt-2 text-[13px] text-[#6c757d]">Bác sĩ không có khung giờ trống ngày này — bạn có thể tự nhập giờ hẹn bên dưới.</p>
+                  <p className="mt-2 text-[13px] text-[#6c757d]">Bác sĩ không có khung giờ trống ngày này, vui lòng đặt lịch hẹn vào thời gian khác.</p>
                 )}
                 {slots.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -490,8 +666,19 @@ export default function Appointments() {
               type="datetime-local"
               value={form.scheduled_at}
               onChange={e => setForm({ ...form, scheduled_at: e.target.value })}
-              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+              readOnly={!!form.doctor_id}
+              className={cn(
+                'h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]',
+                form.doctor_id && 'cursor-not-allowed bg-[#f4f7fa] text-[#6c757d]',
+              )}
             />
+            {form.doctor_id && (
+              <p className="mt-1.5 text-[13px] text-[#6c757d]">
+                {form.scheduled_at
+                  ? 'Đã chỉ định bác sĩ — chọn khung giờ khác ở trên nếu muốn đổi.'
+                  : 'Vui lòng chọn một khung giờ trống ở trên để điền giờ hẹn.'}
+              </p>
+            )}
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Lý do khám</label>
             <Input
@@ -518,13 +705,54 @@ export default function Appointments() {
               </Button>
               <Button
                 type="submit"
-                disabled={saving}
+                disabled={saving || !form.patient_id || !form.department_id || !form.scheduled_at}
                 className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Đặt lịch'}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!checkInTarget} onOpenChange={open => { if (!checkingIn && !open) setCheckInTarget(null); }}>
+        <DialogContent className="sm:max-w-[400px] rounded-[20px] p-8">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-[#274760]">Check-in bệnh nhân</DialogTitle>
+          </DialogHeader>
+          <div>
+            <p className="m-0 text-sm text-[#6c757d]">
+              {checkInTarget?.Patient?.Fullname ?? `#${checkInTarget?.PatientID}`}
+            </p>
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Loại khám *</label>
+            <Select value={checkInType} onValueChange={setCheckInType}>
+              <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CHECKIN_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCheckInTarget(null)}
+              disabled={checkingIn}
+              className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCheckIn}
+              disabled={checkingIn}
+              className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            >
+              {checkingIn ? 'Đang check-in…' : 'Check-in'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
