@@ -3,17 +3,16 @@ import { z } from 'zod';
 export const appointmentSchema = z.object({
   patient_id: z.string().min(1, 'Vui lòng chọn bệnh nhân.'),
   department_id: z.string().min(1, 'Vui lòng chọn khoa.'),
-  doctor_id: z.string(),
+  doctor_id: z.string().min(1, 'Vui lòng chọn bác sĩ.'),
   scheduled_at: z.string(),
+  type: z.string(),
   reason: z.string(),
 }).superRefine((values, ctx) => {
   if (!values.scheduled_at) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['scheduled_at'],
-      message: values.doctor_id
-        ? 'Bác sĩ không có khung giờ trống ngày này. Vui lòng chọn ngày khác hoặc bỏ chọn bác sĩ.'
-        : 'Vui lòng chọn thời gian hẹn.',
+      message: 'Bác sĩ không có khung giờ trống ngày này. Vui lòng chọn ngày khác.',
     });
     return;
   }

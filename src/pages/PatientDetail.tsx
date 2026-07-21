@@ -85,6 +85,7 @@ interface PatientHistory {
 }
 
 const GENDERS = ['male', 'female', 'other'];
+const RELATIONSHIPS = ['Vợ/chồng', 'Con', 'Cha/mẹ', 'Anh/chị/em', 'Người giám hộ', 'Khác'];
 
 function toDateInput(value?: string) {
   if (!value) return '';
@@ -125,7 +126,7 @@ export default function PatientDetail() {
   const [savingContact, setSavingContact] = useState(false);
   const {
     register: registerContact, handleSubmit: handleSubmitContact, reset: resetContact,
-    formState: { errors: contactErrors },
+    control: controlContact, formState: { errors: contactErrors },
   } = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
     defaultValues: { fullname: '', relationship: '', phone: '' },
@@ -365,7 +366,20 @@ export default function PatientDetail() {
                   <Input {...registerContact('fullname')} placeholder="Họ tên" aria-invalid={!!contactErrors.fullname} className="h-auto rounded-xl border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]" />
                   <FieldError message={contactErrors.fullname?.message} />
                 </div>
-                <Input {...registerContact('relationship')} placeholder="Quan hệ" className="h-auto rounded-xl border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]" />
+                <Controller
+                  name="relationship"
+                  control={controlContact}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]">
+                        <SelectValue placeholder="Quan hệ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RELATIONSHIPS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               <Input {...registerContact('phone')} placeholder="SĐT" aria-invalid={!!contactErrors.phone} className="mt-2.5 h-auto w-full rounded-xl border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]" />
               <FieldError message={contactErrors.phone?.message} />

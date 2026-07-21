@@ -5,6 +5,12 @@ const APPOINTMENT_STATUS = {
   no_show: 'Không đến',
 };
 
+const APPOINTMENT_TYPE = {
+  new: 'Khám mới',
+  follow_up: 'Tái khám',
+  service: 'Dịch vụ',
+};
+
 const ENCOUNTER_STATUS = {
   waiting: 'Đang chờ',
   in_progress: 'Đang khám',
@@ -149,6 +155,8 @@ function translate(map, value) {
 }
 
 export const appointmentStatusLabel = value => translate(APPOINTMENT_STATUS, value);
+export const appointmentTypeLabel = value => translate(APPOINTMENT_TYPE, value);
+export const APPOINTMENT_TYPES = Object.keys(APPOINTMENT_TYPE);
 export const encounterStatusLabel = value => translate(ENCOUNTER_STATUS, value);
 export const encounterTypeLabel = value => translate(ENCOUNTER_TYPE, value);
 export const prescriptionStatusLabel = value => translate(PRESCRIPTION_STATUS, value);

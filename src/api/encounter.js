@@ -5,9 +5,12 @@ export async function checkIn(payload) {
   return data;
 }
 
-export async function getTodayQueue(departmentId) {
+export async function getTodayQueue(departmentId, sortBy, sortDir) {
   const { data } = await client.get('/encounters/queue', {
-    params: departmentId ? { department_id: departmentId } : {},
+    params: {
+      ...(departmentId ? { department_id: departmentId } : {}),
+      ...(sortBy ? { sort_by: sortBy, sort_dir: sortDir } : {}),
+    },
   });
   return data;
 }

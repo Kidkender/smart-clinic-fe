@@ -10,6 +10,7 @@ const ERROR_MESSAGES = {
   'error.user.not_found': 'Không tìm thấy người dùng.',
   'error.user.pending_approval': 'Tài khoản đang chờ quản trị viên duyệt.',
   'error.user.locked': 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.',
+  'error.user.admin_name_locked': 'Tài khoản quản trị hệ thống không được đổi họ tên.',
 
   'error.department.not_found': 'Không tìm thấy khoa/phòng.',
   'error.department.already_exists': 'Khoa/phòng này đã tồn tại.',
@@ -68,6 +69,7 @@ const ERROR_MESSAGES = {
 
   'error.doctor_profile.not_found': 'Không tìm thấy bác sĩ.',
   'error.doctor.role_mismatch': 'Người dùng này không phải là bác sĩ.',
+  'error.doctor.in_use': 'Bác sĩ này đã có lịch hẹn/lượt khám, không thể xóa.',
   'error.doctor_schedule.invalid_range': 'Giờ kết thúc phải sau giờ bắt đầu.',
   'error.doctor_schedule.overlap': 'Bác sĩ đã có lịch làm việc trùng khung giờ này trong ngày.',
   'error.doctor_shift.conflict': 'Bác sĩ đã có ca trực này.',

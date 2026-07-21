@@ -23,6 +23,7 @@ import DoctorSchedules from './pages/DoctorSchedules';
 import Doctors from './pages/Doctors';
 import DoctorDetail from './pages/DoctorDetail';
 import Users from './pages/Users';
+import Profile from './pages/Profile';
 import PortalLogin from './pages/portal/PortalLogin';
 import PortalRegister from './pages/portal/PortalRegister';
 import PortalHome from './pages/portal/PortalHome';
@@ -45,6 +46,7 @@ function App() {
         }
       >
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="patients" element={<Patients />} />
         <Route path="patients/:id" element={<PatientDetail />} />
         <Route path="appointments" element={<Appointments />} />

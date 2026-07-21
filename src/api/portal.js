@@ -57,8 +57,8 @@ export async function getPortalAvailableSlots(doctorId, date) {
   return data;
 }
 
-export async function listMyAppointments() {
-  const { data } = await portalClient.get('/appointments', { params: { page: 1, limit: 20 } });
+export async function listMyAppointments(params = {}) {
+  const { data } = await portalClient.get('/appointments', { params: { page: 1, limit: 20, ...params } });
   return data;
 }
 

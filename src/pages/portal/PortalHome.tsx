@@ -11,7 +11,7 @@ import {
 } from '@/api/portal';
 import { resolveError } from '@/utils/errorMessages';
 import {
-  appointmentStatusLabel, encounterStatusLabel, encounterTypeLabel, invoiceStatusLabel,
+  appointmentStatusLabel, appointmentTypeLabel, APPOINTMENT_TYPES, encounterStatusLabel, encounterTypeLabel, invoiceStatusLabel,
   attachmentCategoryLabel,
 } from '@/utils/labels';
 import { usePatientAuth } from '@/context/PatientAuthContext';
@@ -143,6 +143,13 @@ export default function PortalHome() {
   const [error, setError] = useState('');
   const [confirm, ConfirmDialog] = useConfirm();
 
+  const [appointmentPage, setAppointmentPage] = useState(1);
+  const [appointmentTotal, setAppointmentTotal] = useState(0);
+  const [appointmentTotalPages, setAppointmentTotalPages] = useState(1);
+  const [appointmentStatusFilter, setAppointmentStatusFilter] = useState('all');
+  const [appointmentSortDir, setAppointmentSortDir] = useState<'asc' | 'desc'>('desc');
+  const [loadingAppointments, setLoadingAppointments] = useState(false);
+
   const [departments, setDepartments] = useState<Department[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -151,7 +158,7 @@ export default function PortalHome() {
     setValue: setBookingValue, watch: watchBooking, formState: { errors: bookingErrors },
   } = useForm<PortalBookingFormValues>({
     resolver: zodResolver(portalBookingSchema),
-    defaultValues: { department_id: '', doctor_id: '', reason: '' },
+    defaultValues: { department_id: '', doctor_id: '', type: 'new', reason: '' },
   });
   const bookingDepartmentId = watchBooking('department_id');
   const bookingDoctorId = watchBooking('doctor_id');
@@ -159,8 +166,6 @@ export default function PortalHome() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-  const [manualDate, setManualDate] = useState('');
-  const [manualTime, setManualTime] = useState('');
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -189,7 +194,7 @@ export default function PortalHome() {
     setLoading(true);
     setError('');
     try {
-      const [me, appts] = await Promise.all([getMyProfile(), listMyAppointments()]);
+      const me = await getMyProfile();
       setProfile(me.data);
       resetProfile({
         phone: me.data.Phone ?? '',
@@ -198,7 +203,6 @@ export default function PortalHome() {
         allergies: me.data.Allergies ?? '',
       });
       setProfileLoaded(true);
-      setAppointments(appts.data ?? []);
     } catch (err) {
       setError(resolveError(err));
     } finally {
@@ -206,6 +210,33 @@ export default function PortalHome() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fetchAppointments = useCallback(async () => {
+    setLoadingAppointments(true);
+    try {
+      const result = await listMyAppointments({
+        page: appointmentPage,
+        status: appointmentStatusFilter === 'all' ? undefined : appointmentStatusFilter,
+        sort_by: 'scheduled',
+        sort_dir: appointmentSortDir,
+      });
+      setAppointments(result.data ?? []);
+      setAppointmentTotal(result.meta?.total ?? 0);
+      setAppointmentTotalPages(result.meta?.total_pages ?? 1);
+    } catch (err) {
+      setError(resolveError(err));
+    } finally {
+      setLoadingAppointments(false);
+    }
+  }, [appointmentPage, appointmentStatusFilter, appointmentSortDir]);
+
+  useEffect(() => {
+    setAppointmentPage(1);
+  }, [appointmentStatusFilter, appointmentSortDir]);
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
 
   useEffect(() => {
     loadAll();
@@ -218,12 +249,11 @@ export default function PortalHome() {
   };
 
   const openBooking = () => {
-    resetBooking({ department_id: String(departments[0]?.ID ?? ''), doctor_id: '', reason: '' });
+    resetBooking({ department_id: String(departments[0]?.ID ?? ''), doctor_id: '', type: 'new', reason: '' });
     setDoctors([]);
     setSlotDate('');
     setSlots([]);
     setSelectedSlot(null);
-    setManualDate(''); setManualTime('');
     setFormError('');
     setModalOpen(true);
     if (departments[0]?.ID) {
@@ -237,7 +267,6 @@ export default function PortalHome() {
     setSlotDate('');
     setSlots([]);
     setSelectedSlot(null);
-    setManualDate(''); setManualTime('');
     if (!departmentId) {
       setDoctors([]);
       return;
@@ -251,11 +280,10 @@ export default function PortalHome() {
   };
 
   const handleDoctorChange = (doctorId: string) => {
-    setBookingValue('doctor_id', doctorId);
+    setBookingValue('doctor_id', doctorId, { shouldValidate: true });
     setSlotDate('');
     setSlots([]);
     setSelectedSlot(null);
-    setManualDate(''); setManualTime('');
   };
 
   const handleSlotDateChange = async (date: string) => {
@@ -277,35 +305,21 @@ export default function PortalHome() {
   const handleBook = handleBookingSubmit(async values => {
     setFormError('');
 
-    let scheduledAt: string;
-    if (values.doctor_id) {
-      if (!selectedSlot) {
-        setFormError('Vui lòng chọn một khung giờ.');
-        return;
-      }
-      scheduledAt = selectedSlot.start_time;
-    } else {
-      if (!manualDate || !manualTime) {
-        setFormError('Vui lòng chọn ngày và giờ mong muốn.');
-        return;
-      }
-      const parsed = new Date(`${manualDate}T${manualTime}:00`);
-      if (parsed.getTime() <= Date.now()) {
-        setFormError('Vui lòng chọn thời điểm trong tương lai.');
-        return;
-      }
-      scheduledAt = parsed.toISOString();
+    if (!selectedSlot) {
+      setFormError('Vui lòng chọn một khung giờ.');
+      return;
     }
 
     setSaving(true);
     try {
       await bookMyAppointment({
         department_id: Number(values.department_id),
-        doctor_id: values.doctor_id ? Number(values.doctor_id) : undefined,
-        scheduled_at: scheduledAt,
+        doctor_id: Number(values.doctor_id),
+        scheduled_at: selectedSlot.start_time,
+        type: values.type,
         reason: values.reason,
       });
-      await loadAll();
+      await fetchAppointments();
       setModalOpen(false);
     } catch (err) {
       setFormError(resolveError(err));
@@ -318,7 +332,7 @@ export default function PortalHome() {
     if (!(await confirm('Hủy lịch hẹn này?', { confirmLabel: 'Hủy lịch' }))) return;
     try {
       await cancelMyAppointment(appt.ID);
-      await loadAll();
+      await fetchAppointments();
     } catch (err) {
       setError(resolveError(err));
     }
@@ -380,8 +394,7 @@ export default function PortalHome() {
     }
   });
 
-  const canSubmitBooking = !!bookingDepartmentId
-    && (bookingDoctorId ? !!selectedSlot : !!(manualDate && manualTime));
+  const canSubmitBooking = !!bookingDepartmentId && !!bookingDoctorId && !!selectedSlot;
 
   return (
     <div className="min-h-screen bg-[#f0fdfa]">
@@ -440,7 +453,33 @@ export default function PortalHome() {
                   </Button>
                 </div>
 
-                {appointments.length === 0 ? (
+                <div className="mb-3 flex flex-wrap items-center gap-2.5">
+                  <Select value={appointmentStatusFilter} onValueChange={setAppointmentStatusFilter}>
+                    <SelectTrigger className={cn(PORTAL_INPUT, 'w-auto')}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                      <SelectItem value="booked">Đã đặt</SelectItem>
+                      <SelectItem value="checked_in">Đã check-in</SelectItem>
+                      <SelectItem value="cancelled">Đã hủy</SelectItem>
+                      <SelectItem value="no_show">Không đến</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAppointmentSortDir(d => (d === 'asc' ? 'desc' : 'asc'))}
+                    className="h-auto rounded-full border-[#d1fae5] px-4 py-2.5 text-sm font-medium text-[#134e48]"
+                  >
+                    <Icon icon={appointmentSortDir === 'asc' ? 'fa6-solid:arrow-up-short-wide' : 'fa6-solid:arrow-down-wide-short'} className="text-xs" />
+                    Ngày hẹn
+                  </Button>
+                </div>
+
+                {loadingAppointments ? (
+                  <Card className="rounded-2xl border-[#d1fae5] p-5 text-center text-[#6c757d]">Đang tải…</Card>
+                ) : appointments.length === 0 ? (
                   <Card className="rounded-2xl border-[#d1fae5] p-5 text-center text-[#6c757d]">Bạn chưa có lịch hẹn nào.</Card>
                 ) : (
                   <div className="flex flex-col gap-3">
@@ -471,6 +510,36 @@ export default function PortalHome() {
                         </div>
                       </Card>
                     ))}
+                  </div>
+                )}
+
+                {!loadingAppointments && appointmentTotal > 0 && (
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <p className="m-0 text-sm text-[#6c757d]">
+                      Trang {appointmentPage}/{appointmentTotalPages} · {appointmentTotal} lịch hẹn
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={appointmentPage <= 1}
+                        onClick={() => setAppointmentPage(p => Math.max(1, p - 1))}
+                        className="h-auto rounded-full border-[#d1fae5] px-4 py-2 text-sm font-medium text-[#134e48]"
+                      >
+                        <Icon icon="fa6-solid:chevron-left" className="text-xs" />
+                        Trước
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={appointmentPage >= appointmentTotalPages}
+                        onClick={() => setAppointmentPage(p => Math.min(appointmentTotalPages, p + 1))}
+                        className="h-auto rounded-full border-[#d1fae5] px-4 py-2 text-sm font-medium text-[#134e48]"
+                      >
+                        Sau
+                        <Icon icon="fa6-solid:chevron-right" className="text-xs" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </>
@@ -678,21 +747,20 @@ export default function PortalHome() {
             />
             <FieldError message={bookingErrors.department_id?.message} />
 
-            <label className={PORTAL_LABEL}>Bác sĩ (tùy chọn)</label>
+            <label className={PORTAL_LABEL}>Bác sĩ *</label>
             <Controller
               control={bookingControl}
               name="doctor_id"
               render={({ field }) => (
                 <Select
-                  value={field.value ? field.value : 'any'}
-                  onValueChange={value => handleDoctorChange(value === 'any' ? '' : value)}
+                  value={field.value}
+                  onValueChange={handleDoctorChange}
                   disabled={doctors.length === 0}
                 >
                   <SelectTrigger className={cn(PORTAL_INPUT, 'w-full')}>
-                    <SelectValue placeholder="-- Bác sĩ bất kỳ --" />
+                    <SelectValue placeholder="-- Chọn bác sĩ --" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="any">-- Bác sĩ bất kỳ --</SelectItem>
                     {doctors.map(doc => (
                       <SelectItem key={doc.id} value={String(doc.id)}>{doc.fullname}</SelectItem>
                     ))}
@@ -700,6 +768,7 @@ export default function PortalHome() {
                 </Select>
               )}
             />
+            <FieldError message={bookingErrors.doctor_id?.message} />
             {doctors.length === 0 && (
               <p className="mt-2 text-[13px] text-[#dc3545]">
                 Khoa này hiện chưa có bác sĩ nào — vui lòng chọn khoa khác.
@@ -714,15 +783,8 @@ export default function PortalHome() {
                 {!loadingSlots && slotDate && slots.length === 0 && (
                   <div className="mt-2 rounded-lg border border-[#dc3545]/20 bg-[#dc3545]/6 px-3 py-2.5">
                     <p className="m-0 text-[13px] font-semibold text-[#dc3545]">
-                      Bác sĩ không có khung giờ trống ngày này.
+                      Bác sĩ không có khung giờ trống ngày này, vui lòng chọn ngày khác.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => handleDoctorChange('')}
-                      className="mt-1.5 cursor-pointer border-0 bg-transparent p-0 text-[13px] font-semibold text-[#0d9488] underline"
-                    >
-                      Đặt lịch không cần chọn bác sĩ cụ thể
-                    </button>
                   </div>
                 )}
                 {slots.length > 0 && (
@@ -748,36 +810,21 @@ export default function PortalHome() {
               </>
             )}
 
-            {!bookingDoctorId && bookingDepartmentId && (
-              <>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div>
-                    <label className={PORTAL_LABEL}>Ngày mong muốn</label>
-                    <Input
-                      type="date"
-                      required
-                      value={manualDate}
-                      onChange={e => setManualDate(e.target.value)}
-                      className={PORTAL_INPUT}
-                      min={new Date().toISOString().slice(0, 10)}
-                    />
-                  </div>
-                  <div>
-                    <label className={PORTAL_LABEL}>Giờ mong muốn</label>
-                    <Input
-                      type="time"
-                      required
-                      value={manualTime}
-                      onChange={e => setManualTime(e.target.value)}
-                      className={PORTAL_INPUT}
-                    />
-                  </div>
-                </div>
-                <p className="mt-2 text-[13px] text-[#6c757d]">
-                  Chưa chọn bác sĩ cụ thể — phòng khám sẽ sắp xếp bác sĩ phù hợp cho lịch hẹn của bạn.
-                </p>
-              </>
-            )}
+            <label className={PORTAL_LABEL}>Loại khám</label>
+            <Controller
+              control={bookingControl}
+              name="type"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className={cn(PORTAL_INPUT, 'w-full data-[size=default]:h-auto')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {APPOINTMENT_TYPES.map(t => <SelectItem key={t} value={t}>{appointmentTypeLabel(t)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
 
             <label className={PORTAL_LABEL}>Lý do khám</label>
             <Controller

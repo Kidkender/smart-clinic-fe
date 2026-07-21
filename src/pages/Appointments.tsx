@@ -8,7 +8,7 @@ import { getDepartments, getDoctorsByDepartment } from '@/api/department';
 import { listDoctors } from '@/api/doctor';
 import { getAvailableSlots } from '@/api/doctorSchedule';
 import { resolveError } from '@/utils/errorMessages';
-import { appointmentStatusLabel } from '@/utils/labels';
+import { appointmentStatusLabel, appointmentTypeLabel, APPOINTMENT_TYPES } from '@/utils/labels';
 import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { cn } from '@/lib/utils';
@@ -86,7 +86,7 @@ const STATUS_STYLES: Record<string, string> = {
 const PAGE_LIMIT = 20;
 
 const EMPTY_APPOINTMENT_FORM: AppointmentFormValues = {
-  patient_id: '', department_id: '', doctor_id: '', scheduled_at: '', reason: '',
+  patient_id: '', department_id: '', doctor_id: '', scheduled_at: '', type: 'new', reason: '',
 };
 
 const CHECKIN_TYPES = [
@@ -100,6 +100,35 @@ function toLocalDateTimeInput(isoString: string) {
   const d = new Date(isoString);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function SortableHead({
+  label,
+  column,
+  sortBy,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  column: string;
+  sortBy: string;
+  sortDir: 'asc' | 'desc';
+  onSort: (column: string) => void;
+}) {
+  const active = sortBy === column;
+  const icon = active ? (sortDir === 'asc' ? 'fa6-solid:sort-up' : 'fa6-solid:sort-down') : 'fa6-solid:sort';
+  return (
+    <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className="flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs font-bold text-[#6c757d] uppercase"
+      >
+        {label}
+        <Icon icon={icon} className={active ? 'text-[#307bc4]' : 'text-[#6c757d]/50'} />
+      </button>
+    </TableHead>
+  );
 }
 
 export default function Appointments() {
@@ -142,7 +171,8 @@ export default function Appointments() {
   const [doctorOptions, setDoctorOptions] = useState<DoctorFilterOption[]>([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState('scheduled');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -154,7 +184,7 @@ export default function Appointments() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, departmentFilter, doctorFilter, dateFrom, dateTo, sortOrder]);
+  }, [search, statusFilter, departmentFilter, doctorFilter, dateFrom, dateTo, sortBy, sortDir]);
 
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
@@ -169,7 +199,8 @@ export default function Appointments() {
         doctor_id: doctorFilter === 'all' ? undefined : doctorFilter,
         from: dateFrom || undefined,
         to: dateTo || undefined,
-        sort: sortOrder,
+        sort_by: sortBy,
+        sort_dir: sortDir,
       });
       setAppointments(result.data ?? []);
       setTotal(result.meta?.total ?? 0);
@@ -179,14 +210,23 @@ export default function Appointments() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter, departmentFilter, doctorFilter, dateFrom, dateTo, sortOrder]);
+  }, [page, search, statusFilter, departmentFilter, doctorFilter, dateFrom, dateTo, sortBy, sortDir]);
 
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
 
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
+
   const hasActiveFilters = !!searchInput || statusFilter !== 'all' || departmentFilter !== 'all'
-    || doctorFilter !== 'all' || !!dateFrom || !!dateTo || sortOrder !== 'asc';
+    || doctorFilter !== 'all' || !!dateFrom || !!dateTo || sortBy !== 'scheduled' || sortDir !== 'asc';
 
   const handleResetFilters = () => {
     setSearchInput('');
@@ -196,7 +236,8 @@ export default function Appointments() {
     setDoctorFilter('all');
     setDateFrom('');
     setDateTo('');
-    setSortOrder('asc');
+    setSortBy('scheduled');
+    setSortDir('asc');
   };
 
   useEffect(() => {
@@ -303,6 +344,7 @@ export default function Appointments() {
         department_id: Number(values.department_id),
         doctor_id: values.doctor_id ? Number(values.doctor_id) : undefined,
         scheduled_at: new Date(values.scheduled_at).toISOString(),
+        type: values.type,
         reason: values.reason,
       });
       await fetchAppointments();
@@ -439,15 +481,6 @@ export default function Appointments() {
             />
           </div>
         </div>
-        <Select value={sortOrder} onValueChange={value => setSortOrder(value as 'asc' | 'desc')}>
-          <SelectTrigger className="h-auto w-[180px] rounded-full px-4 py-2.75 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="asc">Ngày hẹn: sớm nhất trước</SelectItem>
-            <SelectItem value="desc">Ngày hẹn: muộn nhất trước</SelectItem>
-          </SelectContent>
-        </Select>
         {hasActiveFilters && (
           <Button
             type="button"
@@ -472,11 +505,11 @@ export default function Appointments() {
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Bệnh nhân</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Khoa</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Bác sĩ</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Thời gian</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Trạng thái</TableHead>
+                <SortableHead label="Bệnh nhân" column="patient" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableHead label="Khoa" column="department" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableHead label="Bác sĩ" column="doctor" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableHead label="Thời gian" column="scheduled" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableHead label="Trạng thái" column="status" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3"></TableHead>
               </TableRow>
             </TableHeader>
@@ -622,14 +655,14 @@ export default function Appointments() {
             />
             <FieldError message={errors.department_id?.message} />
 
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Bác sĩ (tùy chọn)</label>
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Bác sĩ *</label>
             <Controller
               control={control}
               name="doctor_id"
               render={({ field }) => (
                 <Select value={field.value} onValueChange={handleDoctorChange} disabled={doctors.length === 0}>
                   <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                    <SelectValue placeholder="-- Không chỉ định bác sĩ --" />
+                    <SelectValue placeholder="-- Chọn bác sĩ --" />
                   </SelectTrigger>
                   <SelectContent>
                     {doctors.map(doc => <SelectItem key={doc.id} value={String(doc.id)}>{doc.fullname}</SelectItem>)}
@@ -637,6 +670,7 @@ export default function Appointments() {
                 </Select>
               )}
             />
+            <FieldError message={errors.doctor_id?.message} />
             {departmentIdValue && doctors.length === 0 && (
               <p className="mt-1.5 text-[13px] text-[#6c757d]">Khoa này chưa có bác sĩ nào.</p>
             )}
@@ -686,23 +720,34 @@ export default function Appointments() {
                   type="datetime-local"
                   value={field.value}
                   onChange={field.onChange}
-                  readOnly={!!doctorId}
+                  readOnly
                   aria-invalid={!!errors.scheduled_at}
-                  className={cn(
-                    'h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]',
-                    doctorId && 'cursor-not-allowed bg-[#f4f7fa] text-[#6c757d]',
-                  )}
+                  className="h-auto cursor-not-allowed rounded-xl border-[#dde2e8] bg-[#f4f7fa] px-4 py-3 text-[15px] text-[#6c757d]"
                 />
               )}
             />
             <FieldError message={errors.scheduled_at?.message} />
-            {doctorId && (
-              <p className="mt-1.5 text-[13px] text-[#6c757d]">
-                {scheduledAt
-                  ? 'Đã chỉ định bác sĩ — chọn khung giờ khác ở trên nếu muốn đổi.'
-                  : 'Vui lòng chọn một khung giờ trống ở trên để điền giờ hẹn.'}
-              </p>
-            )}
+            <p className="mt-1.5 text-[13px] text-[#6c757d]">
+              {scheduledAt
+                ? 'Chọn khung giờ khác ở trên nếu muốn đổi.'
+                : 'Vui lòng chọn một khung giờ trống ở trên để điền giờ hẹn.'}
+            </p>
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Loại khám</label>
+            <Controller
+              control={control}
+              name="type"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {APPOINTMENT_TYPES.map(t => <SelectItem key={t} value={t}>{appointmentTypeLabel(t)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Lý do khám</label>
             <Controller

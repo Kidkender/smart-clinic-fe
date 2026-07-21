@@ -78,6 +78,35 @@ const STATUS_STYLES: Record<string, string> = {
 
 const EMPTY_CHECKIN_FORM: CheckInFormValues = { patient_id: '', type: 'new' };
 
+function SortableHead({
+  label,
+  column,
+  sortBy,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  column: string;
+  sortBy: string;
+  sortDir: 'asc' | 'desc';
+  onSort: (column: string) => void;
+}) {
+  const active = sortBy === column;
+  const icon = active ? (sortDir === 'asc' ? 'fa6-solid:sort-up' : 'fa6-solid:sort-down') : 'fa6-solid:sort';
+  return (
+    <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className="flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs font-bold text-[#6c757d] uppercase"
+      >
+        {label}
+        <Icon icon={icon} className={active ? 'text-[#307bc4]' : 'text-[#6c757d]/50'} />
+      </button>
+    </TableHead>
+  );
+}
+
 export default function Queue() {
   const { role } = useAuth();
   // Must match backend role gates: POST /encounters + /encounters/call-next
@@ -91,6 +120,8 @@ export default function Queue() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [calling, setCalling] = useState(false);
+  const [sortBy, setSortBy] = useState('queue');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [patientQuery, setPatientQuery] = useState('');
@@ -110,14 +141,14 @@ export default function Queue() {
     setLoading(true);
     setError('');
     try {
-      const result = await getTodayQueue(deptId);
+      const result = await getTodayQueue(deptId, sortBy, sortDir);
       setQueue(result.data ?? []);
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [sortBy, sortDir]);
 
   useEffect(() => {
     getDepartments()
@@ -128,6 +159,15 @@ export default function Queue() {
   useEffect(() => {
     fetchQueue(departmentId);
   }, [departmentId, fetchQueue]);
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
 
   const handlePatientSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -277,14 +317,14 @@ export default function Queue() {
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">STT</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Bệnh nhân</TableHead>
+                <SortableHead label="STT" column="queue" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableHead label="Bệnh nhân" column="patient" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 {!departmentId && (
-                  <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Khoa/phòng</TableHead>
+                  <SortableHead label="Khoa/phòng" column="department" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 )}
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Loại</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Check-in</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Trạng thái</TableHead>
+                <SortableHead label="Loại" column="type" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableHead label="Check-in" column="checkin" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableHead label="Trạng thái" column="status" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3"></TableHead>
               </TableRow>
             </TableHeader>

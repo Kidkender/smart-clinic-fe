@@ -30,6 +30,16 @@ export async function resetPasswordApi(token, newPassword) {
   return data;
 }
 
+export async function getMe() {
+  const { data } = await client.get('/auth/me');
+  return data;
+}
+
+export async function updateProfile(fullname) {
+  const { data } = await client.put('/auth/me', { fullname });
+  return data;
+}
+
 export async function listUsers(status) {
   const { data } = await client.get('/users', { params: status ? { status } : undefined });
   return data;

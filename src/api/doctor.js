@@ -10,6 +10,16 @@ export async function getDoctor(id) {
   return data;
 }
 
+export async function createDoctor(payload) {
+  const { data } = await client.post('/doctors', payload);
+  return data;
+}
+
+export async function deleteDoctor(id) {
+  const { data } = await client.delete(`/doctors/${id}`);
+  return data;
+}
+
 export async function upsertDoctorProfile(id, payload) {
   const { data } = await client.put(`/doctors/${id}/profile`, payload);
   return data;

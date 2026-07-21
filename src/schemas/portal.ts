@@ -27,7 +27,8 @@ export type PortalRegisterFormValues = z.infer<typeof portalRegisterSchema>;
 
 export const portalBookingSchema = z.object({
   department_id: z.string().min(1, 'Vui lòng chọn khoa.'),
-  doctor_id: z.string(),
+  doctor_id: z.string().min(1, 'Vui lòng chọn bác sĩ.'),
+  type: z.string(),
   reason: z.string(),
 });
 
