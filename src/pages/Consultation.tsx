@@ -7,6 +7,7 @@ import { getEncounterById, updateEncounterStatus } from '@/api/encounter';
 import { recordVitalSign, listVitalSigns, addDiagnosis, listDiagnoses, updateClinicalNotes } from '@/api/consultation';
 import { searchIcd10 } from '@/api/icd10';
 import { createOrder, listOrdersByEncounter, updateOrderStatus } from '@/api/order';
+import { searchLabTests } from '@/api/lab';
 import { searchDrugs, checkDrugInteractions } from '@/api/drug';
 import { createPrescription, listPrescriptionsByEncounter, updatePrescriptionStatus } from '@/api/prescription';
 import LabOrderPanel from '@/components/LabOrderPanel';
@@ -536,6 +537,11 @@ const ORDER_STATUS_NEXT: Record<string, string[]> = {
   in_progress: ['completed', 'cancelled'],
 };
 
+interface LabTestOption {
+  ID: number | string;
+  Name: string;
+}
+
 function OrdersSection({
   encounterId,
   orders,
@@ -555,12 +561,21 @@ function OrdersSection({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [resultDrafts, setResultDrafts] = useState<Record<string, string>>({});
+  const [labTestOptions, setLabTestOptions] = useState<LabTestOption[]>([]);
   const {
-    register, control, handleSubmit, reset, formState: { errors },
+    register, control, watch, setValue, handleSubmit, reset, formState: { errors },
   } = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
     defaultValues: { type: 'lab', name: '' },
   });
+  const orderType = watch('type');
+
+  useEffect(() => {
+    if (!open || orderType !== 'lab') return;
+    searchLabTests({ page: 1, limit: 200 })
+      .then(result => setLabTestOptions(result.data ?? []))
+      .catch(() => setLabTestOptions([]));
+  }, [open, orderType]);
 
   const handleFormSubmit = handleSubmit(async values => {
     setFormError('');
@@ -640,7 +655,13 @@ function OrdersSection({
             control={control}
             name="type"
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
+              <Select
+                value={field.value}
+                onValueChange={value => {
+                  field.onChange(value);
+                  setValue('name', '');
+                }}
+              >
                 <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
                   <SelectValue />
                 </SelectTrigger>
@@ -651,11 +672,30 @@ function OrdersSection({
             )}
           />
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Tên dịch vụ *</label>
-          <Input
-            {...register('name')}
-            aria-invalid={!!errors.name}
-            className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
-          />
+          {orderType === 'lab' ? (
+            <Controller
+              control={control}
+              name="name"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
+                    <SelectValue placeholder="Chọn xét nghiệm…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {labTestOptions.map(t => (
+                      <SelectItem key={t.ID} value={t.Name}>{t.Name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          ) : (
+            <Input
+              {...register('name')}
+              aria-invalid={!!errors.name}
+              className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+            />
+          )}
           <FieldError message={errors.name?.message} />
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
           <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">

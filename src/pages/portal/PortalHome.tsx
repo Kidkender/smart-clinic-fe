@@ -243,9 +243,11 @@ export default function PortalHome() {
     getPortalDepartments().then(r => setDepartments(r.data ?? [])).catch(() => {});
   }, [loadAll]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const ok = await confirm('Bạn có chắc chắn muốn đăng xuất?', { title: 'Đăng xuất' });
+    if (!ok) return;
     logout();
-    navigate('/portal/login');
+    navigate('/portal/login', { viewTransition: true });
   };
 
   const openBooking = () => {
@@ -399,7 +401,8 @@ export default function PortalHome() {
   return (
     <div className="min-h-screen bg-[#f0fdfa]">
       <header className="flex items-center justify-between border-b border-[#d1fae5] bg-white px-8 py-4.5">
-        <Link to="/" className="inline-flex items-center gap-2 no-underline">
+        <Link to="/" className="inline-flex items-center gap-2 no-underline opacity-90 transition-opacity hover:opacity-100">
+          <Icon icon="fa6-solid:hospital" className="text-lg text-[#0d6b5f]" />
           <span className="text-lg font-bold text-[#0d6b5f]">SmartClinic</span>
           <span className="text-[13px] text-[#6c757d]">Cổng bệnh nhân</span>
         </Link>

@@ -135,6 +135,24 @@ div[style*="position: fixed"][style*="inset: 0"] {
   animation: fadeIn 0.15s ease;
 }
 
+/* Page-switch fade — opted in per-navigation via React Router's
+   `viewTransition` prop/option, which wraps the update in
+   document.startViewTransition(). Only override the timing here;
+   the browser's default cross-fade look is kept. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.18s;
+    animation-timing-function: ease-out;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
 @theme inline {
   --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);

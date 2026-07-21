@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Icon } from '@iconify/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerApi } from '@/api/auth';
@@ -39,7 +40,8 @@ export default function Register() {
     <div className="flex min-h-screen">
       <div className="flex flex-1 basis-[45%] items-center justify-center bg-[linear-gradient(160deg,#1c3a52_0%,#307bc4_100%)] p-12">
         <div className="max-w-[440px] text-white">
-          <Link to="/" className="mb-8 inline-flex items-center gap-2.5 no-underline">
+          <Link to="/" className="mb-8 inline-flex items-center gap-2.5 no-underline opacity-90 transition-opacity hover:opacity-100">
+            <Icon icon="fa6-solid:hospital" className="text-xl text-[#63c4ff]" />
             <span className="text-xl font-bold text-white">SmartClinic</span>
           </Link>
           <img

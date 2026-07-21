@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Icon } from '@iconify/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerPatient } from '@/api/portal';
@@ -45,7 +46,8 @@ export default function PortalRegister() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(160deg,#e6fffa_0%,#f0fdfa_100%)] p-5">
       <div className="w-full max-w-[420px] rounded-[20px] bg-white p-10 shadow-[0_10px_40px_rgba(13,148,136,0.08)]">
-        <Link to="/" className="mb-6 inline-flex items-center gap-2 no-underline">
+        <Link to="/" className="mb-6 inline-flex items-center gap-2 no-underline opacity-90 transition-opacity hover:opacity-100">
+          <Icon icon="fa6-solid:hospital" className="text-lg text-[#0d6b5f]" />
           <span className="text-lg font-bold text-[#0d6b5f]">SmartClinic</span>
           <span className="text-[13px] text-[#6c757d]">Cổng bệnh nhân</span>
         </Link>

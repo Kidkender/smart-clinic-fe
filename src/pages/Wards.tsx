@@ -198,7 +198,7 @@ export default function Wards() {
 
       <Card className="rounded-2xl border-[#e8edf2] p-6">
         <h2 className="m-0 mb-4 text-[17px] font-bold text-[#274760]">Thêm khu điều trị mới</h2>
-        <form onSubmit={handleCreateWard} noValidate className="flex gap-2.5">
+        <form onSubmit={handleCreateWard} noValidate className="flex items-start gap-2.5">
           <div className="flex-1">
             <Input
               {...registerWard('name')}
@@ -211,7 +211,7 @@ export default function Wards() {
           <Button
             type="submit"
             disabled={savingWard || !departmentId}
-            className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            className="h-auto shrink-0 rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
           >
             {savingWard ? 'Đang lưu…' : 'Thêm'}
           </Button>

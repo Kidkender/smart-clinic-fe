@@ -31,7 +31,7 @@ export default function Login() {
     try {
       const result = await loginApi(values.email, values.password);
       login(result.data.access_token, result.data.refresh_token);
-      navigate('/dashboard');
+      navigate('/dashboard', { viewTransition: true });
     } catch (err: any) {
       const code = err?.response?.data?.error;
       if (code === 'error.user.pending_approval') {
@@ -50,7 +50,8 @@ export default function Login() {
     <div className="flex min-h-screen">
       <div className="relative flex flex-1 basis-[45%] items-center justify-center bg-[linear-gradient(160deg,#1c3a52_0%,#307bc4_100%)] p-12">
         <div className="max-w-[440px] text-white">
-          <Link to="/" className="mb-8 inline-flex items-center gap-2.5 no-underline">
+          <Link to="/" className="mb-8 inline-flex items-center gap-2.5 no-underline opacity-90 transition-opacity hover:opacity-100">
+            <Icon icon="fa6-solid:hospital" className="text-xl text-[#63c4ff]" />
             <span className="text-xl font-bold text-white">SmartClinic</span>
           </Link>
           <img

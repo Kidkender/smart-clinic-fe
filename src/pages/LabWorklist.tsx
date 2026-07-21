@@ -17,16 +17,17 @@ import {
 } from '@/components/ui/select';
 
 interface LabWorklistItem {
-  OrderID: number | string;
-  EncounterID: number | string;
-  PatientID: number | string;
-  PatientName: string;
-  PatientMRN: string;
-  OrderName: string;
-  SpecimenStatus: string;
-  ItemCount: number;
-  ResultedCount: number;
-  OrderedAt: string;
+  order_id: number | string;
+  encounter_id: number | string;
+  patient_id: number | string;
+  patient_name: string;
+  patient_mrn: string;
+  order_name: string;
+  order_status: string;
+  specimen_status: string;
+  item_count: number;
+  resulted_count: number;
+  ordered_at: string;
 }
 
 const STATUS_FILTERS = ['all', 'pending_collection', 'collected', 'received'];
@@ -105,30 +106,30 @@ export default function LabWorklist() {
       ) : (
         <div className="flex flex-col gap-3.5">
           {items.map(item => (
-            <Card key={item.OrderID} className="rounded-2xl border-[#e8edf2] p-6">
+            <Card key={item.order_id} className="rounded-2xl border-[#e8edf2] p-6">
               <div className="flex flex-wrap items-center justify-between gap-2.5">
                 <div>
                   <div className="font-semibold text-[#274760]">
-                    {item.PatientName} <span className="text-xs font-normal text-[#6c757d]">({item.PatientMRN})</span>
+                    {item.patient_name} <span className="text-xs font-normal text-[#6c757d]">({item.patient_mrn})</span>
                   </div>
                   <div className="text-sm text-[#6c757d]">
-                    {item.OrderName} · {new Date(item.OrderedAt).toLocaleString('vi-VN')}
-                    {item.ItemCount > 0 && ` · ${item.ResultedCount}/${item.ItemCount} đã có kết quả`}
+                    {item.order_name} · {new Date(item.ordered_at).toLocaleString('vi-VN')}
+                    {item.item_count > 0 && ` · ${item.resulted_count}/${item.item_count} đã có kết quả`}
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5">
-                  <Badge className={specimenBadgeClass(item.SpecimenStatus)}>
-                    {labSpecimenStatusLabel(item.SpecimenStatus)}
+                  <Badge className={specimenBadgeClass(item.specimen_status)}>
+                    {labSpecimenStatusLabel(item.specimen_status)}
                   </Badge>
                   <Link
-                    to={`/encounters/${item.EncounterID}`}
+                    to={`/encounters/${item.encounter_id}`}
                     className="text-[13px] font-medium text-[#307bc4] no-underline hover:underline"
                   >
                     Xem hồ sơ
                   </Link>
                 </div>
               </div>
-              <LabOrderPanel orderId={item.OrderID} role={role} onOrderChanged={fetchWorklist} />
+              <LabOrderPanel orderId={item.order_id} role={role} onOrderChanged={fetchWorklist} />
             </Card>
           ))}
         </div>

@@ -47,6 +47,11 @@ export async function getPortalDepartments() {
   return data;
 }
 
+export async function getPublicDepartments() {
+  const { data } = await portalClient.get('/public/departments');
+  return data;
+}
+
 export async function getPortalDoctors(departmentId) {
   const { data } = await portalClient.get(`/departments/${departmentId}/doctors`);
   return data;
