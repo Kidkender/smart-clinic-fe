@@ -278,7 +278,7 @@ export default function LabOrderPanel({
                       type="button"
                       disabled={busy}
                       onClick={handleAttach}
-                      className="mt-2 h-auto rounded-full bg-[#307bc4] px-4 py-1.75 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                      className="mt-2 h-auto rounded-lg bg-[#307bc4] px-4 py-1.75 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
                     >
                       Gắn {selectedTestIds.length} xét nghiệm
                     </Button>
@@ -302,7 +302,7 @@ export default function LabOrderPanel({
                     type="button"
                     disabled={busy}
                     onClick={handleCollect}
-                    className="h-auto shrink-0 rounded-full bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                    className="h-auto shrink-0 rounded-lg bg-[#307bc4] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
                   >
                     Lấy mẫu
                   </Button>
@@ -314,7 +314,7 @@ export default function LabOrderPanel({
                   type="button"
                   disabled={busy}
                   onClick={handleReceive}
-                  className="mb-3 h-auto rounded-full bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                  className="mb-3 h-auto rounded-lg bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
                 >
                   Nhận mẫu
                 </Button>
@@ -350,7 +350,7 @@ export default function LabOrderPanel({
                         type="button"
                         disabled={busy}
                         onClick={handleSubmitResults}
-                        className="h-auto rounded-full bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                        className="h-auto rounded-lg bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
                       >
                         Lưu kết quả
                       </Button>
@@ -359,7 +359,7 @@ export default function LabOrderPanel({
                           type="button"
                           disabled={busy}
                           onClick={handleVerify}
-                          className="h-auto rounded-full bg-[#28a745] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#28a745]/90"
+                          className="h-auto rounded-lg bg-[#28a745] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#28a745]/90"
                         >
                           Duyệt kết quả
                         </Button>

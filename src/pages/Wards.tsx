@@ -211,7 +211,7 @@ export default function Wards() {
           <Button
             type="submit"
             disabled={savingWard || !departmentId}
-            className="h-auto shrink-0 rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            className="h-auto shrink-0 rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
           >
             {savingWard ? 'Đang lưu…' : 'Thêm'}
           </Button>
@@ -289,7 +289,7 @@ export default function Wards() {
                     type="submit"
                     variant="outline"
                     disabled={savingBed[ward.ID]}
-                    className="h-auto rounded-full border-[#dde2e8] px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-[#274760]"
+                    className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-[#274760]"
                   >
                     <Icon icon="fa6-solid:plus" className="mr-1 text-[11px]" />Thêm giường
                   </Button>

@@ -405,7 +405,7 @@ export default function Appointments() {
         {canManage && (
           <Button
             onClick={openCreate}
-            className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
           >
             <Icon icon="fa6-solid:plus" className="text-sm" />
             Đặt lịch hẹn
@@ -427,11 +427,11 @@ export default function Appointments() {
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             placeholder="Tìm theo tên, SĐT, CCCD, MRN…"
-            className="h-auto rounded-full border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
+            className="h-auto rounded-xl border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-auto w-[170px] rounded-full px-4 py-2.75 text-sm">
+          <SelectTrigger className="h-auto w-[170px] rounded-xl px-4 py-2.75 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -443,7 +443,7 @@ export default function Appointments() {
           </SelectContent>
         </Select>
         <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-          <SelectTrigger className="h-auto w-[180px] rounded-full px-4 py-2.75 text-sm">
+          <SelectTrigger className="h-auto w-[180px] rounded-xl px-4 py-2.75 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -452,7 +452,7 @@ export default function Appointments() {
           </SelectContent>
         </Select>
         <Select value={doctorFilter} onValueChange={setDoctorFilter}>
-          <SelectTrigger className="h-auto w-[180px] rounded-full px-4 py-2.75 text-sm">
+          <SelectTrigger className="h-auto w-[180px] rounded-xl px-4 py-2.75 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -460,7 +460,7 @@ export default function Appointments() {
             {doctorOptions.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Fullname}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="flex items-center rounded-full border border-[#dde2e8] py-1.5 pr-3.5 pl-4">
+        <div className="flex items-center rounded-xl border border-[#dde2e8] py-2.75 pr-3.5 pl-4 shadow-xs">
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Từ ngày</span>
             <input
@@ -486,7 +486,7 @@ export default function Appointments() {
             type="button"
             variant="outline"
             onClick={handleResetFilters}
-            className="h-auto rounded-full border-[#dde2e8] px-4 py-2.75 text-sm font-medium text-[#6c757d] hover:text-[#dc3545]"
+            className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.75 text-sm font-medium text-[#6c757d] hover:text-[#dc3545]"
           >
             <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
             Xóa bộ lọc
@@ -593,7 +593,7 @@ export default function Appointments() {
       )}
 
       <Dialog open={canManage && modalOpen} onOpenChange={open => { if (!saving) setModalOpen(open); }}>
-        <DialogContent className="max-h-[90vh] sm:max-w-[440px] overflow-y-auto rounded-[20px] p-8">
+        <DialogContent className="max-h-[90vh] sm:max-w-[720px] overflow-y-auto rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Đặt lịch hẹn</DialogTitle>
           </DialogHeader>
@@ -757,6 +757,7 @@ export default function Appointments() {
                 <Input
                   value={field.value}
                   onChange={field.onChange}
+                  placeholder="VD: Đau bụng, tái khám định kỳ…"
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
               )}
@@ -774,14 +775,14 @@ export default function Appointments() {
                 variant="outline"
                 onClick={() => setModalOpen(false)}
                 disabled={saving}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 disabled={saving || !patientId || !departmentIdValue || !scheduledAt}
-                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Đặt lịch'}
               </Button>
@@ -815,7 +816,7 @@ export default function Appointments() {
               variant="outline"
               onClick={() => setCheckInTarget(null)}
               disabled={checkingIn}
-              className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+              className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
             >
               Hủy
             </Button>
@@ -823,7 +824,7 @@ export default function Appointments() {
               type="button"
               onClick={handleCheckIn}
               disabled={checkingIn}
-              className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
             >
               {checkingIn ? 'Đang check-in…' : 'Check-in'}
             </Button>

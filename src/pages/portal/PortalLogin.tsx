@@ -29,7 +29,7 @@ export default function PortalLogin() {
     try {
       const result = await loginPatient(values.email, values.password);
       login(result.data.access_token);
-      navigate('/portal/home', { viewTransition: true });
+      navigate('/portal/home');
     } catch (err) {
       setError(resolveError(err, 'Sai email hoặc mật khẩu.'));
     } finally {
@@ -74,7 +74,7 @@ export default function PortalLogin() {
           <Button
             type="submit"
             disabled={loading}
-            className="mt-5.5 h-auto w-full rounded-full bg-[#0d9488] py-3.25 text-[15px] font-semibold text-white hover:bg-[#0d9488]/90"
+            className="mt-5.5 h-auto w-full rounded-xl bg-[#0d9488] py-3.25 text-[15px] font-semibold text-white hover:bg-[#0d9488]/90"
           >
             {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
           </Button>

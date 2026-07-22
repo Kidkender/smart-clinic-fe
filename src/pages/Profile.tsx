@@ -186,7 +186,7 @@ export default function Profile() {
             ) : (
               <Button
                 onClick={openEdit}
-                className="mt-6 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="mt-6 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 <Icon icon="fa6-solid:pen" className="text-xs" /> Sửa họ tên
               </Button>
@@ -211,14 +211,14 @@ export default function Profile() {
                 variant="outline"
                 onClick={() => setEditing(false)}
                 disabled={saving}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Lưu'}
               </Button>

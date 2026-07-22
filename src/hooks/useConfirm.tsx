@@ -48,21 +48,21 @@ export default function useConfirm(): [ConfirmFn, ReactNode] {
 
   const ConfirmDialog = (
     <Dialog open={!!state} onOpenChange={open => { if (!open) handleChoice(false); }}>
-      <DialogContent showCloseButton={false} className="sm:max-w-[420px] rounded-2xl p-7">
+      <DialogContent showCloseButton={false} className="sm:max-w-[420px] rounded-2xl p-6">
         {state && (
           <>
             <DialogHeader>
-              <div className="flex items-start gap-3.5">
+              <div className="flex items-start gap-3">
                 <div
-                  className="flex size-10 shrink-0 items-center justify-center rounded-xl"
+                  className="flex size-6 shrink-0 items-center justify-center rounded-lg"
                   style={{ background: state.danger ? 'rgba(220,53,69,0.1)' : 'rgba(48,123,196,0.1)' }}
                 >
                   <Icon
                     icon="fa6-solid:triangle-exclamation"
-                    style={{ fontSize: '18px', color: state.danger ? '#dc3545' : '#307bc4' }}
+                    style={{ fontSize: '12px', color: state.danger ? '#dc3545' : '#307bc4' }}
                   />
                 </div>
-                <div className="min-w-0 pt-1.5">
+                <div className="min-w-0">
                   {state.title ? (
                     <DialogTitle className="mb-1 text-base font-bold text-[#274760]">{state.title}</DialogTitle>
                   ) : (
@@ -79,14 +79,14 @@ export default function useConfirm(): [ConfirmFn, ReactNode] {
                 type="button"
                 variant="outline"
                 onClick={() => handleChoice(false)}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.5 text-sm font-medium text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.5 text-sm font-medium text-[#274760]"
               >
                 {state.cancelLabel}
               </Button>
               <Button
                 type="button"
                 onClick={() => handleChoice(true)}
-                className="h-auto rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                className="h-auto rounded-xl px-5 py-2.5 text-sm font-semibold text-white"
                 style={{ background: state.danger ? '#dc3545' : '#307bc4' }}
               >
                 {state.confirmLabel}

@@ -294,7 +294,7 @@ export default function DoctorSchedules() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="mt-5 h-auto w-full justify-center rounded-full bg-[#307bc4] py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="mt-5 h-auto w-full justify-center rounded-xl bg-[#307bc4] py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Thêm ca làm việc'}
               </Button>

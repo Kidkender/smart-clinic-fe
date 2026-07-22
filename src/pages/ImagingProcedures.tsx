@@ -163,7 +163,7 @@ export default function ImagingProcedures() {
         </div>
         <Button
           onClick={openCreate}
-          className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+          className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
         >
           <Icon icon="fa6-solid:plus" className="text-sm" />
           Thêm dịch vụ
@@ -204,7 +204,7 @@ export default function ImagingProcedures() {
             <h3 className="mb-2 text-[#274760]">Chưa có dịch vụ chẩn đoán hình ảnh nào</h3>
             <Button
               onClick={openCreate}
-              className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
             >
               Tạo dịch vụ đầu tiên
             </Button>
@@ -359,14 +359,14 @@ export default function ImagingProcedures() {
                 variant="outline"
                 onClick={closeModal}
                 disabled={saving}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : modal?.mode === 'create' ? 'Tạo' : 'Lưu'}
               </Button>

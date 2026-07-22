@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AdminLayout from './components/AdminLayout';
+import PortalLayout from './components/PortalLayout';
 import RequireAuth from './components/RequireAuth';
 import RequirePatientAuth from './components/RequirePatientAuth';
 import Home from './pages/Home';
@@ -18,6 +19,7 @@ import AdmissionDetail from './pages/AdmissionDetail';
 import Wards from './pages/Wards';
 import PharmacyWardIssues from './pages/PharmacyWardIssues';
 import PharmacyWorklist from './pages/PharmacyWorklist';
+import PharmacyPrescriptionDetail from './pages/PharmacyPrescriptionDetail';
 import Departments from './pages/Departments';
 import LabTests from './pages/LabTests';
 import LabWorklist from './pages/LabWorklist';
@@ -104,6 +106,14 @@ function App() {
           }
         />
         <Route
+          path="pharmacy/worklist/:encounterId/:prescriptionId"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <PharmacyPrescriptionDetail />
+            </RequireAuth>
+          }
+        />
+        <Route
           path="departments"
           element={
             <RequireAuth roles={['admin']}>
@@ -177,16 +187,18 @@ function App() {
         />
       </Route>
 
-      <Route path="/portal/login" element={<PortalLogin />} />
-      <Route path="/portal/register" element={<PortalRegister />} />
-      <Route
-        path="/portal/home"
-        element={
-          <RequirePatientAuth>
-            <PortalHome />
-          </RequirePatientAuth>
-        }
-      />
+      <Route path="/portal" element={<PortalLayout />}>
+        <Route path="login" element={<PortalLogin />} />
+        <Route path="register" element={<PortalRegister />} />
+        <Route
+          path="home"
+          element={
+            <RequirePatientAuth>
+              <PortalHome />
+            </RequirePatientAuth>
+          }
+        />
+      </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -170,7 +170,7 @@ export default function AdmissionDetail() {
               {isDischarged ? 'Đã xuất viện' : 'Đang điều trị'}
             </span>
             {canManage && (
-              <Button asChild variant="outline" className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]">
+              <Button asChild variant="outline" className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]">
                 <Link to={`/encounters/${admission.EncounterID}`}>
                   <Icon icon="fa6-solid:stethoscope" className="text-xs" />Hồ sơ khám ({encounterTypeLabel(admission.Encounter?.Type)})
                 </Link>
@@ -334,7 +334,7 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
             type="button"
             variant="outline"
             onClick={toggleTransfer}
-            className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+            className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
           >
             <Icon icon="fa6-solid:right-left" className="text-xs" />Chuyển giường
           </Button>
@@ -343,7 +343,7 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
               type="button"
               variant="outline"
               onClick={toggleDischarge}
-              className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#dc3545]"
+              className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#dc3545]"
             >
               <Icon icon="fa6-solid:door-open" className="text-xs" />Xuất viện
             </Button>
@@ -402,7 +402,7 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
           />
 
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Lý do</label>
-          <Input {...registerTransfer('reason')} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <Input {...registerTransfer('reason')} placeholder="VD: Cần theo dõi chuyên khoa sâu hơn" className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
 
           {formError && (
             <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
@@ -410,7 +410,7 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
           <Button
             type="submit"
             disabled={saving}
-            className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
           >
             {saving ? 'Đang lưu…' : 'Xác nhận chuyển'}
           </Button>
@@ -420,7 +420,7 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
       {mode === 'discharge' && (
         <form onSubmit={handleDischarge} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Tóm tắt bệnh án xuất viện *</label>
-          <Textarea {...registerDischarge('summary')} aria-invalid={!!dischargeErrors.summary} className="min-h-[90px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <Textarea {...registerDischarge('summary')} placeholder="VD: Chẩn đoán, quá trình điều trị, tình trạng khi ra viện, hướng dẫn theo dõi tại nhà…" aria-invalid={!!dischargeErrors.summary} className="min-h-[90px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
           <FieldError message={dischargeErrors.summary?.message} />
           {formError && (
             <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
@@ -428,7 +428,7 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
           <Button
             type="submit"
             disabled={saving}
-            className="mt-3 h-auto rounded-full bg-[#dc3545] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#dc3545]/90"
+            className="mt-3 h-auto rounded-xl bg-[#dc3545] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#dc3545]/90"
           >
             {saving ? 'Đang lưu…' : 'Xác nhận xuất viện'}
           </Button>
@@ -528,7 +528,7 @@ function VitalSignsSection({ admissionId, vitals, canAdd, onAdded }: VitalSignsS
           <Button
             type="submit"
             disabled={saving}
-            className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
           >
             {saving ? 'Đang lưu…' : 'Lưu sinh hiệu'}
           </Button>
@@ -592,17 +592,17 @@ function ProgressNotesSection({ admissionId, notes, canAdd, onAdded }: ProgressN
       {open && canAdd && (
         <form onSubmit={handleFormSubmit} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Diễn biến bệnh *</label>
-          <Textarea {...register('content')} aria-invalid={!!errors.content} className="min-h-[70px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <Textarea {...register('content')} placeholder="VD: Bệnh nhân tỉnh táo, sinh hiệu ổn định, ăn uống tốt…" aria-invalid={!!errors.content} className="min-h-[70px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
           <FieldError message={errors.content?.message} />
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Y lệnh trong ngày</label>
-          <Textarea {...register('doctor_orders')} className="min-h-[70px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <Textarea {...register('doctor_orders')} placeholder="VD: Tiếp tục kháng sinh, theo dõi thêm 24h…" className="min-h-[70px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
           {formError && (
             <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
           )}
           <Button
             type="submit"
             disabled={saving}
-            className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
           >
             {saving ? 'Đang lưu…' : 'Lưu diễn biến'}
           </Button>
@@ -680,7 +680,11 @@ function NursingLogsSection({ admissionId, logs, progressNotes, canAdd, onAdded 
                   <SelectValue placeholder="-- Không gắn y lệnh --" />
                 </SelectTrigger>
                 <SelectContent>
-                  {progressNotes.map(n => <SelectItem key={n.ID} value={String(n.ID)}>{n.DoctorOrders || n.Content}</SelectItem>)}
+                  {progressNotes.length === 0 ? (
+                    <SelectItem value="__none__" disabled>Chưa có y lệnh nào</SelectItem>
+                  ) : (
+                    progressNotes.map(n => <SelectItem key={n.ID} value={String(n.ID)}>{n.DoctorOrders || n.Content}</SelectItem>)
+                  )}
                 </SelectContent>
               </Select>
             )}
@@ -689,14 +693,14 @@ function NursingLogsSection({ admissionId, logs, progressNotes, canAdd, onAdded 
           <Input placeholder="VD: Tiêm thuốc, truyền dịch, thay băng…" {...register('action')} aria-invalid={!!errors.action} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
           <FieldError message={errors.action?.message} />
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Ghi chú</label>
-          <Input {...register('notes')} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+          <Input {...register('notes')} placeholder="VD: Bệnh nhân hợp tác tốt, không có phản ứng bất thường…" className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
           {formError && (
             <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
           )}
           <Button
             type="submit"
             disabled={saving}
-            className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
           >
             {saving ? 'Đang lưu…' : 'Lưu nhật ký'}
           </Button>
@@ -723,7 +727,7 @@ function SectionHeader({ title, canAct, open, onToggle, actionLabel }: SectionHe
           type="button"
           variant="outline"
           onClick={onToggle}
-          className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+          className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
         >
           <Icon icon={open ? 'fa6-solid:xmark' : 'fa6-solid:plus'} className="text-xs" />
           {open ? 'Đóng' : actionLabel}

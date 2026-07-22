@@ -222,7 +222,7 @@ export default function Admissions() {
         </div>
         <div className="flex gap-2.5">
           <Select value={statusFilter || 'all'} onValueChange={value => setStatusFilter(value === 'all' ? '' : value)}>
-            <SelectTrigger className="h-auto w-[180px] rounded-full px-5 py-2.75 text-sm">
+            <SelectTrigger className="h-auto w-[180px] rounded-xl px-5 py-2.75 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -234,7 +234,7 @@ export default function Admissions() {
           {canAdmit && (
             <Button
               onClick={openAdmit}
-              className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
             >
               <Icon icon="fa6-solid:bed-pulse" className="text-sm" />
               Nhập viện
@@ -417,14 +417,14 @@ export default function Admissions() {
                 variant="outline"
                 onClick={() => setModalOpen(false)}
                 disabled={saving}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 disabled={saving || !patientId || !departmentId || !attendingDoctorId || doctors.length === 0}
-                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Nhập viện'}
               </Button>

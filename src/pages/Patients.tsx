@@ -178,7 +178,7 @@ export default function Patients() {
         {canManage && (
           <Button
             onClick={openCreate}
-            className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
           >
             <Icon icon="fa6-solid:plus" className="text-sm" />
             Thêm bệnh nhân
@@ -186,7 +186,7 @@ export default function Patients() {
         )}
       </div>
 
-      <form onSubmit={handleSearchSubmit} className="mb-5 flex gap-2.5">
+      <form onSubmit={handleSearchSubmit} noValidate className="mb-5 flex gap-2.5">
         <Input
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -196,7 +196,7 @@ export default function Patients() {
         <Button
           type="submit"
           variant="outline"
-          className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+          className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
         >
           Tìm kiếm
         </Button>
@@ -245,7 +245,7 @@ export default function Patients() {
       </Card>
 
       <Dialog open={canManage && modalOpen} onOpenChange={open => { if (!saving) setModalOpen(open); }}>
-        <DialogContent className="max-h-[90vh] sm:max-w-[440px] overflow-y-auto rounded-[20px] p-8">
+        <DialogContent className="max-h-[90vh] sm:max-w-[720px] overflow-y-auto rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Thêm bệnh nhân</DialogTitle>
           </DialogHeader>
@@ -333,14 +333,14 @@ export default function Patients() {
                 variant="outline"
                 onClick={() => setModalOpen(false)}
                 disabled={saving}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                className="h-auto w-30 rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="h-auto w-30 rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Tạo'}
               </Button>

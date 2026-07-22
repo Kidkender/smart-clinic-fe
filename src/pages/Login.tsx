@@ -102,7 +102,7 @@ export default function Login() {
             <Button
               type="submit"
               disabled={loading}
-              className="mt-6 h-auto w-full rounded-full bg-[#307bc4] py-3.25 text-[15px] font-semibold text-white hover:bg-[#307bc4]/90"
+              className="mt-6 h-auto w-full rounded-xl bg-[#307bc4] py-3.25 text-[15px] font-semibold text-white hover:bg-[#307bc4]/90"
             >
               {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
             </Button>
@@ -138,7 +138,7 @@ export default function Login() {
           <Button
             type="button"
             onClick={() => setStatusDialog(null)}
-            className="mt-5.5 h-auto w-full rounded-full bg-[#307bc4] py-3.25 text-[15px] font-semibold text-white hover:bg-[#307bc4]/90"
+            className="mt-5.5 h-auto w-full rounded-xl bg-[#307bc4] py-3.25 text-[15px] font-semibold text-white hover:bg-[#307bc4]/90"
           >
             Đã hiểu
           </Button>

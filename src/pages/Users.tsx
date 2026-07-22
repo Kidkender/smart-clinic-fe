@@ -193,7 +193,7 @@ export default function Users() {
                         onClick={() => handleLock(user)}
                         disabled={busyId === user.ID || String(user.ID) === String(userId)}
                         title={String(user.ID) === String(userId) ? 'Không thể tự khóa tài khoản của chính mình' : 'Khóa tài khoản'}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-[#dc3545]/30 bg-white px-4 py-2 text-[13px] font-semibold text-[#dc3545] disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#dc3545]/30 bg-white px-4 py-2 text-[13px] font-semibold text-[#dc3545] disabled:opacity-50"
                       >
                         <Icon icon="fa6-solid:lock" className="text-[12px]" />Khóa
                       </button>
@@ -202,7 +202,7 @@ export default function Users() {
                         type="button"
                         onClick={() => handleActivate(user)}
                         disabled={busyId === user.ID}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-[#307bc4] px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-[#307bc4] px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
                       >
                         <Icon icon={user.Status === 'locked' ? 'fa6-solid:unlock' : 'fa6-solid:check'} className="text-[12px]" />
                         {user.Status === 'locked' ? 'Mở khóa' : 'Duyệt'}

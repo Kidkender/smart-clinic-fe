@@ -49,7 +49,7 @@ export default function Home() {
 
         <div className="flex items-center gap-4">
           <Link to="/login" className={staffLinkClass}>Cổng nhân viên</Link>
-          <Link to="/portal/register" className={primaryLinkClass}>Đặt lịch khám</Link>
+          <Link to="/portal/login" className={primaryLinkClass}>Đặt lịch khám</Link>
         </div>
       </header>
 

@@ -247,7 +247,7 @@ export default function PortalHome() {
     const ok = await confirm('Bạn có chắc chắn muốn đăng xuất?', { title: 'Đăng xuất' });
     if (!ok) return;
     logout();
-    navigate('/portal/login', { viewTransition: true });
+    navigate('/portal/login');
   };
 
   const openBooking = () => {
@@ -450,7 +450,7 @@ export default function PortalHome() {
                   <h2 className="m-0 text-lg font-bold text-[#134e48]">Lịch hẹn của tôi</h2>
                   <Button
                     onClick={openBooking}
-                    className="h-auto rounded-full bg-[#0d9488] px-4.5 py-2.5 text-sm font-semibold text-white hover:bg-[#0d9488]/90"
+                    className="h-auto rounded-xl bg-[#0d9488] px-4.5 py-2.5 text-sm font-semibold text-white hover:bg-[#0d9488]/90"
                   >
                     <Icon icon="fa6-solid:plus" className="text-[13px]" /> Đặt lịch mới
                   </Button>
@@ -473,7 +473,7 @@ export default function PortalHome() {
                     type="button"
                     variant="outline"
                     onClick={() => setAppointmentSortDir(d => (d === 'asc' ? 'desc' : 'asc'))}
-                    className="h-auto rounded-full border-[#d1fae5] px-4 py-2.5 text-sm font-medium text-[#134e48]"
+                    className="h-auto rounded-xl border-[#d1fae5] px-4 py-2.5 text-sm font-medium text-[#134e48]"
                   >
                     <Icon icon={appointmentSortDir === 'asc' ? 'fa6-solid:arrow-up-short-wide' : 'fa6-solid:arrow-down-wide-short'} className="text-xs" />
                     Ngày hẹn
@@ -504,7 +504,7 @@ export default function PortalHome() {
                               <Button
                                 variant="outline"
                                 onClick={() => handleCancel(a)}
-                                className="h-auto rounded-full border-[#dc3545]/20 px-3.5 py-1.75 text-[13px] font-semibold text-[#dc3545] hover:bg-[#dc3545]/10"
+                                className="h-auto rounded-xl border-[#dc3545]/20 px-3.5 py-1.75 text-[13px] font-semibold text-[#dc3545] hover:bg-[#dc3545]/10"
                               >
                                 Hủy
                               </Button>
@@ -713,7 +713,7 @@ export default function PortalHome() {
                     <Button
                       type="submit"
                       disabled={savingProfile}
-                      className="mt-5 h-auto w-full justify-center rounded-full bg-[#0d9488] py-3 text-sm font-semibold text-white hover:bg-[#0d9488]/90"
+                      className="mt-5 h-auto w-full justify-center rounded-xl bg-[#0d9488] py-3 text-sm font-semibold text-white hover:bg-[#0d9488]/90"
                     >
                       {savingProfile ? 'Đang lưu…' : 'Lưu thay đổi'}
                     </Button>
@@ -844,14 +844,14 @@ export default function PortalHome() {
                 variant="outline"
                 onClick={() => setModalOpen(false)}
                 disabled={saving}
-                className="h-auto rounded-full border-[#d1fae5] px-5 py-2.5 text-sm font-medium text-[#134e48]"
+                className="h-auto rounded-xl border-[#d1fae5] px-5 py-2.5 text-sm font-medium text-[#134e48]"
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 disabled={saving || !canSubmitBooking}
-                className="h-auto rounded-full bg-[#0d9488] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#0d9488]/90"
+                className="h-auto rounded-xl bg-[#0d9488] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#0d9488]/90"
               >
                 {saving ? 'Đang đặt…' : 'Xác nhận đặt lịch'}
               </Button>

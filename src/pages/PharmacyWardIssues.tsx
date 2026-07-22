@@ -254,7 +254,7 @@ export default function PharmacyWardIssues() {
           <Button
             type="submit"
             disabled={saving || !wardId}
-            className="mt-4 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            className="mt-4 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
           >
             {saving ? 'Đang lưu…' : 'Cấp thuốc'}
           </Button>

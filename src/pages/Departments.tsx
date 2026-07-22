@@ -121,7 +121,7 @@ export default function Departments() {
         </div>
         <Button
           onClick={openCreate}
-          className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+          className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
         >
           <Icon icon="fa6-solid:plus" className="text-sm" />
           Thêm khoa/phòng
@@ -144,7 +144,7 @@ export default function Departments() {
             <h3 className="mb-2 text-[#274760]">Chưa có khoa/phòng nào</h3>
             <Button
               onClick={openCreate}
-              className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
             >
               Tạo khoa/phòng đầu tiên
             </Button>
@@ -207,6 +207,7 @@ export default function Departments() {
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mô tả</label>
             <Input
               {...register('description')}
+              placeholder="VD: Khám và điều trị các bệnh lý nội khoa tổng quát"
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
 
@@ -222,14 +223,14 @@ export default function Departments() {
                 variant="outline"
                 onClick={closeModal}
                 disabled={saving}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : modal?.mode === 'create' ? 'Tạo' : 'Lưu'}
               </Button>

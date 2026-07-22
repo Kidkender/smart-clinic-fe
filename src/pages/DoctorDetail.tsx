@@ -217,6 +217,10 @@ export default function DoctorDetail() {
   const handleFetchPerformance = async (e: FormEvent) => {
     e.preventDefault();
     setPerfError('');
+    if (!perfRange.from || !perfRange.to) {
+      setPerfError('Vui lòng chọn đầy đủ khoảng thời gian.');
+      return;
+    }
     setPerfLoading(true);
     try {
       const result = await getDoctorPerformance(id, perfRange);
@@ -359,7 +363,7 @@ export default function DoctorDetail() {
             <Button
               type="submit"
               disabled={savingShift || !shiftDepartmentId}
-              className="mt-5 h-auto w-full justify-center rounded-full bg-[#307bc4] py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              className="mt-5 h-auto w-full justify-center rounded-xl bg-[#307bc4] py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
             >
               {savingShift ? 'Đang lưu…' : 'Thêm ca trực'}
             </Button>
@@ -388,7 +392,7 @@ export default function DoctorDetail() {
                       <Button
                         type="button"
                         onClick={() => handleReviewLeave(l, 'approved')}
-                        className="h-auto rounded-full bg-[#198754] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#198754]/90"
+                        className="h-auto rounded-xl bg-[#198754] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#198754]/90"
                       >
                         Duyệt
                       </Button>
@@ -396,7 +400,7 @@ export default function DoctorDetail() {
                         type="button"
                         variant="outline"
                         onClick={() => handleReviewLeave(l, 'rejected')}
-                        className="h-auto rounded-full border-[#dc3545]/40 px-3.5 py-1.5 text-xs font-semibold text-[#dc3545]"
+                        className="h-auto rounded-xl border-[#dc3545]/40 px-3.5 py-1.5 text-xs font-semibold text-[#dc3545]"
                       >
                         Từ chối
                       </Button>
@@ -431,6 +435,7 @@ export default function DoctorDetail() {
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Lý do</label>
             <Input
               {...registerLeave('reason')}
+              placeholder="VD: Nghỉ phép năm, khám bệnh, việc gia đình…"
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
 
@@ -443,7 +448,7 @@ export default function DoctorDetail() {
             <Button
               type="submit"
               disabled={savingLeave}
-              className="mt-5 h-auto w-full justify-center rounded-full bg-[#307bc4] py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              className="mt-5 h-auto w-full justify-center rounded-xl bg-[#307bc4] py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
             >
               {savingLeave ? 'Đang gửi…' : 'Tạo đơn nghỉ phép'}
             </Button>
@@ -452,12 +457,11 @@ export default function DoctorDetail() {
 
         <Card className="rounded-2xl border-[#e8edf2] p-6">
           <h2 className="m-0 mb-4 text-[17px] font-bold text-[#274760]">Hiệu suất</h2>
-          <form onSubmit={handleFetchPerformance} className="mb-4 flex flex-wrap items-end gap-2.5">
+          <form onSubmit={handleFetchPerformance} noValidate className="mb-4 flex flex-wrap items-end gap-2.5">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Từ ngày</label>
               <Input
                 type="date"
-                required
                 value={perfRange.from}
                 onChange={e => setPerfRange({ ...perfRange, from: e.target.value })}
                 className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
@@ -467,7 +471,6 @@ export default function DoctorDetail() {
               <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Đến ngày</label>
               <Input
                 type="date"
-                required
                 value={perfRange.to}
                 onChange={e => setPerfRange({ ...perfRange, to: e.target.value })}
                 className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
@@ -476,7 +479,7 @@ export default function DoctorDetail() {
             <Button
               type="submit"
               disabled={perfLoading}
-              className="h-auto rounded-full bg-[#307bc4] px-5 py-3 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              className="h-auto rounded-xl bg-[#307bc4] px-5 py-3 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
             >
               {perfLoading ? 'Đang tính…' : 'Xem báo cáo'}
             </Button>

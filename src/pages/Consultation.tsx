@@ -12,7 +12,7 @@ import { searchImagingProcedures } from '@/api/imaging';
 import { searchDrugs, checkDrugInteractions } from '@/api/drug';
 import {
   createPrescription, listPrescriptionsByEncounter, updatePrescriptionStatus,
-  getPrescriptionLabel, returnPrescriptionItem,
+  getPrescriptionLabel, returnPrescriptionItem, resolvePrescriptionItemFlag,
 } from '@/api/prescription';
 import { printPrescriptionLabel } from '@/utils/printLabel';
 import LabOrderPanel from '@/components/LabOrderPanel';
@@ -94,6 +94,13 @@ interface Order {
   ResultSummary?: string;
 }
 
+interface PrescriptionItemFlag {
+  ID: number;
+  Reason: string;
+  Status: string;
+  CreatedAt: string;
+}
+
 interface PrescriptionItem {
   ID: number | string;
   DrugID: number | string;
@@ -101,6 +108,7 @@ interface PrescriptionItem {
   Quantity: number;
   Dosage?: string;
   Instructions?: string;
+  Flags?: PrescriptionItemFlag[];
 }
 
 interface Prescription {
@@ -237,7 +245,7 @@ export default function Consultation() {
             {canCompleteEncounter && encounter.Status === 'in_progress' && (
               <Button
                 onClick={handleComplete}
-                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 <Icon icon="fa6-solid:check" className="mr-1.5 text-[13px]" />Hoàn tất khám
               </Button>
@@ -344,30 +352,36 @@ function VitalsSection({
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Nhiệt độ (°C)</label>
               <Input type="number" step="0.1" {...register('temperature', { valueAsNumber: true })} aria-invalid={!!errors.temperature} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <FieldError message={errors.temperature?.message} />
             </div>
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Mạch (nhịp/p)</label>
               <Input type="number" {...register('pulse', { valueAsNumber: true })} aria-invalid={!!errors.pulse} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <FieldError message={errors.pulse?.message} />
             </div>
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">HA tâm thu</label>
               <Input type="number" {...register('systolic', { valueAsNumber: true })} aria-invalid={!!errors.systolic} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <FieldError message={errors.systolic?.message} />
             </div>
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">HA tâm trương</label>
               <Input type="number" {...register('diastolic', { valueAsNumber: true })} aria-invalid={!!errors.diastolic} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <FieldError message={errors.diastolic?.message} />
             </div>
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Nhịp thở</label>
               <Input type="number" {...register('respiratoryRate', { valueAsNumber: true })} aria-invalid={!!errors.respiratoryRate} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <FieldError message={errors.respiratoryRate?.message} />
             </div>
             <div>
               <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">SpO2 (%)</label>
               <Input type="number" {...register('spo2', { valueAsNumber: true })} aria-invalid={!!errors.spo2} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <FieldError message={errors.spo2?.message} />
             </div>
           </div>
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
-          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
+          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
             {saving ? 'Đang lưu…' : 'Lưu sinh hiệu'}
           </Button>
         </form>
@@ -498,7 +512,7 @@ function DiagnosesSection({
             control={control}
             name="notes"
             render={({ field }) => (
-              <Input {...field} className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
+              <Input {...field} placeholder="VD: Theo dõi thêm, tái khám sau 1 tuần…" className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
             )}
           />
           <label className="mt-2.5 flex items-center gap-2 text-sm text-[#274760]">
@@ -512,7 +526,7 @@ function DiagnosesSection({
             Chẩn đoán chính
           </label>
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
-          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
+          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
             {saving ? 'Đang lưu…' : 'Lưu chẩn đoán'}
           </Button>
         </form>
@@ -568,7 +582,7 @@ function ClinicalNotesSection({
       />
       {error && <div className="mt-2.5"><ErrorBox>{error}</ErrorBox></div>}
       {canEdit && (
-        <Button onClick={handleSave} disabled={saving || !dirty} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
+        <Button onClick={handleSave} disabled={saving || !dirty} className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
           {saving ? 'Đang lưu…' : 'Lưu ghi chú'}
         </Button>
       )}
@@ -642,6 +656,7 @@ function OrdersSection({
     defaultValues: { type: 'lab', name: '' },
   });
   const orderType = watch('type');
+  const [confirm, ConfirmDialog] = useConfirm();
 
   useEffect(() => {
     if (!open || orderType !== 'lab') return;
@@ -673,6 +688,13 @@ function OrdersSection({
   });
 
   const handleStatusChange = async (order: Order, status: string) => {
+    if (status === 'cancelled') {
+      const ok = await confirm(
+        `Hủy chỉ định "${order.Name}"? Hành động này không thể hoàn tác.`,
+        { title: 'Hủy chỉ định', confirmLabel: 'Hủy chỉ định' },
+      );
+      if (!ok) return;
+    }
     try {
       await updateOrderStatus(encounterId, order.ID, {
         status,
@@ -686,6 +708,7 @@ function OrdersSection({
 
   return (
     <Card className="rounded-2xl border-[#e8edf2] p-6">
+      {ConfirmDialog}
       <SectionHeader title="Chỉ định CLS" canAct={canCreate} open={open} onToggle={() => setOpen(o => !o)} actionLabel="Thêm chỉ định" />
       {orders.length === 0 ? (
         <p className="text-sm text-[#6c757d]">Chưa có chỉ định nào.</p>
@@ -715,7 +738,7 @@ function OrdersSection({
                       key={next}
                       variant="outline"
                       onClick={() => handleStatusChange(o, next)}
-                      className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
+                      className="h-auto rounded-xl border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
                     >
                       {orderStatusLabel(next)}
                     </Button>
@@ -830,7 +853,7 @@ function OrdersSection({
           )}
           <FieldError message={errors.name?.message} />
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
-          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
+          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
             {saving ? 'Đang lưu…' : 'Tạo chỉ định'}
           </Button>
         </form>
@@ -874,6 +897,22 @@ function PrescriptionsSection({
   const [cancelReason, setCancelReason] = useState('');
   const [cancelError, setCancelError] = useState('');
   const [cancelling, setCancelling] = useState(false);
+
+  const [resolvingFlagId, setResolvingFlagId] = useState<number | null>(null);
+  const [flagResolveError, setFlagResolveError] = useState('');
+
+  const handleResolveFlag = async (prescription: Prescription, item: PrescriptionItem, flag: PrescriptionItemFlag) => {
+    setResolvingFlagId(flag.ID);
+    setFlagResolveError('');
+    try {
+      await resolvePrescriptionItemFlag(encounterId, prescription.ID, item.ID, flag.ID);
+      await onChanged();
+    } catch (err) {
+      setFlagResolveError(resolveError(err));
+    } finally {
+      setResolvingFlagId(null);
+    }
+  };
 
   const handleDrugSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -1022,7 +1061,7 @@ function PrescriptionsSection({
   const handleReturnSubmit = async (prescription: Prescription, item: PrescriptionItem, e: FormEvent) => {
     e.preventDefault();
     const qty = Number(returnQty);
-    if (!qty || qty < 1) {
+    if (!qty || qty < 1 || qty > item.Quantity) {
       setReturnError('Số lượng không hợp lệ.');
       return;
     }
@@ -1061,13 +1100,14 @@ function PrescriptionsSection({
             disabled={printableCount === 0}
             onClick={handlePrintLabel}
             title={printableCount === 0 ? 'Chưa có đơn thuốc nào để in' : 'In toàn bộ đơn thuốc của lượt khám này'}
-            className="h-auto shrink-0 rounded-full border-[#dde2e8] px-3.5 py-1.5 text-xs font-semibold text-[#307bc4] disabled:opacity-40"
+            className="h-auto shrink-0 rounded-xl border-[#dde2e8] px-4 py-2.25 text-[13px] font-semibold text-[#307bc4] disabled:opacity-40"
           >
-            <Icon icon="fa6-solid:print" className="mr-1.5 text-[11px]" />In đơn thuốc
+            <Icon icon="fa6-solid:print" className="mr-1.5 text-xs" />In đơn thuốc
           </Button>
         )}
       />
       {formError && !open && <div className="mb-3"><ErrorBox>{formError}</ErrorBox></div>}
+      {flagResolveError && <div className="mb-3"><ErrorBox>{flagResolveError}</ErrorBox></div>}
       {prescriptions.length === 0 ? (
         <p className="text-sm text-[#6c757d]">Chưa có đơn thuốc nào.</p>
       ) : (
@@ -1093,9 +1133,31 @@ function PrescriptionsSection({
                         </button>
                       )}
                     </div>
+                    {(it.Flags ?? []).filter(f => f.Status === 'pending').map(flag => (
+                      <div
+                        key={flag.ID}
+                        className="mt-1.5 mb-1 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#e0a800]/30 bg-[#e0a800]/10 px-2.5 py-1.5 text-xs text-[#8a6d00]"
+                      >
+                        <span>
+                          <Icon icon="fa6-solid:bullhorn" className="mr-1.5" />
+                          Dược sĩ báo: {flag.Reason}
+                        </span>
+                        {canCreate && (
+                          <button
+                            type="button"
+                            disabled={resolvingFlagId === flag.ID}
+                            onClick={() => handleResolveFlag(p, it, flag)}
+                            className="shrink-0 cursor-pointer rounded-full border-none bg-[#e0a800]/20 px-2.5 py-1 text-[11px] font-semibold text-[#8a6d00]"
+                          >
+                            {resolvingFlagId === flag.ID ? 'Đang xử lý…' : 'Đã xử lý'}
+                          </button>
+                        )}
+                      </div>
+                    ))}
                     {returningItemId === it.ID && (
                       <form
                         onSubmit={e => handleReturnSubmit(p, it, e)}
+                        noValidate
                         className="mt-1.5 mb-2 flex items-start gap-2 rounded-lg border border-[#f0f4f8] p-2"
                       >
                         <Input
@@ -1115,7 +1177,7 @@ function PrescriptionsSection({
                         <Button
                           type="submit"
                           disabled={returning}
-                          className="h-auto shrink-0 rounded-full bg-[#307bc4] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                          className="h-auto shrink-0 rounded-lg bg-[#307bc4] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
                         >
                           Lưu
                         </Button>
@@ -1123,7 +1185,7 @@ function PrescriptionsSection({
                           type="button"
                           variant="outline"
                           onClick={() => setReturningItemId(null)}
-                          className="h-auto shrink-0 rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-medium text-[#274760]"
+                          className="h-auto shrink-0 rounded-lg border-[#dde2e8] px-3 py-1.5 text-xs font-medium text-[#274760]"
                         >
                           Hủy
                         </Button>
@@ -1145,7 +1207,7 @@ function PrescriptionsSection({
                         variant="outline"
                         onClick={() => handleEditPrescription(p)}
                         title="Hủy đơn này và mở lại danh sách thuốc để chỉnh sửa"
-                        className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#307bc4]"
+                        className="h-auto rounded-lg border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#307bc4]"
                       >
                         Sửa đơn
                       </Button>
@@ -1156,7 +1218,7 @@ function PrescriptionsSection({
                         disabled={!encounterCompleted}
                         onClick={() => handleDispense(p)}
                         title={encounterCompleted ? undefined : 'Bác sĩ chưa hoàn tất lượt khám này'}
-                        className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760] disabled:opacity-40"
+                        className="h-auto rounded-lg border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760] disabled:opacity-40"
                       >
                         Đã cấp phát
                       </Button>
@@ -1165,7 +1227,7 @@ function PrescriptionsSection({
                       <Button
                         variant="outline"
                         onClick={() => openCancel(p)}
-                        className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#dc3545]"
+                        className="h-auto rounded-lg border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#dc3545]"
                       >
                         Hủy đơn
                       </Button>
@@ -1177,6 +1239,7 @@ function PrescriptionsSection({
                   {cancelingPrescriptionId === p.ID && (
                     <form
                       onSubmit={e => handleCancelSubmit(p, e)}
+                      noValidate
                       className="mt-1 w-full rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/5 p-2.5"
                     >
                       <label className="mb-1 block text-[11px] font-semibold text-[#dc3545]">
@@ -1193,7 +1256,7 @@ function PrescriptionsSection({
                         <Button
                           type="submit"
                           disabled={cancelling}
-                          className="h-auto rounded-full bg-[#dc3545] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#dc3545]/90"
+                          className="h-auto rounded-lg bg-[#dc3545] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#dc3545]/90"
                         >
                           {cancelling ? 'Đang hủy…' : 'Xác nhận hủy'}
                         </Button>
@@ -1201,7 +1264,7 @@ function PrescriptionsSection({
                           type="button"
                           variant="outline"
                           onClick={() => setCancelingPrescriptionId(null)}
-                          className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-medium text-[#274760]"
+                          className="h-auto rounded-lg border-[#dde2e8] px-3 py-1.5 text-xs font-medium text-[#274760]"
                         >
                           Đóng
                         </Button>
@@ -1215,7 +1278,7 @@ function PrescriptionsSection({
         </ul>
       )}
       {open && canCreate && (
-        <form onSubmit={handleSubmit} className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
+        <form onSubmit={handleSubmit} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Tìm thuốc</label>
           <Input
             value={drugQuery}
@@ -1275,7 +1338,7 @@ function PrescriptionsSection({
                 type="button"
                 variant="outline"
                 onClick={handlePreCheck}
-                className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
               >
                 Kiểm tra tương tác thuốc
               </Button>
@@ -1313,7 +1376,7 @@ function PrescriptionsSection({
           )}
 
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
-          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
+          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
             {saving ? 'Đang lưu…' : editingPrescriptionId != null ? 'Lưu đơn đã sửa' : 'Tạo đơn thuốc'}
           </Button>
         </form>
@@ -1346,7 +1409,7 @@ function SectionHeader({
           <Button
             variant="outline"
             onClick={onToggle}
-            className="h-auto shrink-0 rounded-full border-[#dde2e8] px-4 py-2.25 text-[13px] font-medium text-[#274760]"
+            className="h-auto shrink-0 rounded-xl border-[#dde2e8] px-4 py-2.25 text-[13px] font-medium text-[#274760]"
           >
             <Icon icon={open ? 'fa6-solid:xmark' : 'fa6-solid:plus'} className="mr-1.5 text-xs" />
             {open ? 'Đóng' : actionLabel}
@@ -1362,7 +1425,7 @@ function SectionBadge({ children, tone = 'default' }: { children: ReactNode; ton
     ? 'bg-[#dc3545]/10 text-[#dc3545] hover:bg-[#dc3545]/10'
     : 'bg-[#307bc4]/10 text-[#307bc4] hover:bg-[#307bc4]/10';
   return (
-    <Badge className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${toneClass}`}>
+    <Badge className={`shrink-0 rounded-xl px-2.5 py-1 text-xs font-semibold ${toneClass}`}>
       {children}
     </Badge>
   );

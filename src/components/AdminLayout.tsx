@@ -1,4 +1,5 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '@/context/AuthContext';
 import { roleLabel } from '@/utils/labels';
@@ -34,6 +35,8 @@ const NAV: NavItem[] = [
 export default function AdminLayout() {
   const { role, fullname, email, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefersReducedMotion = useReducedMotion();
   const [confirm, ConfirmDialog] = useConfirm();
 
   const handleLogout = async () => {
@@ -51,7 +54,7 @@ export default function AdminLayout() {
     <div className="flex min-h-screen bg-[#f4f7fa]">
       <aside className="fixed top-0 left-0 flex h-screen w-60 shrink-0 flex-col overflow-y-auto bg-[#1c3a52] text-white">
         <div className="border-b border-white/10 px-6 pt-7 pb-5">
-          <Link to="/dashboard" viewTransition className="no-underline">
+          <Link to="/dashboard" className="no-underline">
             <div className="flex items-center gap-2.5">
               <Icon icon="fa6-solid:hospital" className="text-[22px] text-[#63c4ff]" />
               <span className="text-lg font-bold tracking-tight text-white">SmartClinic</span>
@@ -64,8 +67,6 @@ export default function AdminLayout() {
             <NavLink
               key={to}
               to={to}
-              end
-              viewTransition
               className={({ isActive }) =>
                 cn(
                   'mb-1 flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[15px] font-medium no-underline transition-colors',
@@ -82,7 +83,6 @@ export default function AdminLayout() {
         <div className="border-t border-white/10 px-3 py-4">
           <Link
             to="/profile"
-            viewTransition
             title="Xem hồ sơ cá nhân"
             className="mb-2 flex items-center gap-2.5 rounded-lg px-3.5 py-2 no-underline hover:bg-white/8"
           >
@@ -112,7 +112,17 @@ export default function AdminLayout() {
 
       <div className="ml-60 flex min-w-0 flex-1 flex-col">
         <main className="flex-1 overflow-y-auto p-8">
-          <Outlet />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 

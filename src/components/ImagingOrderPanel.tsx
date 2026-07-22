@@ -257,7 +257,7 @@ export default function ImagingOrderPanel({
                       type="button"
                       disabled={busy || !selectedProcedureId}
                       onClick={handleSchedule}
-                      className="h-auto shrink-0 rounded-full bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                      className="h-auto shrink-0 rounded-lg bg-[#307bc4] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
                     >
                       Lên lịch
                     </Button>
@@ -285,7 +285,7 @@ export default function ImagingOrderPanel({
                       type="button"
                       disabled={busy}
                       onClick={handlePerform}
-                      className="h-auto self-start rounded-full bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                      className="h-auto self-start rounded-lg bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
                     >
                       Xác nhận đã chụp
                     </Button>
@@ -313,7 +313,7 @@ export default function ImagingOrderPanel({
                       type="button"
                       disabled={busy}
                       onClick={handleSubmitReport}
-                      className="h-auto rounded-full bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                      className="h-auto rounded-lg bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
                     >
                       Lưu báo cáo
                     </Button>
@@ -322,7 +322,7 @@ export default function ImagingOrderPanel({
                         type="button"
                         disabled={busy}
                         onClick={handleVerify}
-                        className="h-auto rounded-full bg-[#28a745] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#28a745]/90"
+                        className="h-auto rounded-lg bg-[#28a745] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#28a745]/90"
                       >
                         Duyệt báo cáo
                       </Button>

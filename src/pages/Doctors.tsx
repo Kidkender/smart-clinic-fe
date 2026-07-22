@@ -311,7 +311,7 @@ export default function Doctors() {
           </Select>
           <Button
             onClick={openCreate}
-            className="h-auto shrink-0 rounded-full bg-[#307bc4] px-4.5 py-3 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            className="h-auto shrink-0 rounded-xl bg-[#307bc4] px-4.5 py-3 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
           >
             <Icon icon="fa6-solid:plus" className="text-[13px]" /> Thêm bác sĩ
           </Button>
@@ -412,16 +412,21 @@ export default function Doctors() {
             <Controller
               control={control}
               name="specialty"
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" aria-invalid={!!errors.specialty}>
-                    <SelectValue placeholder="-- Chọn chuyên khoa --" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SPECIALTIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
+              render={({ field }) => {
+                const options = field.value && !SPECIALTIES.includes(field.value)
+                  ? [field.value, ...SPECIALTIES]
+                  : SPECIALTIES;
+                return (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" aria-invalid={!!errors.specialty}>
+                      <SelectValue placeholder="-- Chọn chuyên khoa --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {options.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                );
+              }}
             />
             <FieldError message={errors.specialty?.message} />
 
@@ -493,14 +498,14 @@ export default function Doctors() {
                 variant="outline"
                 onClick={closeModal}
                 disabled={saving}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Lưu hồ sơ'}
               </Button>
@@ -510,7 +515,7 @@ export default function Doctors() {
       </Dialog>
 
       <Dialog open={createOpen} onOpenChange={open => { if (!open) closeCreate(); }}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[520px] rounded-[20px] p-8">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[550px] rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Thêm bác sĩ</DialogTitle>
           </DialogHeader>
@@ -518,6 +523,7 @@ export default function Doctors() {
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Họ tên *</label>
             <Input
               {...registerCreate('fullname')}
+              placeholder="VD: Nguyễn Văn A"
               aria-invalid={!!createErrors.fullname}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
@@ -529,6 +535,7 @@ export default function Doctors() {
                 <Input
                   type="email"
                   {...registerCreate('email')}
+                  placeholder="bacsi@smartclinic.vn"
                   aria-invalid={!!createErrors.email}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
@@ -540,6 +547,7 @@ export default function Doctors() {
                   <Input
                     type={showPassword ? 'text' : 'password'}
                     {...registerCreate('password')}
+                    placeholder="Tối thiểu 8 ký tự"
                     aria-invalid={!!createErrors.password}
                     className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 pr-10 text-[15px] text-[#274760]"
                   />
@@ -595,6 +603,7 @@ export default function Doctors() {
                 <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số CCHN</label>
                 <Input
                   {...registerCreate('license_no')}
+                  placeholder="VD: 001234/BYT-CCHN"
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
               </div>
@@ -604,6 +613,7 @@ export default function Doctors() {
                   type="number"
                   min={0}
                   {...registerCreate('years_experience', { valueAsNumber: true })}
+                  placeholder="VD: 5"
                   aria-invalid={!!createErrors.years_experience}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
@@ -658,14 +668,14 @@ export default function Doctors() {
                 variant="outline"
                 onClick={closeCreate}
                 disabled={creating}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 disabled={creating}
-                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {creating ? 'Đang tạo…' : 'Tạo bác sĩ'}
               </Button>

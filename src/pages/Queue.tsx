@@ -269,7 +269,7 @@ export default function Queue() {
             <Button
               onClick={openCheckIn}
               disabled={!departmentId}
-              className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
             >
               <Icon icon="fa6-solid:user-plus" className="text-sm" />
               Check-in
@@ -300,7 +300,7 @@ export default function Queue() {
               onClick={handleCallNext}
               disabled={calling || waitingCount === 0 || !departmentId}
               title={!departmentId ? 'Chọn một khoa/phòng cụ thể để gọi số' : undefined}
-              className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+              className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
             >
               {calling ? 'Đang gọi…' : 'Gọi tiếp theo'}
             </Button>
@@ -446,14 +446,14 @@ export default function Queue() {
                 variant="outline"
                 onClick={() => setModalOpen(false)}
                 disabled={saving}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 disabled={saving || !patientId}
-                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Check-in'}
               </Button>

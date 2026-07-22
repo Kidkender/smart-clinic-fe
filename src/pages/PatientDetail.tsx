@@ -337,7 +337,7 @@ export default function PatientDetail() {
               <Button
                 variant="outline"
                 onClick={openEdit}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
               >
                 <Icon icon="fa6-solid:pen" className="text-xs" />Sửa
               </Button>
@@ -347,7 +347,7 @@ export default function PatientDetail() {
                 variant="outline"
                 onClick={handleDeletePatient}
                 disabled={deleting}
-                className="h-auto rounded-full border-[#dc3545]/30 px-5 py-2.75 text-sm font-medium text-[#dc3545] hover:bg-[#dc3545]/8"
+                className="h-auto rounded-xl border-[#dc3545]/30 px-5 py-2.75 text-sm font-medium text-[#dc3545] hover:bg-[#dc3545]/8"
               >
                 <Icon icon="fa6-solid:trash" className="text-xs" />{deleting ? 'Đang xóa…' : 'Xóa'}
               </Button>
@@ -390,7 +390,7 @@ export default function PatientDetail() {
           )}
           {canManage && (
             <form onSubmit={handleSaveContact} className="border-t border-[#f0f4f8] pt-3.5" noValidate>
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 items-start gap-2.5">
                 <div>
                   <Input {...registerContact('fullname')} placeholder="Họ tên" aria-invalid={!!contactErrors.fullname} className="h-auto rounded-xl border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]" />
                   <FieldError message={contactErrors.fullname?.message} />
@@ -419,7 +419,7 @@ export default function PatientDetail() {
                 <Button
                   type="submit"
                   disabled={savingContact}
-                  className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                  className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
                 >
                   {editingContactId ? 'Cập nhật' : 'Thêm liên hệ'}
                 </Button>
@@ -428,7 +428,7 @@ export default function PatientDetail() {
                     type="button"
                     variant="outline"
                     onClick={openAddContact}
-                    className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                    className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
                   >
                     Hủy sửa
                   </Button>
@@ -604,14 +604,14 @@ export default function PatientDetail() {
                 variant="outline"
                 onClick={() => setEditOpen(false)}
                 disabled={saving}
-                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
                 {saving ? 'Đang lưu…' : 'Lưu'}
               </Button>

@@ -76,7 +76,7 @@ export default function DateOfBirthSelect({ value, onChange, disabled, className
         <SelectTrigger className={TRIGGER_CLASS}>
           <SelectValue placeholder="Ngày" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent position="popper">
           {days.map(d => <SelectItem key={d} value={String(d)}>{d}</SelectItem>)}
         </SelectContent>
       </Select>
@@ -84,7 +84,7 @@ export default function DateOfBirthSelect({ value, onChange, disabled, className
         <SelectTrigger className={TRIGGER_CLASS}>
           <SelectValue placeholder="Tháng" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent position="popper">
           {MONTHS.map(m => <SelectItem key={m} value={String(m)}>Tháng {m}</SelectItem>)}
         </SelectContent>
       </Select>
@@ -92,7 +92,7 @@ export default function DateOfBirthSelect({ value, onChange, disabled, className
         <SelectTrigger className={TRIGGER_CLASS}>
           <SelectValue placeholder="Năm" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent position="popper">
           {YEARS.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
         </SelectContent>
       </Select>

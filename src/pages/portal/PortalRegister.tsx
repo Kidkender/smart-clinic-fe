@@ -128,7 +128,7 @@ export default function PortalRegister() {
           <Button
             type="submit"
             disabled={loading}
-            className="mt-5.5 h-auto w-full rounded-full bg-[#0d9488] py-3.25 text-[15px] font-semibold text-white hover:bg-[#0d9488]/90"
+            className="mt-5.5 h-auto w-full rounded-xl bg-[#0d9488] py-3.25 text-[15px] font-semibold text-white hover:bg-[#0d9488]/90"
           >
             {loading ? 'Đang tạo…' : 'Đăng ký'}
           </Button>

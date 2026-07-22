@@ -10,6 +10,11 @@ export async function listPrescriptionsByEncounter(encounterId) {
   return data;
 }
 
+export async function getPrescriptionById(encounterId, prescriptionId) {
+  const { data } = await client.get(`/encounters/${encounterId}/prescriptions/${prescriptionId}`);
+  return data;
+}
+
 export async function updatePrescriptionStatus(encounterId, prescriptionId, status, reason) {
   const { data } = await client.patch(`/encounters/${encounterId}/prescriptions/${prescriptionId}/status`, { status, reason });
   return data;
@@ -30,5 +35,20 @@ export async function returnPrescriptionItem(encounterId, prescriptionId, itemId
 
 export async function listPrescriptionWorklist() {
   const { data } = await client.get('/pharmacy/worklist');
+  return data;
+}
+
+export async function flagPrescriptionItem(encounterId, prescriptionId, itemId, reason) {
+  const { data } = await client.post(
+    `/encounters/${encounterId}/prescriptions/${prescriptionId}/items/${itemId}/flags`,
+    { reason },
+  );
+  return data;
+}
+
+export async function resolvePrescriptionItemFlag(encounterId, prescriptionId, itemId, flagId) {
+  const { data } = await client.patch(
+    `/encounters/${encounterId}/prescriptions/${prescriptionId}/items/${itemId}/flags/${flagId}/resolve`,
+  );
   return data;
 }
