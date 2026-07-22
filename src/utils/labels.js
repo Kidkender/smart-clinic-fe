@@ -91,6 +91,28 @@ const LAB_RESULT_STATUS = {
   verified: 'Đã duyệt',
 };
 
+const IMAGING_MODALITY = {
+  imaging: 'Chẩn đoán hình ảnh',
+  xray: 'X-quang',
+  ct: 'Chụp CT',
+  mri: 'Chụp MRI',
+  ultrasound: 'Siêu âm',
+  endoscopy: 'Nội soi',
+};
+
+const IMAGING_STUDY_STATUS = {
+  scheduled: 'Đã lên lịch',
+  in_progress: 'Đang thực hiện',
+  completed: 'Đã chụp xong',
+  cancelled: 'Đã hủy',
+};
+
+const IMAGING_REPORT_STATUS = {
+  pending: 'Chưa có báo cáo',
+  reported: 'Đã có báo cáo',
+  verified: 'Đã duyệt',
+};
+
 const INTERACTION_SEVERITY = {
   minor: 'Nhẹ',
   moderate: 'Trung bình',
@@ -111,6 +133,7 @@ const ROLE = {
   pharmacist: 'Dược sĩ',
   cashier: 'Thu ngân',
   lab_tech: 'Kỹ thuật viên XN',
+  radiology_tech: 'Kỹ thuật viên CĐHA',
 };
 
 const SHIFT_TYPE = {
@@ -154,6 +177,16 @@ function translate(map, value) {
   return map[value] ?? value;
 }
 
+const LAB_RESULT_FLAG_BADGE_CLASS = {
+  normal: 'rounded-full bg-[#28a745]/10 px-2.5 py-1 text-xs font-semibold text-[#28a745] hover:bg-[#28a745]/10',
+  low: 'rounded-full bg-[#ffc107]/15 px-2.5 py-1 text-xs font-semibold text-[#8a6100] hover:bg-[#ffc107]/15',
+  high: 'rounded-full bg-[#ffc107]/15 px-2.5 py-1 text-xs font-semibold text-[#8a6100] hover:bg-[#ffc107]/15',
+  abnormal: 'rounded-full bg-[#dc3545]/10 px-2.5 py-1 text-xs font-semibold text-[#dc3545] hover:bg-[#dc3545]/10',
+};
+const LAB_RESULT_FLAG_BADGE_DEFAULT = 'rounded-full bg-[#6c757d]/10 px-2.5 py-1 text-xs font-semibold text-[#6c757d] hover:bg-[#6c757d]/10';
+
+export const labResultFlagBadgeClass = flag => LAB_RESULT_FLAG_BADGE_CLASS[flag] ?? LAB_RESULT_FLAG_BADGE_DEFAULT;
+
 export const appointmentStatusLabel = value => translate(APPOINTMENT_STATUS, value);
 export const appointmentTypeLabel = value => translate(APPOINTMENT_TYPE, value);
 export const APPOINTMENT_TYPES = Object.keys(APPOINTMENT_TYPE);
@@ -167,6 +200,10 @@ export const labSpecimenStatusLabel = value => translate(LAB_SPECIMEN_STATUS, va
 export const labResultFlagLabel = value => translate(LAB_RESULT_FLAG, value);
 export const labResultStatusLabel = value => translate(LAB_RESULT_STATUS, value);
 export const LAB_TEST_CATEGORIES = Object.keys(LAB_TEST_CATEGORY);
+export const imagingModalityLabel = value => translate(IMAGING_MODALITY, value);
+export const IMAGING_MODALITIES = Object.keys(IMAGING_MODALITY);
+export const imagingStudyStatusLabel = value => translate(IMAGING_STUDY_STATUS, value);
+export const imagingReportStatusLabel = value => translate(IMAGING_REPORT_STATUS, value);
 export const interactionSeverityLabel = value => translate(INTERACTION_SEVERITY, value);
 export const bedStatusLabel = value => translate(BED_STATUS, value);
 export const admissionTypeLabel = value => translate(ADMISSION_TYPE, value);

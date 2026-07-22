@@ -16,9 +16,13 @@ import Consultation from './pages/Consultation';
 import Admissions from './pages/Admissions';
 import AdmissionDetail from './pages/AdmissionDetail';
 import Wards from './pages/Wards';
+import PharmacyWardIssues from './pages/PharmacyWardIssues';
+import PharmacyWorklist from './pages/PharmacyWorklist';
 import Departments from './pages/Departments';
 import LabTests from './pages/LabTests';
 import LabWorklist from './pages/LabWorklist';
+import ImagingProcedures from './pages/ImagingProcedures';
+import ImagingWorklist from './pages/ImagingWorklist';
 import DoctorSchedules from './pages/DoctorSchedules';
 import Doctors from './pages/Doctors';
 import DoctorDetail from './pages/DoctorDetail';
@@ -54,7 +58,7 @@ function App() {
         <Route
           path="encounters/:id"
           element={
-            <RequireAuth roles={['admin', 'doctor', 'nurse']}>
+            <RequireAuth roles={['admin', 'doctor', 'nurse', 'pharmacist']}>
               <Consultation />
             </RequireAuth>
           }
@@ -84,6 +88,22 @@ function App() {
           }
         />
         <Route
+          path="pharmacy/ward-issues"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <PharmacyWardIssues />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="pharmacy/worklist"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <PharmacyWorklist />
+            </RequireAuth>
+          }
+        />
+        <Route
           path="departments"
           element={
             <RequireAuth roles={['admin']}>
@@ -104,6 +124,22 @@ function App() {
           element={
             <RequireAuth roles={['admin', 'lab_tech', 'nurse', 'doctor']}>
               <LabWorklist />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="imaging-procedures"
+          element={
+            <RequireAuth roles={['admin', 'radiology_tech']}>
+              <ImagingProcedures />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="imaging-worklist"
+          element={
+            <RequireAuth roles={['admin', 'radiology_tech', 'doctor']}>
+              <ImagingWorklist />
             </RequireAuth>
           }
         />

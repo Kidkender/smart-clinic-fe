@@ -20,6 +20,11 @@ export async function updatePatient(id, payload) {
   return data;
 }
 
+export async function deletePatient(id) {
+  const { data } = await client.delete(`/patients/${id}`);
+  return data;
+}
+
 export async function getPatientHistory(id) {
   const { data } = await client.get(`/patients/${id}/history`);
   return data;

@@ -8,12 +8,14 @@ import {
   submitLabResults,
   verifyLabResults,
   searchLabTests,
+  listSpecimenTypes,
 } from '@/api/lab';
 import { resolveError } from '@/utils/errorMessages';
-import { labSpecimenStatusLabel, labResultFlagLabel } from '@/utils/labels';
+import { labSpecimenStatusLabel, labResultFlagLabel, labResultFlagBadgeClass } from '@/utils/labels';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface LabTestRef {
   ID: number | string;
@@ -48,22 +50,13 @@ interface LabTestOption {
   Code: string;
 }
 
-function includesRole(roles: string[], role: string | null): boolean {
-  return role != null && roles.includes(role);
+interface SpecimenTypeOption {
+  Code: string;
+  Name: string;
 }
 
-function flagBadgeClass(flag: string): string {
-  switch (flag) {
-    case 'normal':
-      return 'rounded-full bg-[#28a745]/10 px-2.5 py-1 text-xs font-semibold text-[#28a745] hover:bg-[#28a745]/10';
-    case 'low':
-    case 'high':
-      return 'rounded-full bg-[#ffc107]/15 px-2.5 py-1 text-xs font-semibold text-[#8a6100] hover:bg-[#ffc107]/15';
-    case 'abnormal':
-      return 'rounded-full bg-[#dc3545]/10 px-2.5 py-1 text-xs font-semibold text-[#dc3545] hover:bg-[#dc3545]/10';
-    default:
-      return 'rounded-full bg-[#6c757d]/10 px-2.5 py-1 text-xs font-semibold text-[#6c757d] hover:bg-[#6c757d]/10';
-  }
+function includesRole(roles: string[], role: string | null): boolean {
+  return role != null && roles.includes(role);
 }
 
 export default function LabOrderPanel({
@@ -86,6 +79,7 @@ export default function LabOrderPanel({
   const [busy, setBusy] = useState(false);
 
   const [specimenType, setSpecimenType] = useState('');
+  const [specimenTypeOptions, setSpecimenTypeOptions] = useState<SpecimenTypeOption[]>([]);
   const [testQuery, setTestQuery] = useState('');
   const [testOptions, setTestOptions] = useState<LabTestOption[]>([]);
   const [selectedTestIds, setSelectedTestIds] = useState<(number | string)[]>([]);
@@ -108,6 +102,14 @@ export default function LabOrderPanel({
     const next = !expanded;
     setExpanded(next);
     if (next && !detail) await loadDetail();
+    if (next && specimenTypeOptions.length === 0) {
+      try {
+        const res = await listSpecimenTypes();
+        setSpecimenTypeOptions(res.data ?? []);
+      } catch {
+        setSpecimenTypeOptions([]);
+      }
+    }
   };
 
   const refresh = async () => {
@@ -123,7 +125,7 @@ export default function LabOrderPanel({
       return;
     }
     try {
-      const res = await searchLabTests({ name: value.trim(), page: 1, limit: 10 });
+      const res = await searchLabTests({ name: value.trim(), active: true, page: 1, limit: 10 });
       setTestOptions(res.data ?? []);
     } catch {
       setTestOptions([]);
@@ -152,14 +154,14 @@ export default function LabOrderPanel({
   };
 
   const handleCollect = async () => {
-    if (!specimenType.trim()) {
-      setError('Vui lòng nhập loại bệnh phẩm.');
+    if (!specimenType) {
+      setError('Vui lòng chọn loại bệnh phẩm.');
       return;
     }
     setBusy(true);
     setError('');
     try {
-      await collectLabSpecimen(orderId, { specimen_type: specimenType.trim() });
+      await collectLabSpecimen(orderId, { specimen_type: specimenType });
       setSpecimenType('');
       await refresh();
     } catch (err) {
@@ -238,7 +240,9 @@ export default function LabOrderPanel({
             <>
               {detail?.specimen && (
                 <div className="mb-2.5 flex items-center gap-2">
-                  <span className="text-[13px] text-[#6c757d]">Bệnh phẩm: {detail.specimen.SpecimenType}</span>
+                  <span className="text-[13px] text-[#6c757d]">
+                    Bệnh phẩm: {specimenTypeOptions.find(t => t.Code === detail.specimen?.SpecimenType)?.Name ?? detail.specimen.SpecimenType}
+                  </span>
                   <Badge className="rounded-full bg-[#307bc4]/10 px-2.5 py-1 text-xs font-semibold text-[#307bc4] hover:bg-[#307bc4]/10">
                     {labSpecimenStatusLabel(specimenStatus ?? 'pending_collection')}
                   </Badge>
@@ -284,12 +288,16 @@ export default function LabOrderPanel({
 
               {canCollect && (!specimenStatus || specimenStatus === 'pending_collection') && (
                 <div className="mb-3 flex items-center gap-2">
-                  <Input
-                    value={specimenType}
-                    onChange={e => setSpecimenType(e.target.value)}
-                    placeholder="Loại bệnh phẩm (VD: Máu tĩnh mạch)"
-                    className="h-auto min-w-[180px] flex-1 rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
-                  />
+                  <Select value={specimenType} onValueChange={setSpecimenType}>
+                    <SelectTrigger className="h-auto min-w-[180px] flex-1 rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
+                      <SelectValue placeholder="Chọn loại bệnh phẩm" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {specimenTypeOptions.map(t => (
+                        <SelectItem key={t.Code} value={t.Code}>{t.Name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button
                     type="button"
                     disabled={busy}
@@ -331,7 +339,7 @@ export default function LabOrderPanel({
                         )}
                         <span className="w-16 text-xs text-[#6c757d]">{r.Unit}</span>
                         <span className="w-24 text-xs text-[#6c757d]">{r.RefRangeText}</span>
-                        <Badge className={flagBadgeClass(r.Flag)}>{labResultFlagLabel(r.Flag)}</Badge>
+                        <Badge className={labResultFlagBadgeClass(r.Flag)}>{labResultFlagLabel(r.Flag)}</Badge>
                       </li>
                     ))}
                   </ul>

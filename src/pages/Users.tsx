@@ -32,7 +32,7 @@ interface User {
   CreatedAt?: string;
 }
 
-const ROLES = ['admin', 'doctor', 'nurse', 'receptionist', 'pharmacist', 'cashier', 'lab_tech'];
+const ROLES = ['admin', 'doctor', 'nurse', 'receptionist', 'pharmacist', 'cashier', 'lab_tech', 'radiology_tech'];
 
 export default function Users() {
   const { userId } = useAuth();

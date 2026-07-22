@@ -59,3 +59,8 @@ export async function verifyLabResults(orderId) {
   const { data } = await client.post(`/orders/${orderId}/lab/verify`);
   return data;
 }
+
+export async function listSpecimenTypes() {
+  const { data } = await client.get('/specimen-types');
+  return data;
+}

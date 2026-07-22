@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,10 +8,17 @@ import { recordVitalSign, listVitalSigns, addDiagnosis, listDiagnoses, updateCli
 import { searchIcd10 } from '@/api/icd10';
 import { createOrder, listOrdersByEncounter, updateOrderStatus } from '@/api/order';
 import { searchLabTests } from '@/api/lab';
+import { searchImagingProcedures } from '@/api/imaging';
 import { searchDrugs, checkDrugInteractions } from '@/api/drug';
-import { createPrescription, listPrescriptionsByEncounter, updatePrescriptionStatus } from '@/api/prescription';
+import {
+  createPrescription, listPrescriptionsByEncounter, updatePrescriptionStatus,
+  getPrescriptionLabel, returnPrescriptionItem,
+} from '@/api/prescription';
+import { printPrescriptionLabel } from '@/utils/printLabel';
 import LabOrderPanel from '@/components/LabOrderPanel';
+import ImagingOrderPanel from '@/components/ImagingOrderPanel';
 import { useAuth } from '@/context/AuthContext';
+import useConfirm from '@/hooks/useConfirm';
 import { resolveError } from '@/utils/errorMessages';
 import {
   encounterStatusLabel,
@@ -20,6 +27,8 @@ import {
   orderTypeLabel,
   prescriptionStatusLabel,
   interactionSeverityLabel,
+  labResultFlagLabel,
+  labResultFlagBadgeClass,
 } from '@/utils/labels';
 import { vitalSignSchema, diagnosisSchema, orderSchema, type VitalSignFormValues, type DiagnosisFormValues, type OrderFormValues } from '@/schemas/consultation';
 import { Button } from '@/components/ui/button';
@@ -37,6 +46,7 @@ import {
 } from '@/components/ui/select';
 
 const ORDER_TYPES = ['lab', 'imaging', 'xray', 'ct', 'mri', 'ultrasound', 'endoscopy'];
+const IMAGING_ORDER_TYPES = ['imaging', 'xray', 'ct', 'mri', 'ultrasound', 'endoscopy'];
 
 interface Encounter {
   ID: number | string;
@@ -90,6 +100,7 @@ interface PrescriptionItem {
   Drug?: { Name?: string };
   Quantity: number;
   Dosage?: string;
+  Instructions?: string;
 }
 
 interface Prescription {
@@ -111,6 +122,12 @@ interface DrugWarning {
   drug_b_id: number | string;
 }
 
+interface DuplicateDrugWarning {
+  drug_id: number | string;
+  drug_name: string;
+  existing_prescription_id: number | string;
+}
+
 function includesRole(roles: string[], role: string | null): boolean {
   return role != null && roles.includes(role);
 }
@@ -118,13 +135,22 @@ function includesRole(roles: string[], role: string | null): boolean {
 export default function Consultation() {
   const { id } = useParams<{ id: string }>();
   const encounterId = id ?? '';
+  const navigate = useNavigate();
   const { role } = useAuth();
   const canRecordVitals = includesRole(['admin', 'doctor', 'nurse'], role);
+  // Must match backend's clinicalRoles gate on PATCH /encounters/:id/status (routes/encounter.go)
+  // and vitalsRoles gate on GET vitals/diagnoses (routes/consultation.go) — pharmacist can open an
+  // encounter to dispense, but has no read access to vitals/diagnoses, so those must be skipped
+  // entirely rather than fetched and 403ing the whole page load.
+  const canCompleteEncounter = canRecordVitals;
+  const canViewClinicalData = canRecordVitals;
   const canDiagnose = includesRole(['admin', 'doctor'], role);
   const canOrder = includesRole(['admin', 'doctor'], role);
   const canUpdateOrderStatus = includesRole(['admin', 'lab_tech', 'nurse'], role);
   const canPrescribe = includesRole(['admin', 'doctor'], role);
   const canUpdatePrescriptionStatus = includesRole(['admin', 'pharmacist'], role);
+
+  const [confirm, ConfirmDialog] = useConfirm();
 
   const [encounter, setEncounter] = useState<Encounter | null>(null);
   const [vitals, setVitals] = useState<VitalSign[]>([]);
@@ -138,30 +164,37 @@ export default function Consultation() {
     setLoading(true);
     setError('');
     try {
-      const [enc, v, d, o, p] = await Promise.all([
+      const [enc, o, p] = await Promise.all([
         getEncounterById(encounterId),
-        listVitalSigns(encounterId),
-        listDiagnoses(encounterId),
         listOrdersByEncounter(encounterId),
         listPrescriptionsByEncounter(encounterId),
       ]);
       setEncounter(enc.data);
-      setVitals(v.data ?? []);
-      setDiagnoses(d.data ?? []);
       setOrders(o.data ?? []);
       setPrescriptions(p.data ?? []);
+
+      if (canViewClinicalData) {
+        const [v, d] = await Promise.all([listVitalSigns(encounterId), listDiagnoses(encounterId)]);
+        setVitals(v.data ?? []);
+        setDiagnoses(d.data ?? []);
+      }
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setLoading(false);
     }
-  }, [encounterId]);
+  }, [encounterId, canViewClinicalData]);
 
   useEffect(() => {
     loadAll();
   }, [loadAll]);
 
   const handleComplete = async () => {
+    const ok = await confirm(
+      'Hoàn tất lượt khám này? Sau khi hoàn tất, dược sĩ sẽ được phép cấp phát các đơn thuốc đang hiệu lực của lượt khám. Hãy chắc chắn đã ghi nhận đầy đủ sinh hiệu, chẩn đoán, chỉ định và đơn thuốc trước khi tiếp tục.',
+      { title: 'Hoàn tất khám', danger: false, confirmLabel: 'Hoàn tất' },
+    );
+    if (!ok) return;
     try {
       await updateEncounterStatus(encounterId, 'completed');
       await loadAll();
@@ -180,12 +213,14 @@ export default function Consultation() {
 
   return (
     <>
-      <Link
-        to="/queue"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#307bc4] no-underline"
+      {ConfirmDialog}
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="mb-4 inline-flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-sm font-semibold text-[#307bc4]"
       >
-        <Icon icon="fa6-solid:arrow-left" className="text-xs" /> Hàng đợi khám
-      </Link>
+        <Icon icon="fa6-solid:arrow-left" className="text-xs" /> Quay lại
+      </button>
 
       <Card className="rounded-2xl border-[#e8edf2] p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -199,7 +234,7 @@ export default function Consultation() {
           </div>
           <div className="flex items-center gap-3">
             <SectionBadge>{encounterStatusLabel(encounter.Status)}</SectionBadge>
-            {encounter.Status === 'in_progress' && (
+            {canCompleteEncounter && encounter.Status === 'in_progress' && (
               <Button
                 onClick={handleComplete}
                 className="h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
@@ -217,16 +252,25 @@ export default function Consultation() {
         {error && <div className="mt-3.5"><ErrorBox>{error}</ErrorBox></div>}
       </Card>
 
-      <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(420px,1fr))] gap-5">
-        <VitalsSection encounterId={encounterId} vitals={vitals} canRecord={canRecordVitals} onRecorded={loadAll} />
-        <DiagnosesSection encounterId={encounterId} diagnoses={diagnoses} canAdd={canDiagnose} onAdded={loadAll} />
-      </div>
+      {canViewClinicalData && (
+        <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(420px,1fr))] gap-5">
+          <VitalsSection encounterId={encounterId} vitals={vitals} canRecord={canRecordVitals} onRecorded={loadAll} />
+          <DiagnosesSection encounterId={encounterId} diagnoses={diagnoses} canAdd={canDiagnose} onAdded={loadAll} />
+        </div>
+      )}
 
       <ClinicalNotesSection encounterId={encounterId} notes={encounter.ClinicalNotes} canEdit={canDiagnose} onSaved={loadAll} />
 
       <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(460px,1fr))] gap-5">
         <OrdersSection encounterId={encounterId} orders={orders} canCreate={canOrder} canUpdateStatus={canUpdateOrderStatus} role={role} onChanged={loadAll} />
-        <PrescriptionsSection encounterId={encounterId} prescriptions={prescriptions} canCreate={canPrescribe} canUpdateStatus={canUpdatePrescriptionStatus} onChanged={loadAll} />
+        <PrescriptionsSection
+          encounterId={encounterId}
+          prescriptions={prescriptions}
+          canCreate={canPrescribe}
+          canUpdateStatus={canUpdatePrescriptionStatus}
+          encounterCompleted={encounter?.Status === 'completed'}
+          onChanged={loadAll}
+        />
       </div>
     </>
   );
@@ -542,6 +586,34 @@ interface LabTestOption {
   Name: string;
 }
 
+interface ImagingProcedureOption {
+  ID: number | string;
+  Name: string;
+}
+
+interface ParsedLabResultToken {
+  name: string;
+  value: string;
+  unit: string;
+  flag: string;
+}
+
+// Mirrors the exact "Name: Value Unit [flag]; ..." shape buildLabResultSummary
+// produces server-side (internal/service/lab.go) so completed lab orders can
+// render each result as a colored flag chip instead of one long plain-text
+// line. Returns null on any mismatch so the caller can fall back to plain text
+// rather than show a mangled parse.
+function parseLabResultSummary(summary: string): ParsedLabResultToken[] | null {
+  const tokens: ParsedLabResultToken[] = [];
+  for (const part of summary.split('; ')) {
+    const match = /^(.+): (\S+) (\S+) \[(\w+)\]$/.exec(part);
+    if (!match) return null;
+    const [, name, value, unit, flag] = match;
+    tokens.push({ name, value, unit, flag });
+  }
+  return tokens;
+}
+
 function OrdersSection({
   encounterId,
   orders,
@@ -562,6 +634,7 @@ function OrdersSection({
   const [formError, setFormError] = useState('');
   const [resultDrafts, setResultDrafts] = useState<Record<string, string>>({});
   const [labTestOptions, setLabTestOptions] = useState<LabTestOption[]>([]);
+  const [imagingProcedureOptions, setImagingProcedureOptions] = useState<ImagingProcedureOption[]>([]);
   const {
     register, control, watch, setValue, handleSubmit, reset, formState: { errors },
   } = useForm<OrderFormValues>({
@@ -575,6 +648,13 @@ function OrdersSection({
     searchLabTests({ page: 1, limit: 200 })
       .then(result => setLabTestOptions(result.data ?? []))
       .catch(() => setLabTestOptions([]));
+  }, [open, orderType]);
+
+  useEffect(() => {
+    if (!open || !IMAGING_ORDER_TYPES.includes(orderType)) return;
+    searchImagingProcedures({ modality: orderType === 'imaging' ? undefined : orderType, page: 1, limit: 200 })
+      .then(result => setImagingProcedureOptions(result.data ?? []))
+      .catch(() => setImagingProcedureOptions([]));
   }, [open, orderType]);
 
   const handleFormSubmit = handleSubmit(async values => {
@@ -642,8 +722,29 @@ function OrdersSection({
                   ))}
                 </div>
               )}
-              {o.ResultSummary && <div className="mt-1.5 text-[13px] text-[#6c757d]">Kết quả: {o.ResultSummary}</div>}
+              {(() => {
+                if (!o.ResultSummary) return null;
+                const tokens = o.Type === 'lab' ? parseLabResultSummary(o.ResultSummary) : null;
+                if (!tokens) {
+                  return <div className="mt-1.5 text-[13px] text-[#6c757d]">Kết quả: {o.ResultSummary}</div>;
+                }
+                return (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[13px] text-[#6c757d]">Kết quả:</span>
+                    {tokens.map((r, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[#e8edf2] bg-white px-2.5 py-1 text-xs text-[#274760]"
+                      >
+                        {r.name}: {r.value} {r.unit}
+                        <Badge className={labResultFlagBadgeClass(r.flag)}>{labResultFlagLabel(r.flag)}</Badge>
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
               {o.Type === 'lab' && <LabOrderPanel orderId={o.ID} role={role} onOrderChanged={onChanged} />}
+              {o.Type !== 'lab' && <ImagingOrderPanel orderId={o.ID} role={role} onOrderChanged={onChanged} />}
             </li>
           ))}
         </ul>
@@ -673,22 +774,53 @@ function OrdersSection({
           />
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Tên dịch vụ *</label>
           {orderType === 'lab' ? (
-            <Controller
-              control={control}
-              name="name"
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
-                    <SelectValue placeholder="Chọn xét nghiệm…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {labTestOptions.map(t => (
-                      <SelectItem key={t.ID} value={t.Name}>{t.Name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <>
+              <Controller
+                control={control}
+                name="name"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange} disabled={labTestOptions.length === 0}>
+                    <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
+                      <SelectValue placeholder={labTestOptions.length === 0 ? 'Chưa có xét nghiệm nào trong danh mục' : 'Chọn xét nghiệm…'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {labTestOptions.map(t => (
+                        <SelectItem key={t.ID} value={t.Name}>{t.Name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {labTestOptions.length === 0 && (
+                <p className="mt-1.5 text-[13px] text-[#dc3545]">
+                  Danh mục xét nghiệm đang trống. Vào "Danh mục xét nghiệm" để thêm trước khi chỉ định.
+                </p>
               )}
-            />
+            </>
+          ) : IMAGING_ORDER_TYPES.includes(orderType) ? (
+            <>
+              <Controller
+                control={control}
+                name="name"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange} disabled={imagingProcedureOptions.length === 0}>
+                    <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
+                      <SelectValue placeholder={imagingProcedureOptions.length === 0 ? 'Chưa có dịch vụ nào trong danh mục' : 'Chọn dịch vụ chẩn đoán hình ảnh…'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {imagingProcedureOptions.map(p => (
+                        <SelectItem key={p.ID} value={p.Name}>{p.Name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {imagingProcedureOptions.length === 0 && (
+                <p className="mt-1.5 text-[13px] text-[#dc3545]">
+                  Danh mục chẩn đoán hình ảnh đang trống cho loại kỹ thuật này. Vào "Danh mục CĐHA" để thêm trước khi chỉ định.
+                </p>
+              )}
+            </>
           ) : (
             <Input
               {...register('name')}
@@ -712,12 +844,14 @@ function PrescriptionsSection({
   prescriptions,
   canCreate,
   canUpdateStatus,
+  encounterCompleted,
   onChanged,
 }: {
   encounterId: string;
   prescriptions: Prescription[];
   canCreate: boolean;
   canUpdateStatus: boolean;
+  encounterCompleted: boolean;
   onChanged: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -727,6 +861,19 @@ function PrescriptionsSection({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [warnings, setWarnings] = useState<DrugWarning[]>([]);
+  const [duplicateWarnings, setDuplicateWarnings] = useState<DuplicateDrugWarning[]>([]);
+  const [editingPrescriptionId, setEditingPrescriptionId] = useState<number | string | null>(null);
+
+  const [returningItemId, setReturningItemId] = useState<number | string | null>(null);
+  const [returnQty, setReturnQty] = useState('');
+  const [returnReason, setReturnReason] = useState('');
+  const [returnError, setReturnError] = useState('');
+  const [returning, setReturning] = useState(false);
+
+  const [cancelingPrescriptionId, setCancelingPrescriptionId] = useState<number | string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelError, setCancelError] = useState('');
+  const [cancelling, setCancelling] = useState(false);
 
   const handleDrugSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -760,18 +907,27 @@ function PrescriptionsSection({
     e.preventDefault();
     setFormError('');
     setWarnings([]);
+    setDuplicateWarnings([]);
     if (items.length === 0) {
       setFormError('Cần thêm ít nhất một loại thuốc.');
       return;
     }
     setSaving(true);
     try {
+      if (editingPrescriptionId != null) {
+        await updatePrescriptionStatus(encounterId, editingPrescriptionId, 'cancelled', 'Đã thay thế bằng đơn thuốc mới (sửa đơn).');
+        // Clear right away: if the create call below fails, a retry must not
+        // try to cancel an already-cancelled prescription again.
+        setEditingPrescriptionId(null);
+      }
       const res = await createPrescription(encounterId, {
         items: items.map(it => ({ drug_id: it.drug_id, dosage: it.dosage, quantity: Number(it.quantity) || 1, instructions: it.instructions })),
       });
-      if (res.data?.warnings?.length > 0) {
-        setWarnings(res.data.warnings);
-      } else {
+      const hasWarnings = res.data?.warnings?.length > 0;
+      const hasDuplicates = res.data?.duplicate_warnings?.length > 0;
+      if (hasWarnings) setWarnings(res.data.warnings);
+      if (hasDuplicates) setDuplicateWarnings(res.data.duplicate_warnings);
+      if (!hasWarnings && !hasDuplicates) {
         setItems([]);
         setOpen(false);
       }
@@ -781,6 +937,23 @@ function PrescriptionsSection({
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEditPrescription = (prescription: Prescription) => {
+    setFormError('');
+    setWarnings([]);
+    setDuplicateWarnings([]);
+    setItems(
+      (prescription.Items ?? []).map(it => ({
+        drug_id: it.DrugID,
+        name: it.Drug?.Name ?? `Thuốc #${it.DrugID}`,
+        dosage: it.Dosage ?? '',
+        quantity: it.Quantity,
+        instructions: it.Instructions ?? '',
+      })),
+    );
+    setEditingPrescriptionId(prescription.ID);
+    setOpen(true);
   };
 
   const handlePreCheck = async () => {
@@ -793,18 +966,108 @@ function PrescriptionsSection({
     }
   };
 
-  const handleStatusChange = async (prescription: Prescription, status: string) => {
+  const handleDispense = async (prescription: Prescription) => {
     try {
-      await updatePrescriptionStatus(encounterId, prescription.ID, status);
+      await updatePrescriptionStatus(encounterId, prescription.ID, 'dispensed');
       await onChanged();
     } catch (err) {
       setFormError(resolveError(err));
     }
   };
 
+  const openCancel = (prescription: Prescription) => {
+    setCancelingPrescriptionId(prescription.ID);
+    setCancelReason('');
+    setCancelError('');
+  };
+
+  const handleCancelSubmit = async (prescription: Prescription, e: FormEvent) => {
+    e.preventDefault();
+    if (!cancelReason.trim()) {
+      setCancelError('Vui lòng nhập lý do hủy đơn.');
+      return;
+    }
+    setCancelling(true);
+    setCancelError('');
+    try {
+      await updatePrescriptionStatus(encounterId, prescription.ID, 'cancelled', cancelReason.trim());
+      setCancelingPrescriptionId(null);
+      await onChanged();
+    } catch (err) {
+      setCancelError(resolveError(err));
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const printableCount = prescriptions.filter(p => p.Status !== 'cancelled' && (p.Items ?? []).length > 0).length;
+
+  const handlePrintLabel = async () => {
+    setFormError('');
+    try {
+      const res = await getPrescriptionLabel(encounterId);
+      printPrescriptionLabel(res.data);
+    } catch (err) {
+      setFormError(resolveError(err));
+    }
+  };
+
+  const openReturn = (item: PrescriptionItem) => {
+    setReturningItemId(item.ID);
+    setReturnQty(String(item.Quantity));
+    setReturnReason('');
+    setReturnError('');
+  };
+
+  const handleReturnSubmit = async (prescription: Prescription, item: PrescriptionItem, e: FormEvent) => {
+    e.preventDefault();
+    const qty = Number(returnQty);
+    if (!qty || qty < 1) {
+      setReturnError('Số lượng không hợp lệ.');
+      return;
+    }
+    setReturning(true);
+    setReturnError('');
+    try {
+      await returnPrescriptionItem(encounterId, prescription.ID, item.ID, { quantity: qty, reason: returnReason });
+      setReturningItemId(null);
+      await onChanged();
+    } catch (err) {
+      setReturnError(resolveError(err));
+    } finally {
+      setReturning(false);
+    }
+  };
+
   return (
     <Card className="rounded-2xl border-[#e8edf2] p-6">
-      <SectionHeader title="Đơn thuốc" canAct={canCreate} open={open} onToggle={() => setOpen(o => !o)} actionLabel="Kê đơn mới" />
+      <SectionHeader
+        title="Đơn thuốc"
+        canAct={canCreate}
+        open={open}
+        onToggle={() => {
+          setOpen(o => !o);
+          setEditingPrescriptionId(null);
+          setItems([]);
+          setWarnings([]);
+          setDuplicateWarnings([]);
+          setFormError('');
+        }}
+        actionLabel="Kê đơn mới"
+        extra={canUpdateStatus && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={printableCount === 0}
+            onClick={handlePrintLabel}
+            title={printableCount === 0 ? 'Chưa có đơn thuốc nào để in' : 'In toàn bộ đơn thuốc của lượt khám này'}
+            className="h-auto shrink-0 rounded-full border-[#dde2e8] px-3.5 py-1.5 text-xs font-semibold text-[#307bc4] disabled:opacity-40"
+          >
+            <Icon icon="fa6-solid:print" className="mr-1.5 text-[11px]" />In đơn thuốc
+          </Button>
+        )}
+      />
+      {formError && !open && <div className="mb-3"><ErrorBox>{formError}</ErrorBox></div>}
       {prescriptions.length === 0 ? (
         <p className="text-sm text-[#6c757d]">Chưa có đơn thuốc nào.</p>
       ) : (
@@ -813,29 +1076,138 @@ function PrescriptionsSection({
             <li key={p.ID} className="flex flex-col items-stretch gap-1 border-b border-[#f0f4f8] py-2.5">
               <div className="flex items-center justify-between">
                 <div className="font-semibold text-[#274760]">Đơn #{p.ID} ({(p.Items ?? []).length} thuốc)</div>
-                <SectionBadge>{prescriptionStatusLabel(p.Status)}</SectionBadge>
+                <SectionBadge tone={p.Status === 'cancelled' ? 'danger' : 'default'}>{prescriptionStatusLabel(p.Status)}</SectionBadge>
               </div>
               <ul className="m-0 mt-1.5 list-none p-0 text-[13px] text-[#6c757d]">
                 {(p.Items ?? []).map(it => (
-                  <li key={it.ID}>{it.Drug?.Name ?? `Thuốc #${it.DrugID}`} — SL {it.Quantity} {it.Dosage ? `· ${it.Dosage}` : ''}</li>
+                  <li key={it.ID} className="py-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>{it.Drug?.Name ?? `Thuốc #${it.DrugID}`} — SL {it.Quantity} {it.Dosage ? `· ${it.Dosage}` : ''}</span>
+                      {canUpdateStatus && p.Status === 'dispensed' && (
+                        <button
+                          type="button"
+                          onClick={() => openReturn(it)}
+                          className="shrink-0 cursor-pointer border-none bg-transparent text-xs font-semibold text-[#307bc4]"
+                        >
+                          Hoàn trả
+                        </button>
+                      )}
+                    </div>
+                    {returningItemId === it.ID && (
+                      <form
+                        onSubmit={e => handleReturnSubmit(p, it, e)}
+                        className="mt-1.5 mb-2 flex items-start gap-2 rounded-lg border border-[#f0f4f8] p-2"
+                      >
+                        <Input
+                          type="number"
+                          min={1}
+                          max={it.Quantity}
+                          value={returnQty}
+                          onChange={e => setReturnQty(e.target.value)}
+                          className="h-auto w-20 rounded-lg border-[#dde2e8] px-2 py-1.5 text-xs text-[#274760]"
+                        />
+                        <Input
+                          placeholder="Lý do hoàn trả"
+                          value={returnReason}
+                          onChange={e => setReturnReason(e.target.value)}
+                          className="h-auto flex-1 rounded-lg border-[#dde2e8] px-2 py-1.5 text-xs text-[#274760]"
+                        />
+                        <Button
+                          type="submit"
+                          disabled={returning}
+                          className="h-auto shrink-0 rounded-full bg-[#307bc4] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                        >
+                          Lưu
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setReturningItemId(null)}
+                          className="h-auto shrink-0 rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-medium text-[#274760]"
+                        >
+                          Hủy
+                        </Button>
+                      </form>
+                    )}
+                  </li>
                 ))}
               </ul>
-              {canUpdateStatus && p.Status === 'active' && (
-                <div className="mt-2 flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => handleStatusChange(p, 'dispensed')}
-                    className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
-                  >
-                    Đã cấp phát
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleStatusChange(p, 'cancelled')}
-                    className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#dc3545]"
-                  >
-                    Hủy đơn
-                  </Button>
+              {returningItemId != null && (p.Items ?? []).some(it => it.ID === returningItemId) && returnError && (
+                <div className="mb-2 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-3 py-2 text-xs text-[#dc3545]">
+                  {returnError}
+                </div>
+              )}
+              {(canUpdateStatus || canCreate) && p.Status === 'active' && (
+                <div className="mt-2 flex flex-col items-start gap-1.5">
+                  <div className="flex gap-2">
+                    {canCreate && (
+                      <Button
+                        variant="outline"
+                        onClick={() => handleEditPrescription(p)}
+                        title="Hủy đơn này và mở lại danh sách thuốc để chỉnh sửa"
+                        className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#307bc4]"
+                      >
+                        Sửa đơn
+                      </Button>
+                    )}
+                    {canUpdateStatus && (
+                      <Button
+                        variant="outline"
+                        disabled={!encounterCompleted}
+                        onClick={() => handleDispense(p)}
+                        title={encounterCompleted ? undefined : 'Bác sĩ chưa hoàn tất lượt khám này'}
+                        className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760] disabled:opacity-40"
+                      >
+                        Đã cấp phát
+                      </Button>
+                    )}
+                    {canUpdateStatus && (
+                      <Button
+                        variant="outline"
+                        onClick={() => openCancel(p)}
+                        className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#dc3545]"
+                      >
+                        Hủy đơn
+                      </Button>
+                    )}
+                  </div>
+                  {canUpdateStatus && !encounterCompleted && (
+                    <span className="text-[11px] text-[#6c757d]">Chờ bác sĩ hoàn tất khám trước khi cấp phát.</span>
+                  )}
+                  {cancelingPrescriptionId === p.ID && (
+                    <form
+                      onSubmit={e => handleCancelSubmit(p, e)}
+                      className="mt-1 w-full rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/5 p-2.5"
+                    >
+                      <label className="mb-1 block text-[11px] font-semibold text-[#dc3545]">
+                        Lý do hủy đơn thuốc *
+                      </label>
+                      <Input
+                        value={cancelReason}
+                        onChange={e => setCancelReason(e.target.value)}
+                        placeholder="VD: tương tác thuốc, sai liều, bệnh nhân không lấy thuốc…"
+                        className="h-auto rounded-lg border-[#dde2e8] px-2.5 py-1.5 text-xs text-[#274760]"
+                      />
+                      {cancelError && <p className="mt-1 text-[11px] text-[#dc3545]">{cancelError}</p>}
+                      <div className="mt-2 flex gap-2">
+                        <Button
+                          type="submit"
+                          disabled={cancelling}
+                          className="h-auto rounded-full bg-[#dc3545] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#dc3545]/90"
+                        >
+                          {cancelling ? 'Đang hủy…' : 'Xác nhận hủy'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setCancelingPrescriptionId(null)}
+                          className="h-auto rounded-full border-[#dde2e8] px-3 py-1.5 text-xs font-medium text-[#274760]"
+                        >
+                          Đóng
+                        </Button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               )}
             </li>
@@ -924,9 +1296,25 @@ function PrescriptionsSection({
             </div>
           )}
 
+          {duplicateWarnings.length > 0 && (
+            <div className="mt-3 rounded-lg border border-[#ffc107]/40 bg-[#ffc107]/12 px-3.5 py-3">
+              <div className="mb-1.5 text-[13px] font-bold text-[#8a6100]">
+                <Icon icon="fa6-solid:triangle-exclamation" className="mr-1.5" />Trùng thuốc với đơn khác đang hiệu lực
+              </div>
+              {duplicateWarnings.map((w, i) => (
+                <div key={i} className="text-[13px] text-[#8a6100]">
+                  {w.drug_name} đã có trong đơn #{w.existing_prescription_id} (đang hiệu lực) của cùng lượt khám này.
+                </div>
+              ))}
+              <div className="mt-1.5 text-xs text-[#8a6100]">
+                Đơn thuốc đã được tạo. Nếu đây là toa trùng, hãy hủy đơn thừa để tránh cấp phát thuốc 2 lần.
+              </div>
+            </div>
+          )}
+
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
           <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-full bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
-            {saving ? 'Đang lưu…' : 'Tạo đơn thuốc'}
+            {saving ? 'Đang lưu…' : editingPrescriptionId != null ? 'Lưu đơn đã sửa' : 'Tạo đơn thuốc'}
           </Button>
         </form>
       )}
@@ -940,33 +1328,41 @@ function SectionHeader({
   open,
   onToggle,
   actionLabel,
+  extra,
 }: {
   title: string;
   canAct: boolean;
   open: boolean;
   onToggle: () => void;
   actionLabel: string;
+  extra?: ReactNode;
 }) {
   return (
-    <div className="mb-3.5 flex items-center justify-between">
+    <div className="mb-3.5 flex items-center justify-between gap-2">
       <h2 className="m-0 text-[17px] font-bold text-[#274760]">{title}</h2>
-      {canAct && (
-        <Button
-          variant="outline"
-          onClick={onToggle}
-          className="h-auto rounded-full border-[#dde2e8] px-4 py-2.25 text-[13px] font-medium text-[#274760]"
-        >
-          <Icon icon={open ? 'fa6-solid:xmark' : 'fa6-solid:plus'} className="mr-1.5 text-xs" />
-          {open ? 'Đóng' : actionLabel}
-        </Button>
-      )}
+      <div className="flex shrink-0 items-center gap-2">
+        {extra}
+        {canAct && (
+          <Button
+            variant="outline"
+            onClick={onToggle}
+            className="h-auto shrink-0 rounded-full border-[#dde2e8] px-4 py-2.25 text-[13px] font-medium text-[#274760]"
+          >
+            <Icon icon={open ? 'fa6-solid:xmark' : 'fa6-solid:plus'} className="mr-1.5 text-xs" />
+            {open ? 'Đóng' : actionLabel}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
 
-function SectionBadge({ children }: { children: ReactNode }) {
+function SectionBadge({ children, tone = 'default' }: { children: ReactNode; tone?: 'default' | 'danger' }) {
+  const toneClass = tone === 'danger'
+    ? 'bg-[#dc3545]/10 text-[#dc3545] hover:bg-[#dc3545]/10'
+    : 'bg-[#307bc4]/10 text-[#307bc4] hover:bg-[#307bc4]/10';
   return (
-    <Badge className="shrink-0 rounded-full bg-[#307bc4]/10 px-2.5 py-1 text-xs font-semibold text-[#307bc4] hover:bg-[#307bc4]/10">
+    <Badge className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${toneClass}`}>
       {children}
     </Badge>
   );

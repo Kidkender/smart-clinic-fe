@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  getPatientById, updatePatient, getPatientHistory,
+  getPatientById, updatePatient, deletePatient, getPatientHistory,
   listContacts, addContact, updateContact, deleteContact,
   listAttachments, uploadAttachment, deleteAttachment, downloadAttachment,
 } from '@/api/patient';
@@ -94,11 +94,13 @@ function toDateInput(value?: string) {
 
 export default function PatientDetail() {
   const { id = '' } = useParams();
+  const navigate = useNavigate();
   const { role } = useAuth();
   // Must match backend role gates in routes/patient.go: create/update patient,
   // contacts, and attachments are admin+receptionist only; history is
-  // admin+doctor+nurse only (receptionist can't view it).
+  // admin+doctor+nurse only (receptionist can't view it); delete is admin only.
   const canManage = role === 'admin' || role === 'receptionist';
+  const canDelete = role === 'admin';
   const canViewHistory = role === 'admin' || role === 'doctor' || role === 'nurse';
   const [patient, setPatient] = useState<Patient | null>(null);
   const [history, setHistory] = useState<PatientHistory | null>(null);
@@ -106,6 +108,7 @@ export default function PatientDetail() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const [editOpen, setEditOpen] = useState(false);
   const [formError, setFormError] = useState('');
@@ -204,6 +207,20 @@ export default function PatientDetail() {
       setSaving(false);
     }
   });
+
+  const handleDeletePatient = async () => {
+    if (!patient) return;
+    if (!(await confirm(`Xóa bệnh nhân "${patient.Fullname}"? Hồ sơ sẽ được lưu trữ và có thể khôi phục nếu cần.`))) return;
+    setDeleting(true);
+    setError('');
+    try {
+      await deletePatient(id);
+      navigate('/patients');
+    } catch (err) {
+      setError(resolveError(err));
+      setDeleting(false);
+    }
+  };
 
   const openAddContact = () => {
     setEditingContactId(null);
@@ -315,15 +332,27 @@ export default function PatientDetail() {
             <h1 className="m-0 text-2xl font-bold text-[#274760]">{patient.Fullname}</h1>
             <p className="mt-1 mb-0 text-sm text-[#6c757d]">MRN: {patient.MRN}</p>
           </div>
-          {canManage && (
-            <Button
-              variant="outline"
-              onClick={openEdit}
-              className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
-            >
-              <Icon icon="fa6-solid:pen" className="text-xs" />Sửa
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {canManage && (
+              <Button
+                variant="outline"
+                onClick={openEdit}
+                className="h-auto rounded-full border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+              >
+                <Icon icon="fa6-solid:pen" className="text-xs" />Sửa
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                variant="outline"
+                onClick={handleDeletePatient}
+                disabled={deleting}
+                className="h-auto rounded-full border-[#dc3545]/30 px-5 py-2.75 text-sm font-medium text-[#dc3545] hover:bg-[#dc3545]/8"
+              >
+                <Icon icon="fa6-solid:trash" className="text-xs" />{deleting ? 'Đang xóa…' : 'Xóa'}
+              </Button>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3.5">
           <Field label="Giới tính" value={genderLabel(patient.Gender)} />
