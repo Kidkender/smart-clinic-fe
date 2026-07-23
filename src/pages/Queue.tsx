@@ -220,6 +220,10 @@ export default function Queue() {
   };
 
   const handleComplete = async (enc: Encounter) => {
+    if (!(await confirm(
+      'Hoàn tất lượt khám này? Sau khi hoàn tất, dược sĩ sẽ được phép cấp phát các đơn thuốc đang hiệu lực của lượt khám. Hãy chắc chắn đã ghi nhận đầy đủ sinh hiệu, chẩn đoán, chỉ định và đơn thuốc trước khi tiếp tục.',
+      { danger: false, confirmLabel: 'Hoàn tất' },
+    ))) return;
     try {
       await updateEncounterStatus(enc.ID, 'completed');
       await fetchQueue(departmentId);
