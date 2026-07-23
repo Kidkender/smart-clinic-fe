@@ -75,6 +75,7 @@ interface PrescriptionItem {
 interface Prescription {
   ID: number | string;
   EncounterID: number | string;
+  Status: string;
   Items?: PrescriptionItem[];
 }
 
@@ -410,7 +411,7 @@ export default function PortalHome() {
         <Button
           variant="outline"
           onClick={handleLogout}
-          className="h-auto rounded-full border-[#d1fae5] px-4 py-2 text-[13px] font-medium text-[#6c757d]"
+          className="h-auto rounded-xl border-[#0d9488]/30 px-4 py-2 text-[13px] font-semibold text-[#0d6b5f] hover:bg-[#0d9488]/5"
         >
           <Icon icon="fa6-solid:right-from-bracket" className="text-[13px]" />Đăng xuất
         </Button>
@@ -559,7 +560,7 @@ export default function PortalHome() {
                 ) : (
                   <div className="flex flex-col gap-3">
                     {history.encounters!.map(enc => {
-                      const rx = (history.prescriptions ?? []).filter(p => p.EncounterID === enc.ID);
+                      const rx = (history.prescriptions ?? []).filter(p => p.EncounterID === enc.ID && p.Status !== 'cancelled');
                       return (
                         <Card key={enc.ID} className="rounded-2xl border-[#d1fae5] p-5">
                           <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -664,7 +665,7 @@ export default function PortalHome() {
                             type="button"
                             disabled={openingAttachmentId === a.ID}
                             onClick={() => handleViewAttachment(a)}
-                            className="h-auto shrink-0 rounded-full bg-[#0d9488] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d9488]/90"
+                            className="h-auto shrink-0 rounded-xl bg-[#0d9488] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d9488]/90"
                           >
                             {openingAttachmentId === a.ID ? 'Đang mở…' : 'Xem'}
                           </Button>
@@ -677,7 +678,7 @@ export default function PortalHome() {
             )}
 
             {tab === 'profile' && profileLoaded && (
-              <div className="mt-5 max-w-[480px]">
+              <div className="mt-5">
                 <h2 className="m-0 mb-4 text-lg font-bold text-[#134e48]">Hồ sơ của tôi</h2>
                 <Card className="rounded-2xl border-[#d1fae5] p-5">
                   <form onSubmit={handleProfileSave} noValidate>

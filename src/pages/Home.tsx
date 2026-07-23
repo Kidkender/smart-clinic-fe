@@ -23,7 +23,7 @@ const NAV_LINKS = [
 ];
 
 const navLinkClass = 'text-sm font-medium text-[#274760]/70 no-underline hover:text-[#274760]';
-const primaryLinkClass = 'rounded-full bg-[#307bc4] px-5 py-2.5 text-sm font-semibold text-white no-underline';
+const primaryLinkClass = 'rounded-xl bg-[#307bc4] px-5 py-2.5 text-sm font-semibold text-white no-underline';
 const staffLinkClass = 'text-sm font-medium text-[#6c757d] no-underline hover:text-[#274760]';
 
 export default function Home() {
@@ -62,11 +62,11 @@ export default function Home() {
             Đặt lịch với bác sĩ chỉ trong vài phút. Theo dõi hồ sơ khám, đơn thuốc và kết quả xét nghiệm ngay trên cổng bệnh nhân.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link to="/portal/register" className={cn(primaryLinkClass, 'px-7 py-3.5 text-[15px]')}>
+            <Link to="/portal/login" className={cn(primaryLinkClass, 'px-7 py-3.5 text-[15px]')}>
               Đặt lịch ngay
             </Link>
             <span className="text-sm text-[#6c757d]">
-              Đã có tài khoản? <Link to="/portal/login" className="font-semibold text-[#307bc4] no-underline hover:underline">Đăng nhập bệnh nhân</Link>
+              Chưa có tài khoản? <Link to="/portal/register" className="font-semibold text-[#307bc4] no-underline hover:underline">Đăng ký</Link>
             </span>
           </div>
         </div>
@@ -102,7 +102,7 @@ export default function Home() {
               {departments.map(d => (
                 <Link
                   key={d.ID}
-                  to="/portal/register"
+                  to="/portal/login"
                   className="flex items-center gap-3 rounded-xl border border-[#e8edf2] px-4.5 py-3.5 no-underline hover:border-[#307bc4]/40 hover:bg-[#307bc4]/5"
                 >
                   <Icon icon="fa6-solid:notes-medical" className="text-lg text-[#307bc4]" />
