@@ -30,6 +30,13 @@ import {
 } from '@/components/ui/dialog';
 import { toLocalDateTimeInput, type Department, type Doctor, type PatientOption, type Slot } from './types';
 
+function formatVNDateTime(localDateTime: string): string {
+  if (!localDateTime) return '';
+  const [datePart, timePart] = localDateTime.split('T');
+  const [year, month, day] = datePart.split('-');
+  return `${day}/${month}/${year}${timePart ? ` ${timePart}` : ''}`;
+}
+
 const EMPTY_APPOINTMENT_FORM: AppointmentFormValues = {
   patient_id: '', department_id: '', doctor_id: '', scheduled_at: '', type: 'new', reason: '',
 };
@@ -238,42 +245,48 @@ export default function CreateAppointmentDialog({
           )}
           <FieldError message={errors.patient_id?.message} />
 
-          <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Khoa *</label>
-          <Controller
-            control={control}
-            name="department_id"
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={handleDepartmentChange}>
-                <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                  <SelectValue placeholder="-- Chọn khoa --" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          <FieldError message={errors.department_id?.message} />
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Khoa *</label>
+              <Controller
+                control={control}
+                name="department_id"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={handleDepartmentChange}>
+                    <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                      <SelectValue placeholder="-- Chọn khoa --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldError message={errors.department_id?.message} />
+            </div>
 
-          <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Bác sĩ *</label>
-          <Controller
-            control={control}
-            name="doctor_id"
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={handleDoctorChange} disabled={doctors.length === 0}>
-                <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                  <SelectValue placeholder="-- Chọn bác sĩ --" />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctors.map(doc => <SelectItem key={doc.id} value={String(doc.id)}>{doc.fullname}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            )}
-          />
-          <FieldError message={errors.doctor_id?.message} />
-          {departmentIdValue && doctors.length === 0 && (
-            <p className="mt-1.5 text-[13px] text-[#6c757d]">Khoa này chưa có bác sĩ nào.</p>
-          )}
+            <div>
+              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Bác sĩ *</label>
+              <Controller
+                control={control}
+                name="doctor_id"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={handleDoctorChange} disabled={doctors.length === 0}>
+                    <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                      <SelectValue placeholder="-- Chọn bác sĩ --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {doctors.map(doc => <SelectItem key={doc.id} value={String(doc.id)}>{doc.fullname}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldError message={errors.doctor_id?.message} />
+              {departmentIdValue && doctors.length === 0 && (
+                <p className="mt-1.5 text-[13px] text-[#6c757d]">Khoa này chưa có bác sĩ nào.</p>
+              )}
+            </div>
+          </div>
 
           {doctorId && (
             <>
@@ -316,10 +329,11 @@ export default function CreateAppointmentDialog({
             name="scheduled_at"
             render={({ field }) => (
               <Input
-                type="datetime-local"
-                value={field.value}
+                type="text"
+                value={formatVNDateTime(field.value)}
                 onChange={field.onChange}
                 readOnly
+                placeholder="dd/mm/yyyy"
                 aria-invalid={!!errors.scheduled_at}
                 className="h-auto cursor-not-allowed rounded-xl border-[#dde2e8] bg-[#f4f7fa] px-4 py-3 text-[15px] text-[#6c757d]"
               />
@@ -341,7 +355,7 @@ export default function CreateAppointmentDialog({
                 <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="top">
                   {APPOINTMENT_TYPES.map(t => <SelectItem key={t} value={t}>{appointmentTypeLabel(t)}</SelectItem>)}
                 </SelectContent>
               </Select>

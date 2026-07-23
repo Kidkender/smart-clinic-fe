@@ -89,13 +89,9 @@ export default function PharmacyPrescriptionDetail() {
   }, [fetchDetail]);
 
   const handleDispense = async () => {
-    if (!encounterId || !prescriptionId || !detail) return;
-    const message = detail.has_shortage
-      ? `Đơn có thuốc không đủ tồn kho. Vẫn tiếp tục cấp phát cho "${detail.patient_name}"?`
-      : `Xác nhận cấp phát đơn thuốc cho "${detail.patient_name}"?`;
-    const ok = await confirm(message, {
+    if (!encounterId || !prescriptionId || !detail || detail.has_shortage) return;
+    const ok = await confirm(`Xác nhận cấp phát đơn thuốc cho "${detail.patient_name}"?`, {
       title: 'Cấp phát đơn thuốc',
-      danger: detail.has_shortage,
       confirmLabel: 'Cấp phát',
     });
     if (!ok) return;
@@ -330,9 +326,10 @@ export default function PharmacyPrescriptionDetail() {
         {isActive && (
           <div className="mt-5 flex flex-wrap gap-2 border-t border-[#f0f4f8] pt-5">
             <Button
-              disabled={acting}
+              disabled={acting || detail.has_shortage}
               onClick={handleDispense}
-              className="h-auto rounded-lg bg-[#307bc4] px-4 py-2 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+              title={detail.has_shortage ? 'Không thể cấp phát vì còn thuốc chưa đủ tồn kho — báo bác sĩ hoặc chờ nhập kho.' : undefined}
+              className="h-auto rounded-lg bg-[#307bc4] px-4 py-2 text-xs font-semibold text-white hover:bg-[#307bc4]/90 disabled:opacity-40"
             >
               <Icon icon="fa6-solid:check" className="mr-1.5 text-[11px]" />Cấp phát
             </Button>
@@ -363,6 +360,16 @@ export default function PharmacyPrescriptionDetail() {
             <label className="mb-1 block text-[11px] font-semibold text-[#dc3545]">
               Lý do hủy đơn thuốc *
             </label>
+            {detail.has_shortage && (
+              <button
+                type="button"
+                onClick={() => setCancelReason('Thiếu thuốc — bệnh nhân tự mua ngoài theo toa')}
+                className="mb-1.5 cursor-pointer rounded-full border border-[#dc3545]/30 bg-[#dc3545]/8 px-2.5 py-1 text-[11px] font-semibold text-[#dc3545]"
+              >
+                <Icon icon="fa6-solid:bolt" className="mr-1 text-[10px]" />
+                Dùng lý do: Thiếu thuốc — BN tự mua ngoài
+              </button>
+            )}
             <Input
               value={cancelReason}
               onChange={e => setCancelReason(e.target.value)}

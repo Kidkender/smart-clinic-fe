@@ -483,6 +483,7 @@ export default function Doctors() {
             <Textarea
               {...register('bio')}
               rows={3}
+              placeholder="Giới thiệu ngắn về bác sĩ (kinh nghiệm, chuyên môn...)"
               className="rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
 
@@ -653,6 +654,7 @@ export default function Doctors() {
             <Textarea
               {...registerCreate('bio')}
               rows={3}
+              placeholder="Giới thiệu ngắn về bác sĩ (kinh nghiệm, chuyên môn...)"
               className="rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
 

@@ -8,6 +8,7 @@ import { searchDrugs, checkDrugInteractions } from '@/api/drug';
 import { printPrescriptionLabel } from '@/utils/printLabel';
 import { resolveError } from '@/utils/errorMessages';
 import { prescriptionStatusLabel, interactionSeverityLabel } from '@/utils/labels';
+import useConfirm from '@/hooks/useConfirm';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ export default function PrescriptionsSection({
   const [warnings, setWarnings] = useState<DrugWarning[]>([]);
   const [duplicateWarnings, setDuplicateWarnings] = useState<DuplicateDrugWarning[]>([]);
   const [editingPrescriptionId, setEditingPrescriptionId] = useState<number | string | null>(null);
+  const [originalEditItems, setOriginalEditItems] = useState<string | null>(null);
 
   const [returningItemId, setReturningItemId] = useState<number | string | null>(null);
   const [returnQty, setReturnQty] = useState('');
@@ -52,8 +54,14 @@ export default function PrescriptionsSection({
 
   const [resolvingFlagId, setResolvingFlagId] = useState<number | null>(null);
   const [flagResolveError, setFlagResolveError] = useState('');
+  const [confirm, ConfirmDialog] = useConfirm();
 
   const handleResolveFlag = async (prescription: Prescription, item: PrescriptionItem, flag: PrescriptionItemFlag) => {
+    const ok = await confirm(
+      `Xác nhận đã xử lý cảnh báo thiếu thuốc "${item.Drug?.Name ?? `Thuốc #${item.DrugID}`}"? Cảnh báo sẽ được đánh dấu đã giải quyết.`,
+      { danger: false, confirmLabel: 'Đã xử lý' },
+    );
+    if (!ok) return;
     setResolvingFlagId(flag.ID);
     setFlagResolveError('');
     try {
@@ -88,6 +96,13 @@ export default function PrescriptionsSection({
     setDrugResults([]);
   };
 
+  const snapshotItems = (list: typeof items) =>
+    JSON.stringify(
+      [...list]
+        .map(it => ({ drug_id: it.drug_id, dosage: it.dosage, quantity: Number(it.quantity) || 1, instructions: it.instructions }))
+        .sort((a, b) => String(a.drug_id).localeCompare(String(b.drug_id))),
+    );
+
   const removeItem = (drugId: number | string) => setItems(items.filter(it => it.drug_id !== drugId));
 
   const updateItem = (drugId: number | string, field: 'dosage' | 'quantity' | 'instructions', value: string) => {
@@ -103,6 +118,10 @@ export default function PrescriptionsSection({
       setFormError('Cần thêm ít nhất một loại thuốc.');
       return;
     }
+    if (editingPrescriptionId != null && originalEditItems != null && snapshotItems(items) === originalEditItems) {
+      setFormError('Bạn chưa thay đổi gì so với đơn gốc — không cần lưu lại.');
+      return;
+    }
     setSaving(true);
     try {
       if (editingPrescriptionId != null) {
@@ -110,6 +129,7 @@ export default function PrescriptionsSection({
         // Clear right away: if the create call below fails, a retry must not
         // try to cancel an already-cancelled prescription again.
         setEditingPrescriptionId(null);
+        setOriginalEditItems(null);
       }
       const res = await createPrescription(encounterId, {
         items: items.map(it => ({ drug_id: it.drug_id, dosage: it.dosage, quantity: Number(it.quantity) || 1, instructions: it.instructions })),
@@ -134,15 +154,15 @@ export default function PrescriptionsSection({
     setFormError('');
     setWarnings([]);
     setDuplicateWarnings([]);
-    setItems(
-      (prescription.Items ?? []).map(it => ({
-        drug_id: it.DrugID,
-        name: it.Drug?.Name ?? `Thuốc #${it.DrugID}`,
-        dosage: it.Dosage ?? '',
-        quantity: it.Quantity,
-        instructions: it.Instructions ?? '',
-      })),
-    );
+    const initialItems = (prescription.Items ?? []).map(it => ({
+      drug_id: it.DrugID,
+      name: it.Drug?.Name ?? `Thuốc #${it.DrugID}`,
+      dosage: it.Dosage ?? '',
+      quantity: it.Quantity,
+      instructions: it.Instructions ?? '',
+    }));
+    setItems(initialItems);
+    setOriginalEditItems(snapshotItems(initialItems));
     setEditingPrescriptionId(prescription.ID);
     setOpen(true);
   };
@@ -239,6 +259,7 @@ export default function PrescriptionsSection({
         onToggle={() => {
           setOpen(o => !o);
           setEditingPrescriptionId(null);
+          setOriginalEditItems(null);
           setItems([]);
           setWarnings([]);
           setDuplicateWarnings([]);
@@ -533,6 +554,7 @@ export default function PrescriptionsSection({
           </Button>
         </form>
       )}
+      {ConfirmDialog}
     </Card>
   );
 }

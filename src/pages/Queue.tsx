@@ -355,6 +355,15 @@ export default function Queue() {
                         <Icon icon="fa6-solid:stethoscope" className="text-[13px]" />
                       </Link>
                     )}
+                    {canDoClinical && q.Status === 'completed' && (
+                      <Link
+                        to={`/encounters/${q.ID}`}
+                        title="Xem lại (đơn thuốc, cảnh báo dược sĩ...)"
+                        className="inline-flex size-[30px] items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#6c757d] no-underline"
+                      >
+                        <Icon icon="fa6-solid:eye" className="text-[13px]" />
+                      </Link>
+                    )}
                     {canDoClinical && q.Status === 'in_progress' && (
                       <button
                         type="button"
