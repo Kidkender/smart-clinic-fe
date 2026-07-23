@@ -212,7 +212,7 @@ export default function PharmacyWardIssues() {
             className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
           />
           {drugResults.length > 0 && (
-            <div className="mt-1.5 max-h-40 overflow-y-auto rounded-lg border border-[#dde2e8]">
+            <div className="mt-1.5 max-h-40 overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
               {drugResults.map(d => (
                 <div key={d.ID} onClick={() => addItem(d)} className="cursor-pointer px-3.5 py-2.5 text-sm text-[#274760]">
                   {d.Name} <span className="text-[#6c757d]">· còn {d.StockQuantity}</span>

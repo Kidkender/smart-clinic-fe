@@ -304,7 +304,7 @@ export default function Admissions() {
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
             {patientResults.length > 0 && (
-              <div className="mt-1.5 max-h-[140px] overflow-y-auto rounded-lg border border-[#dde2e8]">
+              <div className="mt-1.5 max-h-[140px] overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
                 {patientResults.map(p => (
                   <div
                     key={p.ID}

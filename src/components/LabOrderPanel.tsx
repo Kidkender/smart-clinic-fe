@@ -259,7 +259,7 @@ export default function LabOrderPanel({
                     className="h-auto rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
                   />
                   {testOptions.length > 0 && (
-                    <div className="mt-1.5 max-h-32 overflow-y-auto rounded-lg border border-[#dde2e8]">
+                    <div className="mt-1.5 max-h-32 overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
                       {testOptions.map(t => (
                         <label key={t.ID} className="flex cursor-pointer items-center gap-2 px-3.5 py-2 text-sm text-[#274760] hover:bg-[#f4f7fa]">
                           <input

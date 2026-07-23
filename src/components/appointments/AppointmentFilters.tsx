@@ -88,7 +88,7 @@ export default function AppointmentFilters({
           {doctorOptions.map(d => <SelectItem key={d.ID} value={String(d.ID)}>{d.Fullname}</SelectItem>)}
         </SelectContent>
       </Select>
-      <div className="flex items-center rounded-xl border border-[#dde2e8] py-2.75 pr-3.5 pl-4 shadow-xs">
+      <div className="flex items-center rounded-xl border border-border bg-background py-2.75 pr-3.5 pl-4 shadow-xs">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Từ ngày</span>
           <DatePicker
@@ -97,7 +97,7 @@ export default function AppointmentFilters({
             className="h-auto w-[110px] justify-start gap-1.5 border-0 bg-transparent p-0 text-sm text-[#274760] shadow-none hover:bg-transparent"
           />
         </div>
-        <div className="mx-3 h-4.5 w-px bg-[#dde2e8]" />
+        <div className="mx-3 h-4.5 w-px bg-border" />
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Đến ngày</span>
           <DatePicker

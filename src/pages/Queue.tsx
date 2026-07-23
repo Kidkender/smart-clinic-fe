@@ -411,7 +411,7 @@ export default function Queue() {
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
             {patientResults.length > 0 && (
-              <div className="mt-1.5 max-h-40 overflow-y-auto rounded-xl border border-[#dde2e8]">
+              <div className="mt-1.5 max-h-40 overflow-y-auto rounded-xl border border-border bg-popover shadow-lg">
                 {patientResults.map(p => (
                   <div
                     key={p.ID}

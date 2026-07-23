@@ -112,7 +112,7 @@ export default function DiagnosesSection({
               className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
             />
             {icdResults.length > 0 && (
-              <div className="absolute z-10 mt-1 max-h-[180px] w-full overflow-y-auto rounded-lg border border-[#dde2e8] bg-white shadow-md">
+              <div className="absolute z-10 mt-1 max-h-[180px] w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
                 {icdResults.map(icd => (
                   <div
                     key={icd.Code}
