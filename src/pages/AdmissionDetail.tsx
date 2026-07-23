@@ -679,12 +679,8 @@ function NursingLogsSection({ admissionId, logs, progressNotes, canAdd, onAdded 
                 <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
                   <SelectValue placeholder="-- Không gắn y lệnh --" />
                 </SelectTrigger>
-                <SelectContent>
-                  {progressNotes.length === 0 ? (
-                    <SelectItem value="__none__" disabled>Chưa có y lệnh nào</SelectItem>
-                  ) : (
-                    progressNotes.map(n => <SelectItem key={n.ID} value={String(n.ID)}>{n.DoctorOrders || n.Content}</SelectItem>)
-                  )}
+                <SelectContent emptyText="Chưa có y lệnh nào">
+                  {progressNotes.map(n => <SelectItem key={n.ID} value={String(n.ID)}>{n.DoctorOrders || n.Content}</SelectItem>)}
                 </SelectContent>
               </Select>
             )}

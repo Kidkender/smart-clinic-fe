@@ -60,8 +60,13 @@ function SelectContent({
   children,
   position = "popper",
   align = "center",
+  emptyText = "Không có dữ liệu",
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Content>) {
+}: React.ComponentProps<typeof SelectPrimitive.Content> & {
+  emptyText?: string
+}) {
+  const isEmpty = React.Children.toArray(children).length === 0
+
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
@@ -80,7 +85,13 @@ function SelectContent({
             position === "popper" && ""
           )}
         >
-          {children}
+          {isEmpty ? (
+            <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+              {emptyText}
+            </div>
+          ) : (
+            children
+          )}
         </SelectPrimitive.Viewport>
         <SelectScrollDownButton />
       </SelectPrimitive.Content>
