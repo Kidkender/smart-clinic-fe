@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [statusDialog, setStatusDialog] = useState<'pending' | 'locked' | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -90,13 +91,23 @@ export default function Login() {
               <label className="block text-sm font-semibold text-[#274760]">Mật khẩu</label>
               <Link to="/forgot-password" className="text-sm font-medium text-[#307bc4]">Quên mật khẩu?</Link>
             </div>
-            <Input
-              type="password"
-              {...register('password')}
-              placeholder="••••••••"
-              aria-invalid={!!errors.password}
-              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-            />
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                {...register('password')}
+                placeholder="••••••••"
+                aria-invalid={!!errors.password}
+                className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 pr-10 text-[15px] text-[#274760]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-0 text-[#6c757d]"
+              >
+                <Icon icon={showPassword ? 'fa6-solid:eye-slash' : 'fa6-solid:eye'} className="text-sm" />
+              </button>
+            </div>
             <FieldError message={errors.password?.message} />
 
             {error && (

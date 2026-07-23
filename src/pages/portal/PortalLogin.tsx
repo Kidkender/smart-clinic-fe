@@ -14,6 +14,7 @@ import FieldError from '@/components/FieldError';
 export default function PortalLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login } = usePatientAuth();
   const navigate = useNavigate();
   const {
@@ -64,12 +65,22 @@ export default function PortalLogin() {
             />
             <FieldError message={errors.email?.message} />
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#134e48]">Mật khẩu</label>
-            <Input
-              type="password"
-              {...register('password')}
-              aria-invalid={!!errors.password}
-              className="h-auto rounded-xl border-[#d1fae5] px-4 py-3 text-[15px] text-[#134e48]"
-            />
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                {...register('password')}
+                aria-invalid={!!errors.password}
+                className="h-auto rounded-xl border-[#d1fae5] px-4 py-3 pr-10 text-[15px] text-[#134e48]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-0 text-[#6c757d]"
+              >
+                <Icon icon={showPassword ? 'fa6-solid:eye-slash' : 'fa6-solid:eye'} className="text-sm" />
+              </button>
+            </div>
             <FieldError message={errors.password?.message} />
 
             {error && (
