@@ -58,6 +58,12 @@ export default function Register() {
 
       <div className="flex flex-1 basis-[55%] items-center justify-center bg-[#f4f7fa] p-5">
         <div className="w-full max-w-[420px] rounded-[20px] bg-white p-10 shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
+          <Link
+            to="/"
+            className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-[#307bc4]/30 bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#307bc4] no-underline shadow-sm hover:bg-[#307bc4]/5"
+          >
+            <Icon icon="fa6-solid:chevron-left" className="text-[11px]" />Về trang chủ
+          </Link>
           <h1 className="mb-1 text-2xl font-bold text-[#1c3a52]">Tạo tài khoản</h1>
           <p className="mb-7 text-[#6c757d]">Đăng ký nhân sự mới cho phòng khám</p>
           <form onSubmit={handleFormSubmit} noValidate>

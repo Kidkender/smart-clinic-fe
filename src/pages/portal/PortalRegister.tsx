@@ -45,7 +45,14 @@ export default function PortalRegister() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(160deg,#e6fffa_0%,#f0fdfa_100%)] p-5">
-      <div className="w-full max-w-[420px] rounded-[20px] bg-white p-10 shadow-[0_10px_40px_rgba(13,148,136,0.08)]">
+      <div className="w-full max-w-[420px]">
+        <Link
+          to="/"
+          className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-[#0d9488]/30 bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#0d6b5f] no-underline shadow-sm hover:bg-[#0d9488]/5"
+        >
+          <Icon icon="fa6-solid:chevron-left" className="text-[11px]" />Về trang chủ
+        </Link>
+        <div className="rounded-[20px] bg-white p-10 shadow-[0_10px_40px_rgba(13,148,136,0.08)]">
         <Link to="/" className="mb-6 inline-flex items-center gap-2 no-underline opacity-90 transition-opacity hover:opacity-100">
           <Icon icon="fa6-solid:hospital" className="text-lg text-[#0d6b5f]" />
           <span className="text-lg font-bold text-[#0d6b5f]">SmartClinic</span>
@@ -137,6 +144,7 @@ export default function PortalRegister() {
             Đã có tài khoản? <Link to="/portal/login" className="font-semibold text-[#0d9488]">Đăng nhập</Link>
           </p>
         </form>
+        </div>
       </div>
     </div>
   );
