@@ -98,6 +98,8 @@ export default function Consultation() {
   }
   if (!encounter) return null;
 
+  const isCompleted = encounter.Status === 'completed';
+
   return (
     <>
       {ConfirmDialog}
@@ -139,23 +141,30 @@ export default function Consultation() {
         {error && <div className="mt-3.5"><ErrorBox>{error}</ErrorBox></div>}
       </Card>
 
-      {canViewClinicalData && (
-        <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(420px,1fr))] gap-5">
-          <VitalsSection encounterId={encounterId} vitals={vitals} canRecord={canRecordVitals} onRecorded={loadAll} />
-          <DiagnosesSection encounterId={encounterId} diagnoses={diagnoses} canAdd={canDiagnose} onAdded={loadAll} />
+      {isCompleted && (
+        <div className="mt-5 flex items-center gap-2.5 rounded-xl border border-[#6c757d]/25 bg-[#6c757d]/8 px-4.5 py-3.5 text-[13px] font-medium text-[#6c757d]">
+          <Icon icon="fa6-solid:lock" />
+          Lượt khám đã hoàn tất — sinh hiệu, chẩn đoán, ghi chú và chỉ định đã bị khoá. Đơn thuốc vẫn có thể sửa nếu dược sĩ báo thiếu thuốc.
         </div>
       )}
 
-      <ClinicalNotesSection encounterId={encounterId} notes={encounter.ClinicalNotes} canEdit={canDiagnose} onSaved={loadAll} />
+      {canViewClinicalData && (
+        <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(420px,1fr))] gap-5">
+          <VitalsSection encounterId={encounterId} vitals={vitals} canRecord={canRecordVitals && !isCompleted} onRecorded={loadAll} />
+          <DiagnosesSection encounterId={encounterId} diagnoses={diagnoses} canAdd={canDiagnose && !isCompleted} onAdded={loadAll} />
+        </div>
+      )}
+
+      <ClinicalNotesSection encounterId={encounterId} notes={encounter.ClinicalNotes} canEdit={canDiagnose && !isCompleted} onSaved={loadAll} />
 
       <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(460px,1fr))] gap-5">
-        <OrdersSection encounterId={encounterId} orders={orders} canCreate={canOrder} canUpdateStatus={canUpdateOrderStatus} role={role} onChanged={loadAll} />
+        <OrdersSection encounterId={encounterId} orders={orders} canCreate={canOrder && !isCompleted} canUpdateStatus={canUpdateOrderStatus} role={role} onChanged={loadAll} />
         <PrescriptionsSection
           encounterId={encounterId}
           prescriptions={prescriptions}
           canCreate={canPrescribe}
           canUpdateStatus={canUpdatePrescriptionStatus}
-          encounterCompleted={encounter?.Status === 'completed'}
+          encounterCompleted={isCompleted}
           onChanged={loadAll}
         />
       </div>
