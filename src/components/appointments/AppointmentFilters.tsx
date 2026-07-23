@@ -2,6 +2,7 @@ import { Icon } from '@iconify/react';
 import { appointmentStatusLabel } from '@/utils/labels';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Select,
   SelectContent,
@@ -90,21 +91,19 @@ export default function AppointmentFilters({
       <div className="flex items-center rounded-xl border border-[#dde2e8] py-2.75 pr-3.5 pl-4 shadow-xs">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Từ ngày</span>
-          <input
-            type="date"
+          <DatePicker
             value={dateFrom}
-            onChange={e => onDateFromChange(e.target.value)}
-            className="w-[125px] border-0 bg-transparent p-0 text-sm text-[#274760] outline-none"
+            onChange={onDateFromChange}
+            className="h-auto w-[110px] justify-start gap-1.5 border-0 bg-transparent p-0 text-sm text-[#274760] shadow-none hover:bg-transparent"
           />
         </div>
         <div className="mx-3 h-4.5 w-px bg-[#dde2e8]" />
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Đến ngày</span>
-          <input
-            type="date"
+          <DatePicker
             value={dateTo}
-            onChange={e => onDateToChange(e.target.value)}
-            className="w-[125px] border-0 bg-transparent p-0 text-sm text-[#274760] outline-none"
+            onChange={onDateToChange}
+            className="h-auto w-[110px] justify-start gap-1.5 border-0 bg-transparent p-0 text-sm text-[#274760] shadow-none hover:bg-transparent"
           />
         </div>
       </div>

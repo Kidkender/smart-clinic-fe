@@ -17,10 +17,12 @@ import {
 import { resolveError } from '@/utils/errorMessages';
 import { shiftTypeLabel, leaveStatusLabel } from '@/utils/labels';
 import useConfirm from '@/hooks/useConfirm';
+import { cn } from '@/lib/utils';
 import { doctorShiftSchema, doctorLeaveSchema, type DoctorShiftFormValues, type DoctorLeaveFormValues } from '@/schemas/doctorSchedule';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Badge } from '@/components/ui/badge';
 import FieldError from '@/components/FieldError';
 import {
@@ -113,7 +115,7 @@ export default function DoctorDetail() {
   const [savingLeave, setSavingLeave] = useState(false);
   const [leaveError, setLeaveError] = useState('');
   const {
-    register: registerLeave, handleSubmit: handleLeaveFormSubmit, reset: resetLeave,
+    register: registerLeave, control: leaveControl, handleSubmit: handleLeaveFormSubmit, reset: resetLeave,
     formState: { errors: leaveErrors },
   } = useForm<DoctorLeaveFormValues>({
     resolver: zodResolver(doctorLeaveSchema),
@@ -326,11 +328,10 @@ export default function DoctorDetail() {
                   control={shiftControl}
                   name="shift_date"
                   render={({ field }) => (
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={field.value}
                       onChange={field.onChange}
-                      className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                      className="border-[#dde2e8] text-[#274760]"
                     />
                   )}
                 />
@@ -415,19 +416,30 @@ export default function DoctorDetail() {
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="mt-2 mb-1.5 block text-sm font-semibold text-[#274760]">Từ ngày</label>
-                <Input
-                  type="date"
-                  {...registerLeave('start_date')}
-                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                <Controller
+                  control={leaveControl}
+                  name="start_date"
+                  render={({ field }) => (
+                    <DatePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      className="border-[#dde2e8] text-[#274760]"
+                    />
+                  )}
                 />
               </div>
               <div>
                 <label className="mt-2 mb-1.5 block text-sm font-semibold text-[#274760]">Đến ngày</label>
-                <Input
-                  type="date"
-                  {...registerLeave('end_date')}
-                  aria-invalid={!!leaveErrors.end_date}
-                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                <Controller
+                  control={leaveControl}
+                  name="end_date"
+                  render={({ field }) => (
+                    <DatePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      className={cn('border-[#dde2e8] text-[#274760]', leaveErrors.end_date && 'border-destructive')}
+                    />
+                  )}
                 />
               </div>
             </div>
@@ -460,20 +472,18 @@ export default function DoctorDetail() {
           <form onSubmit={handleFetchPerformance} noValidate className="mb-4 flex flex-wrap items-end gap-2.5">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Từ ngày</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={perfRange.from}
-                onChange={e => setPerfRange({ ...perfRange, from: e.target.value })}
-                className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                onChange={value => setPerfRange({ ...perfRange, from: value })}
+                className="border-[#dde2e8] text-[#274760]"
               />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Đến ngày</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={perfRange.to}
-                onChange={e => setPerfRange({ ...perfRange, to: e.target.value })}
-                className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                onChange={value => setPerfRange({ ...perfRange, to: value })}
+                className="border-[#dde2e8] text-[#274760]"
               />
             </div>
             <Button

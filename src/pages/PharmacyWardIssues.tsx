@@ -7,6 +7,7 @@ import { resolveError } from '@/utils/errorMessages';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -186,11 +187,10 @@ export default function PharmacyWardIssues() {
           <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
             <div>
               <label className="mb-1.5 block text-[13px] font-semibold text-[#274760]">Ngày cấp</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={issueDate}
-                onChange={e => setIssueDate(e.target.value)}
-                className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+                onChange={setIssueDate}
+                className="border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
               />
             </div>
             <div>

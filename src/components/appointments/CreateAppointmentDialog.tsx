@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { appointmentSchema, type AppointmentFormValues } from '@/schemas/appointment';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import FieldError from '@/components/FieldError';
 import {
   Select,
@@ -277,11 +278,10 @@ export default function CreateAppointmentDialog({
           {doctorId && (
             <>
               <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Chọn ngày để xem khung giờ trống</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={slotDate}
-                onChange={e => handleSlotDateChange(e.target.value)}
-                className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                onChange={handleSlotDateChange}
+                className="border-[#dde2e8] text-[#274760]"
               />
               {loadingSlots && <p className="mt-2 text-[13px] text-[#6c757d]">Đang tải khung giờ…</p>}
               {!loadingSlots && slotDate && slots.length === 0 && (
