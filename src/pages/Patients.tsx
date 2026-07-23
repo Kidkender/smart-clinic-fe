@@ -250,47 +250,59 @@ export default function Patients() {
             <DialogTitle className="text-xl font-bold text-[#274760]">Thêm bệnh nhân</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreate} noValidate>
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Họ tên *</label>
-            <Input
-              {...register('fullname')}
-              placeholder="Nguyễn Văn A"
-              aria-invalid={!!errors.fullname}
-              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-            />
-            <FieldError message={errors.fullname?.message} />
+            <div className="grid grid-cols-[2fr_1fr] gap-2.5">
+              <div>
+                <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Họ tên *</label>
+                <Input
+                  {...register('fullname')}
+                  placeholder="Nguyễn Văn A"
+                  aria-invalid={!!errors.fullname}
+                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                />
+                <FieldError message={errors.fullname?.message} />
+              </div>
 
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giới tính *</label>
-            <Controller
-              control={control}
-              name="gender"
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {GENDERS.map(g => <SelectItem key={g} value={g}>{genderLabel(g)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            <FieldError message={errors.gender?.message} />
+              <div>
+                <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giới tính *</label>
+                <Controller
+                  control={control}
+                  name="gender"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GENDERS.map(g => <SelectItem key={g} value={g}>{genderLabel(g)}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FieldError message={errors.gender?.message} />
+              </div>
+            </div>
 
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số điện thoại</label>
-            <Input
-              {...register('phone')}
-              placeholder="0912345678"
-              aria-invalid={!!errors.phone}
-              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-            />
-            <FieldError message={errors.phone?.message} />
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số điện thoại</label>
+                <Input
+                  {...register('phone')}
+                  placeholder="0912345678"
+                  aria-invalid={!!errors.phone}
+                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                />
+                <FieldError message={errors.phone?.message} />
+              </div>
 
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">CCCD</label>
-            <Input
-              {...register('cccd')}
-              placeholder="079..."
-              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-            />
+              <div>
+                <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">CCCD</label>
+                <Input
+                  {...register('cccd')}
+                  placeholder="079..."
+                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                />
+              </div>
+            </div>
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Địa chỉ</label>
             <Input
