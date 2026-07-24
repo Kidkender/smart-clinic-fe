@@ -20,6 +20,7 @@ import FieldError from '@/components/FieldError';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -70,6 +71,11 @@ const STATUS_STYLES: Record<string, string> = {
   discharged: 'bg-[#6c757d]/10 text-[#6c757d]',
 };
 
+const ADMISSION_STATUS_OPTIONS = [
+  { value: 'active', label: 'Đang điều trị' },
+  { value: 'discharged', label: 'Đã xuất viện' },
+];
+
 const EMPTY_FORM: AdmissionFormValues = {
   patient_id: '', department_id: '', attending_doctor_id: '', admission_type: 'bhyt', ward_id: '', bed_id: '',
 };
@@ -78,7 +84,7 @@ export default function Admissions() {
   const navigate = useNavigate();
   const { role } = useAuth();
   const canAdmit = role === 'admin' || role === 'doctor' || role === 'receptionist';
-  const [statusFilter, setStatusFilter] = useState('active');
+  const [statusFilter, setStatusFilter] = useState<string[]>(['active']);
   const [admissions, setAdmissions] = useState<Admission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -107,7 +113,7 @@ export default function Admissions() {
     setLoading(true);
     setError('');
     try {
-      const result = await listAdmissions({ status: statusFilter || undefined });
+      const result = await listAdmissions({ status: statusFilter.length === 0 ? undefined : statusFilter.join(',') });
       setAdmissions(result.data ?? []);
     } catch (err) {
       setError(resolveError(err));
@@ -221,16 +227,13 @@ export default function Admissions() {
           <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">Danh sách bệnh nhân đang điều trị nội trú</p>
         </div>
         <div className="flex gap-2.5">
-          <Select value={statusFilter || 'all'} onValueChange={value => setStatusFilter(value === 'all' ? '' : value)}>
-            <SelectTrigger className="h-auto w-[180px] rounded-xl px-5 py-2.75 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Đang điều trị</SelectItem>
-              <SelectItem value="discharged">Đã xuất viện</SelectItem>
-              <SelectItem value="all">Tất cả</SelectItem>
-            </SelectContent>
-          </Select>
+          <MultiSelect
+            options={ADMISSION_STATUS_OPTIONS}
+            selected={statusFilter}
+            onChange={setStatusFilter}
+            placeholder="Tất cả"
+            className="w-[180px]"
+          />
           {canAdmit && (
             <Button
               onClick={openAdmit}

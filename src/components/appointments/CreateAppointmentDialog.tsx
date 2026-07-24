@@ -28,7 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { toLocalDateTimeInput, type Department, type Doctor, type PatientOption, type Slot } from './types';
+import { toLocalDateTimeInput, toLocalDateInput, type Department, type Doctor, type PatientOption, type Slot } from './types';
 
 const WEEKDAY_LABELS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const ALL_DAYS_OF_WEEK = [0, 1, 2, 3, 4, 5, 6];
@@ -309,6 +309,7 @@ export default function CreateAppointmentDialog({
               <DatePicker
                 value={slotDate}
                 onChange={handleSlotDateChange}
+                min={toLocalDateInput(new Date())}
                 disabledDaysOfWeek={workingDays ? ALL_DAYS_OF_WEEK.filter(d => !workingDays.includes(d)) : undefined}
                 className="border-[#dde2e8] text-[#274760]"
               />

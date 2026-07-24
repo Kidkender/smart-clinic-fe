@@ -8,13 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import LabOrderPanel from '@/components/LabOrderPanel';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 
 interface LabWorklistItem {
   order_id: number | string;
@@ -30,7 +24,7 @@ interface LabWorklistItem {
   ordered_at: string;
 }
 
-const STATUS_FILTERS = ['all', 'pending_collection', 'collected', 'received'];
+const STATUS_FILTER_VALUES = ['pending_collection', 'collected', 'received'];
 
 function specimenBadgeClass(status: string): string {
   switch (status) {
@@ -46,7 +40,7 @@ function specimenBadgeClass(status: string): string {
 export default function LabWorklist() {
   const { role } = useAuth();
   const [items, setItems] = useState<LabWorklistItem[]>([]);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -54,7 +48,7 @@ export default function LabWorklist() {
     setLoading(true);
     setError('');
     try {
-      const result = await listLabWorklist(statusFilter === 'all' ? undefined : statusFilter);
+      const result = await listLabWorklist(statusFilter.length === 0 ? undefined : statusFilter.join(','));
       setItems(result.data ?? []);
     } catch (err) {
       setError(resolveError(err));
@@ -76,17 +70,13 @@ export default function LabWorklist() {
             Toàn bộ chỉ định xét nghiệm đang chờ xử lý — Chỉ định → Lấy mẫu → Nhận mẫu → Thực hiện → Duyệt kết quả
           </p>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-auto w-[220px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            {STATUS_FILTERS.filter(s => s !== 'all').map(s => (
-              <SelectItem key={s} value={s}>{labSpecimenStatusLabel(s)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MultiSelect
+          options={STATUS_FILTER_VALUES.map(s => ({ value: s, label: labSpecimenStatusLabel(s) }))}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+          placeholder="Tất cả trạng thái"
+          className="w-[220px]"
+        />
       </div>
 
       {error && (

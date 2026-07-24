@@ -30,7 +30,7 @@ export default function Appointments() {
 
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [doctorFilter, setDoctorFilter] = useState('all');
   const [doctorOptions, setDoctorOptions] = useState<DoctorFilterOption[]>([]);
@@ -59,7 +59,7 @@ export default function Appointments() {
         page,
         limit: PAGE_LIMIT,
         q: search || undefined,
-        status: statusFilter === 'all' ? undefined : statusFilter,
+        status: statusFilter.length === 0 ? undefined : statusFilter.join(','),
         department_id: departmentFilter === 'all' ? undefined : departmentFilter,
         doctor_id: doctorFilter === 'all' ? undefined : doctorFilter,
         from: dateFrom || undefined,
@@ -90,13 +90,13 @@ export default function Appointments() {
     }
   };
 
-  const hasActiveFilters = !!searchInput || statusFilter !== 'all' || departmentFilter !== 'all'
+  const hasActiveFilters = !!searchInput || statusFilter.length > 0 || departmentFilter !== 'all'
     || doctorFilter !== 'all' || !!dateFrom || !!dateTo || sortBy !== 'scheduled' || sortDir !== 'asc';
 
   const handleResetFilters = () => {
     setSearchInput('');
     setSearch('');
-    setStatusFilter('all');
+    setStatusFilter([]);
     setDepartmentFilter('all');
     setDoctorFilter('all');
     setDateFrom('');

@@ -3,6 +3,7 @@ import { appointmentStatusLabel } from '@/utils/labels';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   Select,
   SelectContent,
@@ -11,6 +12,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Department, DoctorFilterOption } from './types';
+
+const APPOINTMENT_STATUS_OPTIONS = ['booked', 'checked_in', 'cancelled', 'no_show'].map(value => ({
+  value,
+  label: appointmentStatusLabel(value),
+}));
 
 export default function AppointmentFilters({
   searchInput,
@@ -32,8 +38,8 @@ export default function AppointmentFilters({
 }: {
   searchInput: string;
   onSearchInputChange: (value: string) => void;
-  statusFilter: string;
-  onStatusFilterChange: (value: string) => void;
+  statusFilter: string[];
+  onStatusFilterChange: (value: string[]) => void;
   departmentFilter: string;
   onDepartmentFilterChange: (value: string) => void;
   doctorFilter: string;
@@ -58,18 +64,13 @@ export default function AppointmentFilters({
           className="h-auto rounded-xl border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
         />
       </div>
-      <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-        <SelectTrigger className="h-auto w-[170px] rounded-xl px-4 py-2.75 text-sm">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Tất cả trạng thái</SelectItem>
-          <SelectItem value="booked">{appointmentStatusLabel('booked')}</SelectItem>
-          <SelectItem value="checked_in">{appointmentStatusLabel('checked_in')}</SelectItem>
-          <SelectItem value="cancelled">{appointmentStatusLabel('cancelled')}</SelectItem>
-          <SelectItem value="no_show">{appointmentStatusLabel('no_show')}</SelectItem>
-        </SelectContent>
-      </Select>
+      <MultiSelect
+        options={APPOINTMENT_STATUS_OPTIONS}
+        selected={statusFilter}
+        onChange={onStatusFilterChange}
+        placeholder="Tất cả trạng thái"
+        className="w-[170px]"
+      />
       <Select value={departmentFilter} onValueChange={onDepartmentFilterChange}>
         <SelectTrigger className="h-auto w-[180px] rounded-xl px-4 py-2.75 text-sm">
           <SelectValue />

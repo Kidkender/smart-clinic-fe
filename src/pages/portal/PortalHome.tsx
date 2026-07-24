@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
+import { toLocalDateInput } from '@/components/appointments/types';
 import FieldError from '@/components/FieldError';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -783,7 +784,7 @@ export default function PortalHome() {
             {bookingDoctorId && (
               <>
                 <label className={PORTAL_LABEL}>Chọn ngày khám</label>
-                <DatePicker value={slotDate} onChange={handleSlotDateChange} className="border-[#d1fae5] text-[#134e48]" min={new Date().toISOString().slice(0, 10)} />
+                <DatePicker value={slotDate} onChange={handleSlotDateChange} className="border-[#d1fae5] text-[#134e48]" min={toLocalDateInput(new Date())} />
                 {loadingSlots && <p className="mt-2 text-[13px] text-[#6c757d]">Đang tải khung giờ…</p>}
                 {!loadingSlots && slotDate && slots.length === 0 && (
                   <div className="mt-2 rounded-lg border border-[#dc3545]/20 bg-[#dc3545]/6 px-3 py-2.5">

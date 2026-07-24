@@ -9,13 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import ImagingOrderPanel from '@/components/ImagingOrderPanel';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 
 interface ImagingWorklistItem {
   order_id: number | string;
@@ -31,12 +25,12 @@ interface ImagingWorklistItem {
   ordered_at: string;
 }
 
-const STATUS_FILTERS = ['all', 'scheduled', 'in_progress', 'completed'];
+const STATUS_FILTER_VALUES = ['scheduled', 'in_progress', 'completed'];
 
 export default function ImagingWorklist() {
   const { role } = useAuth();
   const [items, setItems] = useState<ImagingWorklistItem[]>([]);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -44,7 +38,7 @@ export default function ImagingWorklist() {
     setLoading(true);
     setError('');
     try {
-      const result = await listImagingWorklist(statusFilter === 'all' ? undefined : statusFilter);
+      const result = await listImagingWorklist(statusFilter.length === 0 ? undefined : statusFilter.join(','));
       setItems(result.data ?? []);
     } catch (err) {
       setError(resolveError(err));
@@ -66,17 +60,13 @@ export default function ImagingWorklist() {
             Toàn bộ chỉ định CĐHA đang chờ xử lý — Lên lịch → Chụp & đẩy PACS → Báo cáo → Duyệt kết quả
           </p>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-auto w-[220px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            {STATUS_FILTERS.filter(s => s !== 'all').map(s => (
-              <SelectItem key={s} value={s}>{imagingStudyStatusLabel(s)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MultiSelect
+          options={STATUS_FILTER_VALUES.map(s => ({ value: s, label: imagingStudyStatusLabel(s) }))}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+          placeholder="Tất cả trạng thái"
+          className="w-[220px]"
+        />
       </div>
 
       {error && (
