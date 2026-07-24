@@ -366,6 +366,7 @@ export default function LabTests() {
                 <Input
                   type="number"
                   step="any"
+                  placeholder="VD: 4.0"
                   {...register('refRangeLow')}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
@@ -375,6 +376,7 @@ export default function LabTests() {
                 <Input
                   type="number"
                   step="any"
+                  placeholder="VD: 10.0"
                   {...register('refRangeHigh')}
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />

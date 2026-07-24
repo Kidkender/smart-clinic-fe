@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { getDepartments, getDoctorsByDepartment } from '@/api/department';
 import { listDoctorSchedules, createDoctorSchedule, deleteDoctorSchedule } from '@/api/doctorSchedule';
 import { resolveError } from '@/utils/errorMessages';
 import useConfirm from '@/hooks/useConfirm';
-import { doctorWorkingHoursSchema, type DoctorWorkingHoursFormValues } from '@/schemas/doctorSchedule';
+import { doctorWeeklyScheduleSchema, type DoctorWeeklyScheduleFormValues } from '@/schemas/doctorSchedule';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,15 @@ function dayLabel(value: number) {
   return DAYS.find(d => d.value === value)?.label ?? value;
 }
 
+const WEEKDAYS = [1, 2, 3, 4, 5, 6].map(value => ({ value, label: dayLabel(value) }));
+
+const DEFAULT_WEEKLY_SCHEDULE: DoctorWeeklyScheduleFormValues = {
+  slot_minutes: 30,
+  days: WEEKDAYS.map(d => ({
+    day_of_week: d.value, enabled: false, start_time: '08:00', end_time: '17:00',
+  })),
+};
+
 export default function DoctorSchedules() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [departmentId, setDepartmentId] = useState('');
@@ -61,14 +70,16 @@ export default function DoctorSchedules() {
   const [error, setError] = useState('');
 
   const [formError, setFormError] = useState('');
+  const [dayErrors, setDayErrors] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
   const [confirm, ConfirmDialog] = useConfirm();
   const {
     control, handleSubmit, reset, formState: { errors },
-  } = useForm<DoctorWorkingHoursFormValues>({
-    resolver: zodResolver(doctorWorkingHoursSchema),
-    defaultValues: { day_of_week: 1, start_time: '08:00', end_time: '17:00', slot_minutes: 30 },
+  } = useForm<DoctorWeeklyScheduleFormValues>({
+    resolver: zodResolver(doctorWeeklyScheduleSchema),
+    defaultValues: DEFAULT_WEEKLY_SCHEDULE,
   });
+  const { fields } = useFieldArray({ control, name: 'days' });
 
   useEffect(() => {
     getDepartments().then(r => {
@@ -96,6 +107,9 @@ export default function DoctorSchedules() {
       return;
     }
     fetchSchedules();
+    reset(DEFAULT_WEEKLY_SCHEDULE);
+    setDayErrors({});
+    setFormError('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doctorId]);
 
@@ -114,19 +128,47 @@ export default function DoctorSchedules() {
 
   const handleCreate = handleSubmit(async values => {
     setFormError('');
+    setDayErrors({});
+
+    const enabledDays = values.days.filter(d => d.enabled);
+    if (enabledDays.length === 0) {
+      setFormError('Vui lòng chọn ít nhất một ngày làm việc.');
+      return;
+    }
+
     setSaving(true);
     try {
-      await createDoctorSchedule(doctorId, {
+      const results = await Promise.allSettled(enabledDays.map(day => createDoctorSchedule(doctorId, {
         department_id: Number(departmentId),
-        day_of_week: values.day_of_week,
-        start_time: values.start_time,
-        end_time: values.end_time,
+        day_of_week: day.day_of_week,
+        start_time: day.start_time,
+        end_time: day.end_time,
         slot_minutes: values.slot_minutes,
+      })));
+
+      const nextDayErrors: Record<number, string> = {};
+      let succeededCount = 0;
+      results.forEach((result, index) => {
+        const dayOfWeek = enabledDays[index].day_of_week;
+        if (result.status === 'rejected') {
+          nextDayErrors[dayOfWeek] = resolveError(result.reason);
+        } else {
+          succeededCount += 1;
+        }
       });
+
       await fetchSchedules();
-      reset({ day_of_week: 1, start_time: '08:00', end_time: '17:00', slot_minutes: 30 });
-    } catch (err) {
-      setFormError(resolveError(err));
+
+      if (Object.keys(nextDayErrors).length > 0) {
+        setDayErrors(nextDayErrors);
+        setFormError(`Đã lưu ${succeededCount}/${enabledDays.length} ngày. Vui lòng kiểm tra các ngày còn lỗi bên dưới.`);
+        reset({
+          slot_minutes: values.slot_minutes,
+          days: values.days.map(d => (d.enabled && nextDayErrors[d.day_of_week] ? d : { ...d, enabled: false })),
+        });
+      } else {
+        reset(DEFAULT_WEEKLY_SCHEDULE);
+      }
     } finally {
       setSaving(false);
     }
@@ -216,56 +258,50 @@ export default function DoctorSchedules() {
           <Card className="rounded-2xl border-[#e8edf2] p-6">
             <h2 className="m-0 mb-4 text-[17px] font-bold text-[#274760]">Thêm ca làm việc</h2>
             <form onSubmit={handleCreate} noValidate>
-              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Thứ trong tuần</label>
-              <Controller
-                control={control}
-                name="day_of_week"
-                render={({ field }) => (
-                  <Select value={String(field.value)} onValueChange={value => field.onChange(Number(value))}>
-                    <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DAYS.map(d => <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giờ bắt đầu</label>
+              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Ngày làm việc trong tuần</label>
+              <div className="flex flex-col gap-2">
+                {fields.map((field, index) => (
                   <Controller
+                    key={field.id}
                     control={control}
-                    name="start_time"
-                    render={({ field }) => (
-                      <Input
-                        type="time"
-                        value={field.value}
-                        onChange={field.onChange}
-                        className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-                      />
+                    name={`days.${index}`}
+                    render={({ field: dayField }) => (
+                      <div className="rounded-xl border border-[#dde2e8] p-3">
+                        <div className="flex items-center gap-3">
+                          <label className="flex w-[76px] shrink-0 cursor-pointer items-center gap-2 text-sm font-semibold text-[#274760]">
+                            <input
+                              type="checkbox"
+                              checked={dayField.value.enabled}
+                              onChange={e => dayField.onChange({ ...dayField.value, enabled: e.target.checked })}
+                              className="size-4"
+                            />
+                            {WEEKDAYS[index].label}
+                          </label>
+                          <Input
+                            type="time"
+                            value={dayField.value.start_time}
+                            disabled={!dayField.value.enabled}
+                            onChange={e => dayField.onChange({ ...dayField.value, start_time: e.target.value })}
+                            aria-invalid={!!errors.days?.[index]?.start_time}
+                            className="h-auto rounded-xl border-[#dde2e8] px-3 py-2.5 text-sm text-[#274760]"
+                          />
+                          <span className="text-sm text-[#6c757d]">đến</span>
+                          <Input
+                            type="time"
+                            value={dayField.value.end_time}
+                            disabled={!dayField.value.enabled}
+                            onChange={e => dayField.onChange({ ...dayField.value, end_time: e.target.value })}
+                            aria-invalid={!!errors.days?.[index]?.end_time}
+                            className="h-auto rounded-xl border-[#dde2e8] px-3 py-2.5 text-sm text-[#274760]"
+                          />
+                        </div>
+                        <FieldError message={errors.days?.[index]?.start_time?.message ?? errors.days?.[index]?.end_time?.message} />
+                        <FieldError message={dayErrors[WEEKDAYS[index].value]} />
+                      </div>
                     )}
                   />
-                </div>
-                <div>
-                  <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giờ kết thúc</label>
-                  <Controller
-                    control={control}
-                    name="end_time"
-                    render={({ field }) => (
-                      <Input
-                        type="time"
-                        value={field.value}
-                        onChange={field.onChange}
-                        aria-invalid={!!errors.end_time}
-                        className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-                      />
-                    )}
-                  />
-                </div>
+                ))}
               </div>
-              <FieldError message={errors.end_time?.message} />
 
               <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Độ dài mỗi khung giờ (phút)</label>
               <Controller
@@ -296,7 +332,7 @@ export default function DoctorSchedules() {
                 disabled={saving}
                 className="mt-5 h-auto w-full justify-center rounded-xl bg-[#307bc4] py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
               >
-                {saving ? 'Đang lưu…' : 'Thêm ca làm việc'}
+                {saving ? 'Đang lưu…' : 'Lưu lịch làm việc'}
               </Button>
             </form>
           </Card>

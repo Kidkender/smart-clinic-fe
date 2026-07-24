@@ -16,7 +16,7 @@ import useConfirm from '@/hooks/useConfirm';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import DateOfBirthSelect from '@/components/DateOfBirthSelect';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import FieldError from '@/components/FieldError';
 import {
@@ -574,7 +574,7 @@ export default function PatientDetail() {
             <Controller
               control={editControl}
               name="date_of_birth"
-              render={({ field }) => <DateOfBirthSelect value={field.value} onChange={field.onChange} />}
+              render={({ field }) => <DatePicker value={field.value} onChange={field.onChange} />}
             />
             <FieldError message={editErrors.date_of_birth?.message} />
 

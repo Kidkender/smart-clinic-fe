@@ -83,6 +83,7 @@ export default function OrdersSection({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [resultDrafts, setResultDrafts] = useState<Record<string, string>>({});
+  const [resultErrors, setResultErrors] = useState<Record<string, string>>({});
   const [labTestOptions, setLabTestOptions] = useState<LabTestOption[]>([]);
   const [imagingProcedureOptions, setImagingProcedureOptions] = useState<ImagingProcedureOption[]>([]);
   const {
@@ -110,6 +111,11 @@ export default function OrdersSection({
 
   const handleFormSubmit = handleSubmit(async values => {
     setFormError('');
+    const ok = await confirm(
+      `Tạo chỉ định "${values.name}" (${orderTypeLabel(values.type)})?`,
+      { title: 'Tạo chỉ định', danger: false, confirmLabel: 'Tạo chỉ định' },
+    );
+    if (!ok) return;
     setSaving(true);
     try {
       await createOrder(encounterId, values);
@@ -124,6 +130,13 @@ export default function OrdersSection({
   });
 
   const handleStatusChange = async (order: Order, status: string) => {
+    if (status === 'in_progress') {
+      const ok = await confirm(
+        `Chuyển chỉ định "${order.Name}" sang đang thực hiện?`,
+        { title: 'Đang thực hiện', danger: false, confirmLabel: 'Xác nhận' },
+      );
+      if (!ok) return;
+    }
     if (status === 'cancelled') {
       const ok = await confirm(
         `Hủy chỉ định "${order.Name}"? Hành động này không thể hoàn tác.`,
@@ -131,6 +144,19 @@ export default function OrdersSection({
       );
       if (!ok) return;
     }
+    if (status === 'completed') {
+      if (!(resultDrafts[order.ID] ?? '').trim()) {
+        setResultErrors({ ...resultErrors, [order.ID]: 'Kết quả xét nghiệm không được rỗng.' });
+        return;
+      }
+      const ok = await confirm(
+        `Hoàn tất chỉ định "${order.Name}" với kết quả đã nhập?`,
+        { title: 'Hoàn tất chỉ định', danger: false, confirmLabel: 'Hoàn tất' },
+      );
+      if (!ok) return;
+    }
+    setFormError('');
+    setResultErrors({ ...resultErrors, [order.ID]: '' });
     try {
       await updateOrderStatus(encounterId, order.ID, {
         status,
@@ -146,70 +172,8 @@ export default function OrdersSection({
     <Card className="rounded-2xl border-[#e8edf2] p-6">
       {ConfirmDialog}
       <SectionHeader title="Chỉ định CLS" canAct={canCreate} open={open} onToggle={() => setOpen(o => !o)} actionLabel="Thêm chỉ định" />
-      {orders.length === 0 ? (
-        <p className="text-sm text-[#6c757d]">Chưa có chỉ định nào.</p>
-      ) : (
-        <ul className="m-0 list-none p-0">
-          {orders.map(o => (
-            <li key={o.ID} className="flex flex-col items-stretch gap-2.5 border-b border-[#f0f4f8] py-2.5">
-              <div className="flex items-center justify-between gap-2.5">
-                <div>
-                  <div className="font-semibold text-[#274760]">{o.Name} ({orderTypeLabel(o.Type)})</div>
-                  <div className="text-xs text-[#6c757d]">{o.Price?.toLocaleString('vi-VN')} đ</div>
-                </div>
-                <SectionBadge>{orderStatusLabel(o.Status)}</SectionBadge>
-              </div>
-              {canUpdateStatus && ORDER_STATUS_NEXT[o.Status] && (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {ORDER_STATUS_NEXT[o.Status].includes('completed') && (
-                    <Input
-                      placeholder="Kết quả…"
-                      value={resultDrafts[o.ID] ?? ''}
-                      onChange={e => setResultDrafts({ ...resultDrafts, [o.ID]: e.target.value })}
-                      className="h-auto min-w-[140px] flex-1 rounded-xl border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
-                    />
-                  )}
-                  {ORDER_STATUS_NEXT[o.Status].map(next => (
-                    <Button
-                      key={next}
-                      variant="outline"
-                      onClick={() => handleStatusChange(o, next)}
-                      className="h-auto rounded-xl border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
-                    >
-                      {orderStatusLabel(next)}
-                    </Button>
-                  ))}
-                </div>
-              )}
-              {(() => {
-                if (!o.ResultSummary) return null;
-                const tokens = o.Type === 'lab' ? parseLabResultSummary(o.ResultSummary) : null;
-                if (!tokens) {
-                  return <div className="mt-1.5 text-[13px] text-[#6c757d]">Kết quả: {o.ResultSummary}</div>;
-                }
-                return (
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[13px] text-[#6c757d]">Kết quả:</span>
-                    {tokens.map((r, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-[#e8edf2] bg-white px-2.5 py-1 text-xs text-[#274760]"
-                      >
-                        {r.name}: {r.value} {r.unit}
-                        <Badge className={labResultFlagBadgeClass(r.flag)}>{labResultFlagLabel(r.flag)}</Badge>
-                      </span>
-                    ))}
-                  </div>
-                );
-              })()}
-              {o.Type === 'lab' && <LabOrderPanel orderId={o.ID} role={role} onOrderChanged={onChanged} />}
-              {o.Type !== 'lab' && <ImagingOrderPanel orderId={o.ID} role={role} onOrderChanged={onChanged} />}
-            </li>
-          ))}
-        </ul>
-      )}
       {open && canCreate && (
-        <form onSubmit={handleFormSubmit} noValidate className="mt-3.5 border-t border-[#f0f4f8] pt-3.5">
+        <form onSubmit={handleFormSubmit} noValidate className="mb-3.5 border-b border-[#f0f4f8] pb-3.5">
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Loại chỉ định *</label>
           <Controller
             control={control}
@@ -293,6 +257,75 @@ export default function OrdersSection({
             {saving ? 'Đang lưu…' : 'Tạo chỉ định'}
           </Button>
         </form>
+      )}
+      {orders.length === 0 ? (
+        <p className="text-sm text-[#6c757d]">Chưa có chỉ định nào.</p>
+      ) : (
+        <ul className="m-0 list-none p-0">
+          {orders.map(o => (
+            <li key={o.ID} className="flex flex-col items-stretch gap-2.5 border-b border-[#f0f4f8] py-2.5">
+              <div className="flex items-center justify-between gap-2.5">
+                <div>
+                  <div className="font-semibold text-[#274760]">{o.Name} ({orderTypeLabel(o.Type)})</div>
+                  <div className="text-xs text-[#6c757d]">{o.Price?.toLocaleString('vi-VN')} đ</div>
+                </div>
+                <SectionBadge>{orderStatusLabel(o.Status)}</SectionBadge>
+              </div>
+              {canUpdateStatus && ORDER_STATUS_NEXT[o.Status] && (
+                <div className="mt-2 flex flex-wrap items-start gap-2">
+                  {ORDER_STATUS_NEXT[o.Status].includes('completed') && (
+                    <div className="min-w-[140px] flex-1">
+                      <Input
+                        placeholder="Kết quả…"
+                        value={resultDrafts[o.ID] ?? ''}
+                        onChange={e => {
+                          setResultDrafts({ ...resultDrafts, [o.ID]: e.target.value });
+                          if (resultErrors[o.ID]) setResultErrors({ ...resultErrors, [o.ID]: '' });
+                        }}
+                        aria-invalid={!!resultErrors[o.ID]}
+                        className="h-auto w-full rounded-xl border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                      />
+                      <FieldError message={resultErrors[o.ID]} />
+                    </div>
+                  )}
+                  {ORDER_STATUS_NEXT[o.Status].map(next => (
+                    <Button
+                      key={next}
+                      variant="outline"
+                      onClick={() => handleStatusChange(o, next)}
+                      className="h-auto rounded-lg border-[#dde2e8] px-3 py-2.25 text-xs font-semibold text-[#274760]"
+                    >
+                      {orderStatusLabel(next)}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {(() => {
+                if (!o.ResultSummary) return null;
+                const tokens = o.Type === 'lab' ? parseLabResultSummary(o.ResultSummary) : null;
+                if (!tokens) {
+                  return <div className="mt-1.5 text-[13px] text-[#6c757d]">Kết quả: {o.ResultSummary}</div>;
+                }
+                return (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[13px] text-[#6c757d]">Kết quả:</span>
+                    {tokens.map((r, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[#e8edf2] bg-white px-2.5 py-1 text-xs text-[#274760]"
+                      >
+                        {r.name}: {r.value} {r.unit}
+                        <Badge className={labResultFlagBadgeClass(r.flag)}>{labResultFlagLabel(r.flag)}</Badge>
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
+              {o.Type === 'lab' && <LabOrderPanel orderId={o.ID} orderStatus={o.Status} role={role} onOrderChanged={onChanged} />}
+              {o.Type !== 'lab' && <ImagingOrderPanel orderId={o.ID} orderStatus={o.Status} role={role} onOrderChanged={onChanged} />}
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   );

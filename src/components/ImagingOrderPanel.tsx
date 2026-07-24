@@ -67,13 +67,16 @@ function safeExternalUrl(url: string | undefined): string | undefined {
 
 export default function ImagingOrderPanel({
   orderId,
+  orderStatus,
   role,
   onOrderChanged,
 }: {
   orderId: number | string;
+  orderStatus: string;
   role: string | null;
   onOrderChanged: () => Promise<void>;
 }) {
+  const orderLocked = orderStatus === 'completed' || orderStatus === 'cancelled';
   const canSchedule = includesRole(['admin', 'radiology_tech', 'doctor'], role);
   const canPerform = includesRole(['admin', 'radiology_tech'], role);
   const canReport = includesRole(['admin', 'doctor'], role);
@@ -239,7 +242,13 @@ export default function ImagingOrderPanel({
                 </div>
               )}
 
-              {!study && canSchedule && (
+              {orderLocked && (
+                <p className="mb-2.5 text-[13px] text-[#6c757d]">
+                  Chỉ định đã {orderStatus === 'completed' ? 'hoàn tất' : 'hủy'}, không thể chỉnh sửa quy trình chẩn đoán hình ảnh.
+                </p>
+              )}
+
+              {!study && canSchedule && !orderLocked && (
                 <div className="mb-3 border-b border-[#e8edf2] pb-3">
                   <div className="mb-1.5 text-[13px] font-semibold text-[#274760]">Lên lịch chụp</div>
                   <div className="flex items-center gap-2">
@@ -265,7 +274,7 @@ export default function ImagingOrderPanel({
                 </div>
               )}
 
-              {study?.Status === 'scheduled' && canPerform && (
+              {study?.Status === 'scheduled' && canPerform && !orderLocked && (
                 <div className="mb-3 border-b border-[#e8edf2] pb-3">
                   <div className="mb-1.5 text-[13px] font-semibold text-[#274760]">Ghi nhận đã chụp & đẩy ảnh lên PACS</div>
                   <div className="flex flex-col gap-2">
@@ -293,7 +302,7 @@ export default function ImagingOrderPanel({
                 </div>
               )}
 
-              {study?.Status === 'completed' && report?.Status !== 'verified' && canReport && (
+              {study?.Status === 'completed' && report?.Status !== 'verified' && canReport && !orderLocked && (
                 <div className="mb-3 border-b border-[#e8edf2] pb-3">
                   <div className="mb-1.5 text-[13px] font-semibold text-[#274760]">Báo cáo kết quả</div>
                   <Textarea

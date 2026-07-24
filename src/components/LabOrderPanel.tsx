@@ -61,13 +61,16 @@ function includesRole(roles: string[], role: string | null): boolean {
 
 export default function LabOrderPanel({
   orderId,
+  orderStatus,
   role,
   onOrderChanged,
 }: {
   orderId: number | string;
+  orderStatus: string;
   role: string | null;
   onOrderChanged: () => Promise<void>;
 }) {
+  const orderLocked = orderStatus === 'completed' || orderStatus === 'cancelled';
   const canAttach = includesRole(['admin', 'doctor'], role);
   const canCollect = includesRole(['admin', 'lab_tech', 'nurse'], role);
   const canProcess = includesRole(['admin', 'lab_tech'], role);
@@ -249,7 +252,13 @@ export default function LabOrderPanel({
                 </div>
               )}
 
-              {canAttach && specimenStatus !== 'verified' && (
+              {orderLocked && (
+                <p className="mb-2.5 text-[13px] text-[#6c757d]">
+                  Chỉ định đã {orderStatus === 'completed' ? 'hoàn tất' : 'hủy'}, không thể chỉnh sửa quy trình xét nghiệm.
+                </p>
+              )}
+
+              {canAttach && !orderLocked && specimenStatus !== 'verified' && (
                 <div className="mb-3 border-b border-[#e8edf2] pb-3">
                   <div className="mb-1.5 text-[13px] font-semibold text-[#274760]">Chỉ định hạng mục xét nghiệm</div>
                   <Input
@@ -286,7 +295,7 @@ export default function LabOrderPanel({
                 </div>
               )}
 
-              {canCollect && (!specimenStatus || specimenStatus === 'pending_collection') && (
+              {canCollect && !orderLocked && (!specimenStatus || specimenStatus === 'pending_collection') && (
                 <div className="mb-3 flex items-center gap-2">
                   <Select value={specimenType} onValueChange={setSpecimenType}>
                     <SelectTrigger className="h-auto min-w-[180px] flex-1 rounded-lg border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
@@ -309,7 +318,7 @@ export default function LabOrderPanel({
                 </div>
               )}
 
-              {canProcess && specimenStatus === 'collected' && (
+              {canProcess && !orderLocked && specimenStatus === 'collected' && (
                 <Button
                   type="button"
                   disabled={busy}
@@ -327,7 +336,7 @@ export default function LabOrderPanel({
                     {results.map(r => (
                       <li key={r.ID} className="flex flex-wrap items-center gap-2 border-b border-[#f0f4f8] py-2">
                         <span className="min-w-[140px] flex-1 text-sm text-[#274760]">{r.LabTest?.Name ?? `#${r.LabTestID}`}</span>
-                        {canProcess && specimenStatus === 'received' && r.Status !== 'verified' ? (
+                        {canProcess && !orderLocked && specimenStatus === 'received' && r.Status !== 'verified' ? (
                           <Input
                             value={resultDrafts[String(r.ID)] ?? r.Value ?? ''}
                             onChange={e => setResultDrafts({ ...resultDrafts, [String(r.ID)]: e.target.value })}
@@ -344,7 +353,7 @@ export default function LabOrderPanel({
                     ))}
                   </ul>
 
-                  {canProcess && specimenStatus === 'received' && (
+                  {canProcess && !orderLocked && specimenStatus === 'received' && (
                     <div className="mt-2.5 flex gap-2">
                       <Button
                         type="button"

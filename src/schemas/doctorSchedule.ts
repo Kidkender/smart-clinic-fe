@@ -30,3 +30,28 @@ export const doctorWorkingHoursSchema = z.object({
 });
 
 export type DoctorWorkingHoursFormValues = z.infer<typeof doctorWorkingHoursSchema>;
+
+export const doctorWeeklyScheduleSchema = z.object({
+  slot_minutes: z.number({ message: 'Độ dài khung giờ phải là số.' }).int().min(5, 'Độ dài khung giờ tối thiểu 5 phút.'),
+  days: z.array(z.object({
+    day_of_week: z.number().int().min(0).max(6),
+    enabled: z.boolean(),
+    start_time: z.string(),
+    end_time: z.string(),
+  })).length(6),
+}).superRefine((values, ctx) => {
+  values.days.forEach((day, index) => {
+    if (!day.enabled) return;
+    if (!day.start_time) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Vui lòng chọn giờ bắt đầu.', path: ['days', index, 'start_time'] });
+    }
+    if (!day.end_time) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Vui lòng chọn giờ kết thúc.', path: ['days', index, 'end_time'] });
+    }
+    if (day.start_time && day.end_time && day.end_time <= day.start_time) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Giờ kết thúc phải sau giờ bắt đầu.', path: ['days', index, 'end_time'] });
+    }
+  });
+});
+
+export type DoctorWeeklyScheduleFormValues = z.infer<typeof doctorWeeklyScheduleSchema>;

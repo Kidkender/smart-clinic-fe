@@ -33,7 +33,6 @@ function SortableHead({
   onSort: (column: string) => void;
 }) {
   const active = sortBy === column;
-  const icon = active ? (sortDir === 'asc' ? 'fa6-solid:sort-up' : 'fa6-solid:sort-down') : 'fa6-solid:sort';
   return (
     <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">
       <button
@@ -42,7 +41,7 @@ function SortableHead({
         className="flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs font-bold text-[#6c757d] uppercase"
       >
         {label}
-        <Icon icon={icon} className={active ? 'text-[#307bc4]' : 'text-[#6c757d]/50'} />
+        <Icon icon="fa6-solid:sort" className={active ? 'text-[#307bc4]' : 'text-[#6c757d]/50'} />
       </button>
     </TableHead>
   );

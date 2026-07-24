@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { createAppointment } from '@/api/appointment';
 import { searchPatients } from '@/api/patient';
 import { getDoctorsByDepartment } from '@/api/department';
-import { getAvailableSlots } from '@/api/doctorSchedule';
+import { getAvailableSlots, listDoctorSchedules } from '@/api/doctorSchedule';
 import { resolveError } from '@/utils/errorMessages';
 import { appointmentTypeLabel, APPOINTMENT_TYPES } from '@/utils/labels';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toLocalDateTimeInput, type Department, type Doctor, type PatientOption, type Slot } from './types';
+
+const WEEKDAY_LABELS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+const ALL_DAYS_OF_WEEK = [0, 1, 2, 3, 4, 5, 6];
 
 function formatVNDateTime(localDateTime: string): string {
   if (!localDateTime) return '';
@@ -68,6 +71,7 @@ export default function CreateAppointmentDialog({
   const [slotDate, setSlotDate] = useState('');
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [workingDays, setWorkingDays] = useState<number[] | null>(null);
   const [patientQuery, setPatientQuery] = useState('');
   const [patientResults, setPatientResults] = useState<PatientOption[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<PatientOption | null>(null);
@@ -78,6 +82,7 @@ export default function CreateAppointmentDialog({
     setFormError('');
     setSlotDate('');
     setSlots([]);
+    setWorkingDays(null);
     setPatientQuery('');
     setPatientResults([]);
     setSelectedPatient(null);
@@ -104,6 +109,7 @@ export default function CreateAppointmentDialog({
     setValue('scheduled_at', '');
     setSlotDate('');
     setSlots([]);
+    setWorkingDays(null);
     if (!departmentId) {
       setDoctors([]);
       return;
@@ -116,11 +122,20 @@ export default function CreateAppointmentDialog({
     }
   };
 
-  const handleDoctorChange = (doctorId: string) => {
+  const handleDoctorChange = async (doctorId: string) => {
     setValue('doctor_id', doctorId);
     setValue('scheduled_at', '');
     setSlotDate('');
     setSlots([]);
+    setWorkingDays(null);
+    if (!doctorId) return;
+    try {
+      const result = await listDoctorSchedules(doctorId);
+      const days = [...new Set<number>((result.data ?? []).map((s: { DayOfWeek: number }) => s.DayOfWeek))];
+      setWorkingDays(days);
+    } catch {
+      setWorkingDays(null);
+    }
   };
 
   const handleSlotDateChange = async (date: string) => {
@@ -294,8 +309,16 @@ export default function CreateAppointmentDialog({
               <DatePicker
                 value={slotDate}
                 onChange={handleSlotDateChange}
+                disabledDaysOfWeek={workingDays ? ALL_DAYS_OF_WEEK.filter(d => !workingDays.includes(d)) : undefined}
                 className="border-[#dde2e8] text-[#274760]"
               />
+              {workingDays && (
+                <p className="mt-1.5 text-[13px] text-[#6c757d]">
+                  {workingDays.length > 0
+                    ? `Bác sĩ làm việc: ${[...workingDays].sort((a, b) => a - b).map(d => WEEKDAY_LABELS[d]).join(', ')}`
+                    : 'Bác sĩ chưa thiết lập lịch làm việc.'}
+                </p>
+              )}
               {loadingSlots && <p className="mt-2 text-[13px] text-[#6c757d]">Đang tải khung giờ…</p>}
               {!loadingSlots && slotDate && slots.length === 0 && (
                 <p className="mt-2 text-[13px] text-[#6c757d]">Bác sĩ không có khung giờ trống ngày này, vui lòng đặt lịch hẹn vào thời gian khác.</p>

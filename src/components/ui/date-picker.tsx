@@ -26,6 +26,8 @@ interface DatePickerProps {
   placeholder?: string
   min?: string
   max?: string
+  /** 0 = Sunday ... 6 = Saturday, matching JS Date#getDay() */
+  disabledDaysOfWeek?: number[]
   disabled?: boolean
   className?: string
 }
@@ -36,6 +38,7 @@ function DatePicker({
   placeholder = "dd/mm/yyyy",
   min,
   max,
+  disabledDaysOfWeek,
   disabled,
   className,
 }: DatePickerProps) {
@@ -75,6 +78,7 @@ function DatePicker({
           disabled={[
             ...(minDate ? [{ before: minDate }] : []),
             ...(maxDate ? [{ after: maxDate }] : []),
+            ...(disabledDaysOfWeek && disabledDaysOfWeek.length > 0 ? [{ dayOfWeek: disabledDaysOfWeek }] : []),
           ]}
           autoFocus
         />

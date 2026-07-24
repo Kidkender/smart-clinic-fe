@@ -295,7 +295,10 @@ export default function PrescriptionsSection({
                 {(p.Items ?? []).map(it => (
                   <li key={it.ID} className="py-0.5">
                     <div className="flex items-center justify-between gap-2">
-                      <span>{it.Drug?.Name ?? `Thuốc #${it.DrugID}`} — SL {it.Quantity} {it.Dosage ? `· ${it.Dosage}` : ''}</span>
+                      <span>
+                        {it.Drug?.Name ?? `Thuốc #${it.DrugID}`} — SL {it.Quantity} {it.Dosage ? `· ${it.Dosage}` : ''}
+                        {it.Instructions ? ` · ${it.Instructions}` : ''}
+                      </span>
                       {canUpdateStatus && p.Status === 'dispensed' && (
                         <button
                           type="button"

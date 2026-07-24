@@ -12,7 +12,7 @@ import FieldError from '@/components/FieldError';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import DateOfBirthSelect from '@/components/DateOfBirthSelect';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Select,
   SelectContent,
@@ -59,7 +59,6 @@ function SortableHead({
   onSort: (column: string) => void;
 }) {
   const active = sortBy === column;
-  const icon = active ? (sortDir === 'asc' ? 'fa6-solid:sort-up' : 'fa6-solid:sort-down') : 'fa6-solid:sort';
   return (
     <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">
       <button
@@ -68,7 +67,7 @@ function SortableHead({
         className="flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs font-bold text-[#6c757d] uppercase"
       >
         {label}
-        <Icon icon={icon} className={active ? 'text-[#307bc4]' : 'text-[#6c757d]/50'} />
+        <Icon icon="fa6-solid:sort" className={active ? 'text-[#307bc4]' : 'text-[#6c757d]/50'} />
       </button>
     </TableHead>
   );
@@ -95,7 +94,7 @@ export default function Patients() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
-  const [sortBy, setSortBy] = useState('');
+  const [sortBy, setSortBy] = useState('mrn');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [modalOpen, setModalOpen] = useState(false);
   const [formError, setFormError] = useState('');
@@ -250,7 +249,7 @@ export default function Patients() {
             <DialogTitle className="text-xl font-bold text-[#274760]">Thêm bệnh nhân</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreate} noValidate>
-            <div className="grid grid-cols-[2fr_1fr] gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Họ tên *</label>
                 <Input
@@ -315,7 +314,7 @@ export default function Patients() {
             <Controller
               control={control}
               name="date_of_birth"
-              render={({ field }) => <DateOfBirthSelect value={field.value} onChange={field.onChange} />}
+              render={({ field }) => <DatePicker value={field.value} onChange={field.onChange} />}
             />
             <FieldError message={errors.date_of_birth?.message} />
 
