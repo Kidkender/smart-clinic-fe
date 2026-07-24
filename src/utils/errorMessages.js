@@ -46,6 +46,7 @@ const ERROR_MESSAGES = {
   'error.lab.invalid_transition': 'Không thể thực hiện thao tác ở bước hiện tại của quy trình xét nghiệm.',
   'error.lab.results_incomplete': 'Cần nhập đầy đủ kết quả cho tất cả hạng mục trước khi duyệt.',
   'error.lab.order_type_mismatch': 'Chỉ định này không phải là chỉ định xét nghiệm.',
+  'error.lab.test_name_mismatch': 'Chỉ được gắn đúng xét nghiệm đã chỉ định. Muốn thêm xét nghiệm khác, hãy tạo chỉ định mới.',
   'error.imaging_procedure.not_found': 'Không tìm thấy dịch vụ chẩn đoán hình ảnh trong danh mục.',
   'error.imaging_procedure.code_already_exists': 'Mã dịch vụ chẩn đoán hình ảnh này đã tồn tại.',
   'error.imaging_procedure.in_use': 'Dịch vụ này đã được sử dụng trong hồ sơ khám, không thể xóa. Hãy dùng "Ngừng dùng" thay thế.',

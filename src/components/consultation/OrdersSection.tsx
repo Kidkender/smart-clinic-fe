@@ -3,11 +3,11 @@ import { Icon } from '@iconify/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createOrder, updateOrderStatus } from '@/api/order';
-import { searchLabTests } from '@/api/lab';
+import { searchLabTests, getLabOrderDetail } from '@/api/lab';
 import { searchImagingProcedures } from '@/api/imaging';
 import useConfirm from '@/hooks/useConfirm';
 import { resolveError } from '@/utils/errorMessages';
-import { orderTypeLabel, orderStatusLabel, labResultFlagLabel, labResultFlagBadgeClass } from '@/utils/labels';
+import { orderTypeLabel, orderStatusLabel, labResultFlagLabel, labResultFlagBadgeClass, labSpecimenStatusLabel } from '@/utils/labels';
 import { orderSchema, type OrderFormValues } from '@/schemas/consultation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -149,9 +149,30 @@ export default function OrdersSection({
         setResultErrors({ ...resultErrors, [order.ID]: 'Kết quả xét nghiệm không được rỗng.' });
         return;
       }
+
+      // A lab order can be force-completed here even mid-way through the
+      // separate LIS workflow (LabOrderPanel). The backend cascades the
+      // specimen to "cancelled" in that case (internal/service/order.go),
+      // so warn the user their in-progress LIS results will be discarded
+      // rather than silently completing over them.
+      let confirmMessage = `Hoàn tất chỉ định "${order.Name}" với kết quả đã nhập?`;
+      let danger = false;
+      if (order.Type === 'lab') {
+        try {
+          const detail = await getLabOrderDetail(order.ID);
+          const specimenStatus = detail.data?.specimen?.Status;
+          if (specimenStatus && specimenStatus !== 'verified' && specimenStatus !== 'cancelled') {
+            confirmMessage = `Bạn đã bắt đầu quy trình LIS cho chỉ định "${order.Name}" (đang ở bước "${labSpecimenStatusLabel(specimenStatus)}"). Hoàn tất theo cách này sẽ HỦY quy trình LIS và xóa bỏ mọi kết quả xét nghiệm đã nhập dở (chưa duyệt). Tiếp tục?`;
+            danger = true;
+          }
+        } catch {
+          // Detail fetch failing shouldn't block the quick-complete path — fall back to the generic message.
+        }
+      }
+
       const ok = await confirm(
-        `Hoàn tất chỉ định "${order.Name}" với kết quả đã nhập?`,
-        { title: 'Hoàn tất chỉ định', danger: false, confirmLabel: 'Hoàn tất' },
+        confirmMessage,
+        { title: 'Hoàn tất chỉ định', danger, confirmLabel: 'Hoàn tất' },
       );
       if (!ok) return;
     }
@@ -321,7 +342,7 @@ export default function OrdersSection({
                   </div>
                 );
               })()}
-              {o.Type === 'lab' && <LabOrderPanel orderId={o.ID} orderStatus={o.Status} role={role} onOrderChanged={onChanged} />}
+              {o.Type === 'lab' && <LabOrderPanel orderId={o.ID} orderName={o.Name} orderStatus={o.Status} role={role} onOrderChanged={onChanged} />}
               {o.Type !== 'lab' && <ImagingOrderPanel orderId={o.ID} orderStatus={o.Status} role={role} onOrderChanged={onChanged} />}
             </li>
           ))}

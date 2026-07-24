@@ -129,7 +129,7 @@ export default function LabWorklist() {
                   </Link>
                 </div>
               </div>
-              <LabOrderPanel orderId={item.order_id} orderStatus={item.order_status} role={role} onOrderChanged={fetchWorklist} />
+              <LabOrderPanel orderId={item.order_id} orderName={item.order_name} orderStatus={item.order_status} role={role} onOrderChanged={fetchWorklist} />
             </Card>
           ))}
         </div>
