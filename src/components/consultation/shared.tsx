@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Icon } from '@iconify/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ErrorAlert } from '@/components/ui/alert';
 import type { VitalSignFormValues } from '@/schemas/consultation';
 
 export const ORDER_TYPES = ['lab', 'imaging', 'xray', 'ct', 'mri', 'ultrasound', 'endoscopy'];
@@ -62,10 +63,5 @@ export function SectionBadge({ children, tone = 'default' }: { children: ReactNo
 }
 
 export function ErrorBox({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-      <Icon icon="fa6-solid:circle-exclamation" />
-      {children}
-    </div>
-  );
+  return <ErrorAlert>{children}</ErrorAlert>;
 }

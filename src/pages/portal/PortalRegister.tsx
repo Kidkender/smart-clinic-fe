@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { useForm, Controller } from 'react-hook-form';
@@ -132,11 +133,7 @@ export default function PortalRegister() {
             className="h-auto rounded-xl border-[#d1fae5] px-4 py-3 text-[15px] text-[#134e48]"
           />
 
-          {error && (
-            <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
-              {error}
-            </div>
-          )}
+          {error && <ErrorAlert variant="plain" className="mt-4">{error}</ErrorAlert>}
           {success && (
             <div className="mt-4 rounded-lg border border-[#0d9488]/30 bg-[#0d9488]/8 px-4 py-3 text-sm text-[#0d9488]">
               Tạo tài khoản thành công! Đang chuyển đến trang đăng nhập…

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -57,16 +58,12 @@ export default function ForgotPassword() {
             />
             <FieldError message={errors.email?.message} />
 
-            {error && (
-              <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
-                {error}
-              </div>
-            )}
+            {error && <ErrorAlert variant="plain" className="mt-4">{error}</ErrorAlert>}
 
             <Button
               type="submit"
               disabled={loading}
-              className="mt-6 h-auto w-full rounded-xl bg-[#307bc4] py-3.25 text-[15px] font-semibold text-white hover:bg-[#307bc4]/90"
+              size="cta-block-lg" className="mt-6"
             >
               {loading ? 'Đang gửi…' : 'Gửi yêu cầu'}
             </Button>

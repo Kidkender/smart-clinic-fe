@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { useForm } from 'react-hook-form';
@@ -83,11 +84,7 @@ export default function PortalLogin() {
             </div>
             <FieldError message={errors.password?.message} />
 
-            {error && (
-              <div className="mt-4 rounded-lg border border-[#dc3545]/30 bg-[#dc3545]/8 px-4 py-3 text-sm text-[#dc3545]">
-                {error}
-              </div>
-            )}
+            {error && <ErrorAlert variant="plain" className="mt-4">{error}</ErrorAlert>}
 
             <Button
               type="submit"

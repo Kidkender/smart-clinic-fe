@@ -108,7 +108,7 @@ export default function VitalsSection({
             </div>
           </div>
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
-          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
+          <Button type="submit" disabled={saving} size="cta" className="mt-3">
             {saving ? 'Đang lưu…' : 'Lưu sinh hiệu'}
           </Button>
         </form>

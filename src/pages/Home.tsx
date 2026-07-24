@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { getPublicDepartments } from '@/api/portal';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface Department {
   ID: number | string;
@@ -23,7 +23,6 @@ const NAV_LINKS = [
 ];
 
 const navLinkClass = 'text-sm font-medium text-[#274760]/70 no-underline hover:text-[#274760]';
-const primaryLinkClass = 'rounded-xl bg-[#307bc4] px-5 py-2.5 text-sm font-semibold text-white no-underline';
 const staffLinkClass = 'text-sm font-medium text-[#6c757d] no-underline hover:text-[#274760]';
 
 export default function Home() {
@@ -49,7 +48,9 @@ export default function Home() {
 
         <div className="flex items-center gap-4">
           <Link to="/login" className={staffLinkClass}>Cổng nhân viên</Link>
-          <Link to="/portal/login" className={primaryLinkClass}>Đặt lịch khám</Link>
+          <Button asChild size="cta">
+            <Link to="/portal/login">Đặt lịch khám</Link>
+          </Button>
         </div>
       </header>
 
@@ -62,9 +63,9 @@ export default function Home() {
             Đặt lịch với bác sĩ chỉ trong vài phút. Theo dõi hồ sơ khám, đơn thuốc và kết quả xét nghiệm ngay trên cổng bệnh nhân.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link to="/portal/login" className={cn(primaryLinkClass, 'px-7 py-3.5 text-[15px]')}>
-              Đặt lịch ngay
-            </Link>
+            <Button asChild size="cta" className="px-7 py-3.5 text-[15px]">
+              <Link to="/portal/login">Đặt lịch ngay</Link>
+            </Button>
             <span className="text-sm text-[#6c757d]">
               Chưa có tài khoản? <Link to="/portal/register" className="font-semibold text-[#307bc4] no-underline hover:underline">Đăng ký</Link>
             </span>

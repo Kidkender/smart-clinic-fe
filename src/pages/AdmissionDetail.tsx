@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -14,6 +15,7 @@ import { listBeds } from '@/api/bed';
 import { useAuth } from '@/context/AuthContext';
 import { resolveError } from '@/utils/errorMessages';
 import { admissionTypeLabel, encounterTypeLabel } from '@/utils/labels';
+import { toneBadgeClass, allergyWarningClass } from '@/utils/badgeStyles';
 import { cn } from '@/lib/utils';
 import {
   transferSchema, dischargeSchema, admissionVitalSchema, progressNoteSchema, nursingLogSchema,
@@ -137,11 +139,7 @@ export default function AdmissionDetail() {
     return <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>;
   }
   if (error && !admission) {
-    return (
-      <div className="flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-        <Icon icon="fa6-solid:circle-exclamation" />{error}
-      </div>
-    );
+    return <ErrorAlert>{error}</ErrorAlert>;
   }
   if (!admission) return null;
 
@@ -166,7 +164,7 @@ export default function AdmissionDetail() {
             </p>
           </div>
           <div className="flex items-center gap-2.5">
-            <span className={cn('inline-block rounded-full px-2.5 py-1 text-xs font-semibold', isDischarged ? 'bg-[#6c757d]/10 text-[#6c757d]' : 'bg-[#198754]/10 text-[#198754]')}>
+            <span className={toneBadgeClass(isDischarged ? 'neutral' : 'success')}>
               {isDischarged ? 'Đã xuất viện' : 'Đang điều trị'}
             </span>
             {canManage && (
@@ -179,7 +177,7 @@ export default function AdmissionDetail() {
           </div>
         </div>
         {patient?.Allergies && (
-          <div className="mt-3.5 rounded-lg bg-[#dc3545]/8 px-3.5 py-2.5 text-[13px] font-semibold text-[#dc3545]">
+          <div className={cn('mt-3.5', allergyWarningClass)}>
             <Icon icon="fa6-solid:triangle-exclamation" className="mr-1.5" />Dị ứng: {patient.Allergies}
           </div>
         )}
@@ -189,7 +187,7 @@ export default function AdmissionDetail() {
           </div>
         )}
         {error && (
-          <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{error}</div>
+          <ErrorAlert icon={false} className="mt-3.5">{error}</ErrorAlert>
         )}
       </Card>
 
@@ -405,12 +403,12 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
           <Input {...registerTransfer('reason')} placeholder="VD: Cần theo dõi chuyên khoa sâu hơn" className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
 
           {formError && (
-            <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
+            <ErrorAlert icon={false} className="mt-2.5">{formError}</ErrorAlert>
           )}
           <Button
             type="submit"
             disabled={saving}
-            className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            size="cta" className="mt-3"
           >
             {saving ? 'Đang lưu…' : 'Xác nhận chuyển'}
           </Button>
@@ -423,12 +421,14 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
           <Textarea {...registerDischarge('summary')} placeholder="VD: Chẩn đoán, quá trình điều trị, tình trạng khi ra viện, hướng dẫn theo dõi tại nhà…" aria-invalid={!!dischargeErrors.summary} className="min-h-[90px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
           <FieldError message={dischargeErrors.summary?.message} />
           {formError && (
-            <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
+            <ErrorAlert icon={false} className="mt-2.5">{formError}</ErrorAlert>
           )}
           <Button
             type="submit"
             disabled={saving}
-            className="mt-3 h-auto rounded-xl bg-[#dc3545] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#dc3545]/90"
+            variant="danger"
+            size="cta"
+            className="mt-3"
           >
             {saving ? 'Đang lưu…' : 'Xác nhận xuất viện'}
           </Button>
@@ -523,12 +523,12 @@ function VitalSignsSection({ admissionId, vitals, canAdd, onAdded }: VitalSignsS
             </div>
           </div>
           {formError && (
-            <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
+            <ErrorAlert icon={false} className="mt-2.5">{formError}</ErrorAlert>
           )}
           <Button
             type="submit"
             disabled={saving}
-            className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            size="cta" className="mt-3"
           >
             {saving ? 'Đang lưu…' : 'Lưu sinh hiệu'}
           </Button>
@@ -597,12 +597,12 @@ function ProgressNotesSection({ admissionId, notes, canAdd, onAdded }: ProgressN
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Y lệnh trong ngày</label>
           <Textarea {...register('doctor_orders')} placeholder="VD: Tiếp tục kháng sinh, theo dõi thêm 24h…" className="min-h-[70px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
           {formError && (
-            <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
+            <ErrorAlert icon={false} className="mt-2.5">{formError}</ErrorAlert>
           )}
           <Button
             type="submit"
             disabled={saving}
-            className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            size="cta" className="mt-3"
           >
             {saving ? 'Đang lưu…' : 'Lưu diễn biến'}
           </Button>
@@ -691,12 +691,12 @@ function NursingLogsSection({ admissionId, logs, progressNotes, canAdd, onAdded 
           <label className="mt-2.5 mb-1.5 block text-[13px] font-semibold text-[#274760]">Ghi chú</label>
           <Input {...register('notes')} placeholder="VD: Bệnh nhân hợp tác tốt, không có phản ứng bất thường…" className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]" />
           {formError && (
-            <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
+            <ErrorAlert icon={false} className="mt-2.5">{formError}</ErrorAlert>
           )}
           <Button
             type="submit"
             disabled={saving}
-            className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            size="cta" className="mt-3"
           >
             {saving ? 'Đang lưu…' : 'Lưu nhật ký'}
           </Button>

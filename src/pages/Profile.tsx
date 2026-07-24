@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 
 interface Me {
   ID: number | string;
@@ -100,12 +101,7 @@ export default function Profile() {
   }
 
   if (error || !me) {
-    return (
-      <div className="flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-        <Icon icon="fa6-solid:circle-exclamation" />
-        {error || 'Không tải được hồ sơ.'}
-      </div>
-    );
+    return <ErrorAlert>{error || 'Không tải được hồ sơ.'}</ErrorAlert>;
   }
 
   return (
@@ -186,7 +182,7 @@ export default function Profile() {
             ) : (
               <Button
                 onClick={openEdit}
-                className="mt-6 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                size="cta" className="mt-6"
               >
                 <Icon icon="fa6-solid:pen" className="text-xs" /> Sửa họ tên
               </Button>
@@ -201,9 +197,7 @@ export default function Profile() {
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
             {formError && (
-              <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-                {formError}
-              </div>
+              <ErrorAlert icon={false} className="mt-4">{formError}</ErrorAlert>
             )}
             <div className="mt-6 flex justify-end gap-2">
               <Button
@@ -218,7 +212,7 @@ export default function Profile() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                size="cta"
               >
                 {saving ? 'Đang lưu…' : 'Lưu'}
               </Button>

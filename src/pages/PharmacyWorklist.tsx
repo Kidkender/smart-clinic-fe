@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { listPrescriptionWorklist } from '@/api/prescription';
 import { resolveError } from '@/utils/errorMessages';
 import { Card } from '@/components/ui/card';
@@ -55,12 +56,7 @@ export default function PharmacyWorklist() {
         </p>
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       {loading ? (
         <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { getDepartments } from '@/api/department';
@@ -40,6 +41,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import SortableTableHead from '@/components/ui/sortable-table-head';
 
 interface Department {
   ID: number | string;
@@ -88,30 +90,6 @@ const EMPTY_CREATE_FORM: DoctorCreateFormValues = {
   fullname: '', email: '', password: '', department_id: '',
   specialty: '', license_no: '', qualification: '', institution: '', years_experience: 0, bio: '',
 };
-
-function SortableHead({
-  label, column, sortBy, sortDir, onSort,
-}: {
-  label: string;
-  column: string;
-  sortBy: string;
-  sortDir: 'asc' | 'desc';
-  onSort: (column: string) => void;
-}) {
-  const active = sortBy === column;
-  return (
-    <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">
-      <button
-        type="button"
-        onClick={() => onSort(column)}
-        className="flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs font-bold text-[#6c757d] uppercase"
-      >
-        {label}
-        <Icon icon="fa6-solid:sort" className={active ? 'text-[#307bc4]' : 'text-[#6c757d]/50'} />
-      </button>
-    </TableHead>
-  );
-}
 
 export default function Doctors() {
   const navigate = useNavigate();
@@ -310,19 +288,15 @@ export default function Doctors() {
           </Select>
           <Button
             onClick={openCreate}
-            className="h-auto shrink-0 rounded-xl bg-[#307bc4] px-4.5 py-3 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            size="cta"
+            className="shrink-0"
           >
             <Icon icon="fa6-solid:plus" className="text-[13px]" /> Thêm bác sĩ
           </Button>
         </div>
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
         {loading ? (
@@ -336,10 +310,10 @@ export default function Doctors() {
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <SortableHead label="Bác sĩ" column="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <SortableHead label="Khoa/Phòng" column="department" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Bác sĩ" column="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Khoa/Phòng" column="department" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Chuyên khoa</TableHead>
-                <SortableHead label="Kinh nghiệm" column="experience" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Kinh nghiệm" column="experience" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Trạng thái</TableHead>
                 <TableHead className="h-auto px-4 py-3"></TableHead>
               </TableRow>
@@ -487,9 +461,7 @@ export default function Doctors() {
             />
 
             {formError && (
-              <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-                {formError}
-              </div>
+              <ErrorAlert icon={false} className="mt-4">{formError}</ErrorAlert>
             )}
 
             <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
@@ -505,7 +477,7 @@ export default function Doctors() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                size="cta"
               >
                 {saving ? 'Đang lưu…' : 'Lưu hồ sơ'}
               </Button>
@@ -658,9 +630,7 @@ export default function Doctors() {
             />
 
             {createError && (
-              <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-                {createError}
-              </div>
+              <ErrorAlert icon={false} className="mt-4">{createError}</ErrorAlert>
             )}
 
             <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
@@ -676,7 +646,7 @@ export default function Doctors() {
               <Button
                 type="submit"
                 disabled={creating}
-                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                size="cta"
               >
                 {creating ? 'Đang tạo…' : 'Tạo bác sĩ'}
               </Button>

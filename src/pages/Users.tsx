@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { listUsers, updateUserRole, updateUserStatus } from '@/api/auth';
 import { resolveError } from '@/utils/errorMessages';
 import { roleLabel, userStatusLabel } from '@/utils/labels';
 import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -129,12 +131,7 @@ export default function Users() {
         </Select>
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
         {loading ? (
@@ -188,25 +185,27 @@ export default function Users() {
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right whitespace-nowrap">
                     {user.Status === 'active' ? (
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
                         onClick={() => handleLock(user)}
                         disabled={busyId === user.ID || String(user.ID) === String(userId)}
                         title={String(user.ID) === String(userId) ? 'Không thể tự khóa tài khoản của chính mình' : 'Khóa tài khoản'}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#dc3545]/30 bg-white px-4 py-2 text-[13px] font-semibold text-[#dc3545] disabled:opacity-50"
+                        size="cta-sm"
+                        className="border-[#dc3545]/30 bg-white text-[#dc3545]"
                       >
                         <Icon icon="fa6-solid:lock" className="text-[12px]" />Khóa
-                      </button>
+                      </Button>
                     ) : (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => handleActivate(user)}
                         disabled={busyId === user.ID}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-[#307bc4] px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+                        size="cta-sm"
                       >
                         <Icon icon={user.Status === 'locked' ? 'fa6-solid:unlock' : 'fa6-solid:check'} className="text-[12px]" />
                         {user.Status === 'locked' ? 'Mở khóa' : 'Duyệt'}
-                      </button>
+                      </Button>
                     )}
                   </TableCell>
                 </TableRow>

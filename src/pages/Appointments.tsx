@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { searchAppointments, cancelAppointment, markNoShow, checkInAppointment } from '@/api/appointment';
 import { getDepartments } from '@/api/department';
 import { listDoctors } from '@/api/doctor';
@@ -7,13 +8,15 @@ import { resolveError } from '@/utils/errorMessages';
 import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
 import AppointmentFilters from '@/components/appointments/AppointmentFilters';
 import AppointmentsTable from '@/components/appointments/AppointmentsTable';
 import CreateAppointmentDialog from '@/components/appointments/CreateAppointmentDialog';
 import CheckInDialog from '@/components/appointments/CheckInDialog';
-import type { Appointment, Department, DoctorFilterOption } from '@/components/appointments/types';
+import { toLocalDateInput, type Appointment, type Department, type DoctorFilterOption } from '@/components/appointments/types';
 
 const PAGE_LIMIT = 20;
+const today = () => toLocalDateInput(new Date());
 
 export default function Appointments() {
   const { role } = useAuth();
@@ -34,8 +37,8 @@ export default function Appointments() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [doctorFilter, setDoctorFilter] = useState('all');
   const [doctorOptions, setDoctorOptions] = useState<DoctorFilterOption[]>([]);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(today);
+  const [dateTo, setDateTo] = useState(today);
   const [sortBy, setSortBy] = useState('scheduled');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
@@ -159,7 +162,7 @@ export default function Appointments() {
         {canManage && (
           <Button
             onClick={() => setModalOpen(true)}
-            className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            size="cta"
           >
             <Icon icon="fa6-solid:plus" className="text-sm" />
             Đặt lịch hẹn
@@ -167,12 +170,7 @@ export default function Appointments() {
         )}
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       <AppointmentFilters
         searchInput={searchInput}
@@ -207,33 +205,7 @@ export default function Appointments() {
       />
 
       {!loading && total > 0 && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="m-0 text-sm text-[#6c757d]">
-            Trang {page}/{totalPages} · {total} lịch hẹn
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={page <= 1}
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              className="h-auto rounded-full border-[#dde2e8] px-4 py-2 text-sm font-medium text-[#274760]"
-            >
-              <Icon icon="fa6-solid:chevron-left" className="text-xs" />
-              Trước
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={page >= totalPages}
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              className="h-auto rounded-full border-[#dde2e8] px-4 py-2 text-sm font-medium text-[#274760]"
-            >
-              Sau
-              <Icon icon="fa6-solid:chevron-right" className="text-xs" />
-            </Button>
-          </div>
-        </div>
+        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} itemLabel="lịch hẹn" />
       )}
 
       {canManage && (

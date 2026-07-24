@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -10,6 +11,8 @@ import {
 } from '@/api/patient';
 import { resolveError } from '@/utils/errorMessages';
 import { genderLabel, encounterStatusLabel, encounterTypeLabel, prescriptionStatusLabel, orderStatusLabel, orderTypeLabel, attachmentCategoryLabel, ATTACHMENT_CATEGORIES } from '@/utils/labels';
+import { toneBadgeClass } from '@/utils/badgeStyles';
+import { cn } from '@/lib/utils';
 import { patientSchema, contactSchema, type PatientFormValues, type ContactFormValues } from '@/schemas/patient';
 import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
@@ -313,11 +316,7 @@ export default function PatientDetail() {
     return <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>;
   }
   if (error || !patient) {
-    return (
-      <div className="flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-        <Icon icon="fa6-solid:circle-exclamation" />{error || 'Không tìm thấy bệnh nhân.'}
-      </div>
-    );
+    return <ErrorAlert>{error || 'Không tìm thấy bệnh nhân.'}</ErrorAlert>;
   }
 
   return (
@@ -413,13 +412,13 @@ export default function PatientDetail() {
               <Input {...registerContact('phone')} placeholder="SĐT" aria-invalid={!!contactErrors.phone} className="mt-2.5 h-auto w-full rounded-xl border-[#dde2e8] px-3 py-2.25 text-sm text-[#274760]" />
               <FieldError message={contactErrors.phone?.message} />
               {contactError && (
-                <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{contactError}</div>
+                <ErrorAlert icon={false} className="mt-2.5">{contactError}</ErrorAlert>
               )}
               <div className="mt-2.5 flex gap-2">
                 <Button
                   type="submit"
                   disabled={savingContact}
-                  className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                  size="cta"
                 >
                   {editingContactId ? 'Cập nhật' : 'Thêm liên hệ'}
                 </Button>
@@ -486,7 +485,7 @@ export default function PatientDetail() {
             );
           })()}
           {attachmentError && (
-            <div className="mb-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{attachmentError}</div>
+            <ErrorAlert icon={false} className="mb-2.5">{attachmentError}</ErrorAlert>
           )}
           {canManage && (
             <div className="flex flex-wrap items-center gap-2">
@@ -515,7 +514,7 @@ export default function PatientDetail() {
                   <div className="font-semibold text-[#274760]">{e.Department?.Name ?? `Khoa #${e.DepartmentID}`} · {encounterTypeLabel(e.Type)}</div>
                   <div className="text-[13px] text-[#6c757d]">{new Date(e.CreatedAt).toLocaleString('vi-VN')}</div>
                 </div>
-                <span className="inline-block shrink-0 rounded-full bg-[#307bc4]/10 px-2.5 py-1 text-xs font-semibold text-[#307bc4]">{encounterStatusLabel(e.Status)}</span>
+                <span className={cn('inline-block shrink-0', toneBadgeClass('info'))}>{encounterStatusLabel(e.Status)}</span>
               </li>
             ))}
           </HistorySubsection>
@@ -526,7 +525,7 @@ export default function PatientDetail() {
                   <div className="font-semibold text-[#274760]">Đơn #{p.ID} ({(p.Items ?? []).length} thuốc)</div>
                   <div className="text-[13px] text-[#6c757d]">{new Date(p.CreatedAt).toLocaleString('vi-VN')}</div>
                 </div>
-                <span className="inline-block shrink-0 rounded-full bg-[#307bc4]/10 px-2.5 py-1 text-xs font-semibold text-[#307bc4]">{prescriptionStatusLabel(p.Status)}</span>
+                <span className={cn('inline-block shrink-0', toneBadgeClass('info'))}>{prescriptionStatusLabel(p.Status)}</span>
               </li>
             ))}
           </HistorySubsection>
@@ -537,7 +536,7 @@ export default function PatientDetail() {
                   <div className="font-semibold text-[#274760]">{o.Name} ({orderTypeLabel(o.Type)})</div>
                   <div className="text-[13px] text-[#6c757d]">{new Date(o.CreatedAt).toLocaleString('vi-VN')}</div>
                 </div>
-                <span className="inline-block shrink-0 rounded-full bg-[#307bc4]/10 px-2.5 py-1 text-xs font-semibold text-[#307bc4]">{orderStatusLabel(o.Status)}</span>
+                <span className={cn('inline-block shrink-0', toneBadgeClass('info'))}>{orderStatusLabel(o.Status)}</span>
               </li>
             ))}
           </HistorySubsection>
@@ -595,7 +594,7 @@ export default function PatientDetail() {
             <Textarea {...registerEdit('allergies')} className="min-h-[70px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]" />
 
             {formError && (
-              <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">{formError}</div>
+              <ErrorAlert icon={false} className="mt-4">{formError}</ErrorAlert>
             )}
 
             <DialogFooter className="mx-0 mt-6 mb-0 justify-end gap-3 rounded-none border-t-0 bg-transparent p-0">
@@ -611,7 +610,7 @@ export default function PatientDetail() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                size="cta"
               >
                 {saving ? 'Đang lưu…' : 'Lưu'}
               </Button>

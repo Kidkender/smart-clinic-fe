@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { listLabWorklist } from '@/api/lab';
 import { resolveError } from '@/utils/errorMessages';
 import { labSpecimenStatusLabel } from '@/utils/labels';
+import { toneBadgeClass } from '@/utils/badgeStyles';
 import { useAuth } from '@/context/AuthContext';
 import LabOrderPanel from '@/components/LabOrderPanel';
 import { Card } from '@/components/ui/card';
@@ -29,11 +31,11 @@ const STATUS_FILTER_VALUES = ['pending_collection', 'collected', 'received'];
 function specimenBadgeClass(status: string): string {
   switch (status) {
     case 'received':
-      return 'rounded-full bg-[#307bc4]/10 px-2.5 py-1 text-xs font-semibold text-[#307bc4] hover:bg-[#307bc4]/10';
+      return toneBadgeClass('info');
     case 'collected':
-      return 'rounded-full bg-[#ffc107]/15 px-2.5 py-1 text-xs font-semibold text-[#8a6100] hover:bg-[#ffc107]/15';
+      return toneBadgeClass('warning');
     default:
-      return 'rounded-full bg-[#6c757d]/10 px-2.5 py-1 text-xs font-semibold text-[#6c757d] hover:bg-[#6c757d]/10';
+      return toneBadgeClass('neutral');
   }
 }
 
@@ -79,12 +81,7 @@ export default function LabWorklist() {
         />
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       {loading ? (
         <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>

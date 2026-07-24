@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { getDepartments, getDoctorsByDepartment } from '@/api/department';
@@ -216,12 +217,7 @@ export default function DoctorSchedules() {
         </Select>
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       {doctorId && (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(360px,1fr))] gap-5">
@@ -322,15 +318,13 @@ export default function DoctorSchedules() {
               <FieldError message={errors.slot_minutes?.message} />
 
               {formError && (
-                <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-                  {formError}
-                </div>
+                <ErrorAlert icon={false} className="mt-4">{formError}</ErrorAlert>
               )}
 
               <Button
                 type="submit"
                 disabled={saving}
-                className="mt-5 h-auto w-full justify-center rounded-xl bg-[#307bc4] py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                size="cta-block" className="mt-5"
               >
                 {saving ? 'Đang lưu…' : 'Lưu lịch làm việc'}
               </Button>

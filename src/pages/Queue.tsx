@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,6 +12,7 @@ import { encounterStatusLabel, encounterTypeLabel } from '@/utils/labels';
 import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { cn } from '@/lib/utils';
+import { encounterStatusBadgeClass } from '@/utils/badgeStyles';
 import { checkInSchema, type CheckInFormValues } from '@/schemas/queue';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -38,6 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import SortableTableHead from '@/components/ui/sortable-table-head';
 
 interface Department {
   ID: number | string;
@@ -69,42 +72,7 @@ const TYPES = [
   { value: 'service', label: 'Dịch vụ' },
 ];
 
-const STATUS_STYLES: Record<string, string> = {
-  waiting: 'bg-[#307bc4]/10 text-[#307bc4]',
-  in_progress: 'bg-[#198754]/10 text-[#198754]',
-  completed: 'bg-[#6c757d]/10 text-[#6c757d]',
-  cancelled: 'bg-[#dc3545]/10 text-[#dc3545]',
-};
-
 const EMPTY_CHECKIN_FORM: CheckInFormValues = { patient_id: '', type: 'new' };
-
-function SortableHead({
-  label,
-  column,
-  sortBy,
-  sortDir,
-  onSort,
-}: {
-  label: string;
-  column: string;
-  sortBy: string;
-  sortDir: 'asc' | 'desc';
-  onSort: (column: string) => void;
-}) {
-  const active = sortBy === column;
-  return (
-    <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">
-      <button
-        type="button"
-        onClick={() => onSort(column)}
-        className="flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs font-bold text-[#6c757d] uppercase"
-      >
-        {label}
-        <Icon icon="fa6-solid:sort" className={active ? 'text-[#307bc4]' : 'text-[#6c757d]/50'} />
-      </button>
-    </TableHead>
-  );
-}
 
 export default function Queue() {
   const { role } = useAuth();
@@ -272,7 +240,7 @@ export default function Queue() {
             <Button
               onClick={openCheckIn}
               disabled={!departmentId}
-              className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              size="cta"
             >
               <Icon icon="fa6-solid:user-plus" className="text-sm" />
               Check-in
@@ -281,12 +249,7 @@ export default function Queue() {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         <StatCard label="Đang chờ" value={waitingCount} color="#307bc4" />
@@ -320,14 +283,14 @@ export default function Queue() {
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <SortableHead label="STT" column="queue" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <SortableHead label="Bệnh nhân" column="patient" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="STT" column="queue" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Bệnh nhân" column="patient" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 {!departmentId && (
-                  <SortableHead label="Khoa/phòng" column="department" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                  <SortableTableHead label="Khoa/phòng" column="department" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 )}
-                <SortableHead label="Loại" column="type" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <SortableHead label="Check-in" column="checkin" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <SortableHead label="Trạng thái" column="status" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Loại" column="type" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Check-in" column="checkin" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Trạng thái" column="status" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3"></TableHead>
               </TableRow>
             </TableHeader>
@@ -344,7 +307,7 @@ export default function Queue() {
                     {q.CheckedInAt ? new Date(q.CheckedInAt).toLocaleTimeString('vi-VN') : '—'}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-sm">
-                    <span className={cn('inline-block rounded-full px-2.5 py-1 text-xs font-semibold', STATUS_STYLES[q.Status] ?? STATUS_STYLES.waiting)}>
+                    <span className={cn('inline-block', encounterStatusBadgeClass(q.Status))}>
                       {encounterStatusLabel(q.Status)}
                     </span>
                   </TableCell>
@@ -447,9 +410,7 @@ export default function Queue() {
             />
 
             {formError && (
-              <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-                {formError}
-              </div>
+              <ErrorAlert icon={false} className="mt-4">{formError}</ErrorAlert>
             )}
 
             <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
@@ -465,7 +426,7 @@ export default function Queue() {
               <Button
                 type="submit"
                 disabled={saving || !patientId}
-                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                size="cta"
               >
                 {saving ? 'Đang lưu…' : 'Check-in'}
               </Button>

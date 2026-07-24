@@ -177,15 +177,16 @@ function translate(map, value) {
   return map[value] ?? value;
 }
 
-const LAB_RESULT_FLAG_BADGE_CLASS = {
-  normal: 'rounded-full bg-[#28a745]/10 px-2.5 py-1 text-xs font-semibold text-[#28a745] hover:bg-[#28a745]/10',
-  low: 'rounded-full bg-[#ffc107]/15 px-2.5 py-1 text-xs font-semibold text-[#8a6100] hover:bg-[#ffc107]/15',
-  high: 'rounded-full bg-[#ffc107]/15 px-2.5 py-1 text-xs font-semibold text-[#8a6100] hover:bg-[#ffc107]/15',
-  abnormal: 'rounded-full bg-[#dc3545]/10 px-2.5 py-1 text-xs font-semibold text-[#dc3545] hover:bg-[#dc3545]/10',
-};
-const LAB_RESULT_FLAG_BADGE_DEFAULT = 'rounded-full bg-[#6c757d]/10 px-2.5 py-1 text-xs font-semibold text-[#6c757d] hover:bg-[#6c757d]/10';
+import { toneBadgeClass } from './badgeStyles';
 
-export const labResultFlagBadgeClass = flag => LAB_RESULT_FLAG_BADGE_CLASS[flag] ?? LAB_RESULT_FLAG_BADGE_DEFAULT;
+const LAB_RESULT_FLAG_BADGE_TONE = {
+  normal: 'success',
+  low: 'warning',
+  high: 'warning',
+  abnormal: 'danger',
+};
+
+export const labResultFlagBadgeClass = flag => toneBadgeClass(LAB_RESULT_FLAG_BADGE_TONE[flag] ?? 'neutral');
 
 export const appointmentStatusLabel = value => translate(APPOINTMENT_STATUS, value);
 export const appointmentTypeLabel = value => translate(APPOINTMENT_TYPE, value);

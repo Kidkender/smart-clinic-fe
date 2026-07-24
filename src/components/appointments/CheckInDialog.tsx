@@ -71,7 +71,7 @@ export default function CheckInDialog({
             type="button"
             onClick={onConfirm}
             disabled={checkingIn}
-            className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+            size="cta"
           >
             {checkingIn ? 'Đang check-in…' : 'Check-in'}
           </Button>

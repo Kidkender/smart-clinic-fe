@@ -1,6 +1,7 @@
 import { Icon } from '@iconify/react';
 import { appointmentStatusLabel } from '@/utils/labels';
 import { cn } from '@/lib/utils';
+import { appointmentStatusBadgeClass } from '@/utils/badgeStyles';
 import { Card } from '@/components/ui/card';
 import {
   Table,
@@ -11,41 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { Appointment } from './types';
-
-const STATUS_STYLES: Record<string, string> = {
-  booked: 'bg-[#307bc4]/10 text-[#307bc4]',
-  checked_in: 'bg-[#198754]/10 text-[#198754]',
-  cancelled: 'bg-[#dc3545]/10 text-[#dc3545]',
-  no_show: 'bg-[#6c757d]/10 text-[#6c757d]',
-};
-
-function SortableHead({
-  label,
-  column,
-  sortBy,
-  sortDir,
-  onSort,
-}: {
-  label: string;
-  column: string;
-  sortBy: string;
-  sortDir: 'asc' | 'desc';
-  onSort: (column: string) => void;
-}) {
-  const active = sortBy === column;
-  return (
-    <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">
-      <button
-        type="button"
-        onClick={() => onSort(column)}
-        className="flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-xs font-bold text-[#6c757d] uppercase"
-      >
-        {label}
-        <Icon icon="fa6-solid:sort" className={active ? 'text-[#307bc4]' : 'text-[#6c757d]/50'} />
-      </button>
-    </TableHead>
-  );
-}
+import SortableTableHead from '@/components/ui/sortable-table-head';
 
 export default function AppointmentsTable({
   appointments,
@@ -82,11 +49,11 @@ export default function AppointmentsTable({
         <Table>
           <TableHeader>
             <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-              <SortableHead label="Bệnh nhân" column="patient" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-              <SortableHead label="Khoa" column="department" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-              <SortableHead label="Bác sĩ" column="doctor" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-              <SortableHead label="Thời gian" column="scheduled" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-              <SortableHead label="Trạng thái" column="status" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+              <SortableTableHead label="Bệnh nhân" column="patient" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+              <SortableTableHead label="Khoa" column="department" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+              <SortableTableHead label="Bác sĩ" column="doctor" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+              <SortableTableHead label="Thời gian" column="scheduled" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+              <SortableTableHead label="Trạng thái" column="status" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
               <TableHead className="h-auto px-4 py-3"></TableHead>
             </TableRow>
           </TableHeader>
@@ -98,7 +65,7 @@ export default function AppointmentsTable({
                 <TableCell className="px-4 py-3 text-sm text-[#274760]">{a.Doctor?.Fullname ?? '—'}</TableCell>
                 <TableCell className="px-4 py-3 text-sm text-[#274760]">{new Date(a.ScheduledAt).toLocaleString('vi-VN')}</TableCell>
                 <TableCell className="px-4 py-3 text-sm">
-                  <span className={cn('inline-block rounded-full px-2.5 py-1 text-xs font-semibold', STATUS_STYLES[a.Status] ?? STATUS_STYLES.booked)}>
+                  <span className={cn('inline-block', appointmentStatusBadgeClass(a.Status))}>
                     {appointmentStatusLabel(a.Status)}
                   </span>
                 </TableCell>

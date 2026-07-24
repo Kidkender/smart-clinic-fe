@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SectionHeader, SectionBadge, ErrorBox } from './shared';
+import { ErrorAlert } from '@/components/ui/alert';
 import type { Prescription, PrescriptionItem, PrescriptionItemFlag, Drug, DrugWarning, DuplicateDrugWarning } from './types';
 
 export default function PrescriptionsSection({
@@ -353,7 +354,8 @@ export default function PrescriptionsSection({
                         <Button
                           type="submit"
                           disabled={returning}
-                          className="h-auto shrink-0 rounded-lg bg-[#307bc4] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                          size="cta-xs"
+                          className="shrink-0"
                         >
                           Lưu
                         </Button>
@@ -371,9 +373,7 @@ export default function PrescriptionsSection({
                 ))}
               </ul>
               {returningItemId != null && (p.Items ?? []).some(it => it.ID === returningItemId) && returnError && (
-                <div className="mb-2 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-3 py-2 text-xs text-[#dc3545]">
-                  {returnError}
-                </div>
+                <ErrorAlert icon={false} className="mb-2 px-3 py-2 text-xs">{returnError}</ErrorAlert>
               )}
               {(canUpdateStatus || canCreate) && p.Status === 'active' && (
                 <div className="mt-2 flex flex-col items-start gap-1.5">
@@ -432,7 +432,8 @@ export default function PrescriptionsSection({
                         <Button
                           type="submit"
                           disabled={cancelling}
-                          className="h-auto rounded-lg bg-[#dc3545] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#dc3545]/90"
+                          variant="danger"
+                          size="cta-xs"
                         >
                           {cancelling ? 'Đang hủy…' : 'Xác nhận hủy'}
                         </Button>
@@ -552,7 +553,7 @@ export default function PrescriptionsSection({
           )}
 
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
-          <Button type="submit" disabled={saving} className="mt-3 h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90">
+          <Button type="submit" disabled={saving} size="cta" className="mt-3">
             {saving ? 'Đang lưu…' : editingPrescriptionId != null ? 'Lưu đơn đã sửa' : 'Tạo đơn thuốc'}
           </Button>
         </form>

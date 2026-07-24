@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { searchImagingProcedures, createImagingProcedure, updateImagingProcedure, deleteImagingProcedure } from '@/api/imaging';
 import { resolveError } from '@/utils/errorMessages';
 import { imagingModalityLabel, IMAGING_MODALITIES } from '@/utils/labels';
+import { toneBadgeClass } from '@/utils/badgeStyles';
 import { imagingProcedureSchema, type ImagingProcedureFormValues } from '@/schemas/imagingProcedure';
 import useConfirm from '@/hooks/useConfirm';
 import { Button } from '@/components/ui/button';
@@ -163,7 +165,7 @@ export default function ImagingProcedures() {
         </div>
         <Button
           onClick={openCreate}
-          className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+          size="cta"
         >
           <Icon icon="fa6-solid:plus" className="text-sm" />
           Thêm dịch vụ
@@ -188,12 +190,7 @@ export default function ImagingProcedures() {
         </Select>
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
         {loading ? (
@@ -204,7 +201,7 @@ export default function ImagingProcedures() {
             <h3 className="mb-2 text-[#274760]">Chưa có dịch vụ chẩn đoán hình ảnh nào</h3>
             <Button
               onClick={openCreate}
-              className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              size="cta"
             >
               Tạo dịch vụ đầu tiên
             </Button>
@@ -231,13 +228,7 @@ export default function ImagingProcedures() {
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">{p.BodyPart || '—'}</TableCell>
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">{p.Price?.toLocaleString('vi-VN')} đ</TableCell>
                   <TableCell className="px-4 py-3">
-                    <Badge
-                      className={
-                        p.Active
-                          ? 'rounded-full bg-[#198754]/10 px-2.5 py-1 text-xs font-semibold text-[#198754] hover:bg-[#198754]/10'
-                          : 'rounded-full bg-[#6c757d]/10 px-2.5 py-1 text-xs font-semibold text-[#6c757d] hover:bg-[#6c757d]/10'
-                      }
-                    >
+                    <Badge className={toneBadgeClass(p.Active ? 'success' : 'neutral')}>
                       {p.Active ? 'Đang dùng' : 'Ngừng dùng'}
                     </Badge>
                   </TableCell>
@@ -348,9 +339,7 @@ export default function ImagingProcedures() {
             )}
 
             {formError && (
-              <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-                {formError}
-              </div>
+              <ErrorAlert icon={false} className="mt-4">{formError}</ErrorAlert>
             )}
 
             <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
@@ -366,7 +355,7 @@ export default function ImagingProcedures() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                size="cta"
               >
                 {saving ? 'Đang lưu…' : modal?.mode === 'create' ? 'Tạo' : 'Lưu'}
               </Button>

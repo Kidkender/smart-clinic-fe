@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +13,7 @@ import { resolveError } from '@/utils/errorMessages';
 import { admissionTypeLabel } from '@/utils/labels';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import { admissionStatusBadgeClass } from '@/utils/badgeStyles';
 import { admissionSchema, type AdmissionFormValues } from '@/schemas/admission';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -65,11 +67,6 @@ interface Admission {
 }
 
 const ADMISSION_TYPES = ['bhyt', 'service', 'insurance_private'];
-
-const STATUS_STYLES: Record<string, string> = {
-  active: 'bg-[#198754]/10 text-[#198754]',
-  discharged: 'bg-[#6c757d]/10 text-[#6c757d]',
-};
 
 const ADMISSION_STATUS_OPTIONS = [
   { value: 'active', label: 'Đang điều trị' },
@@ -237,7 +234,7 @@ export default function Admissions() {
           {canAdmit && (
             <Button
               onClick={openAdmit}
-              className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              size="cta"
             >
               <Icon icon="fa6-solid:bed-pulse" className="text-sm" />
               Nhập viện
@@ -246,12 +243,7 @@ export default function Admissions() {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
         {loading ? (
@@ -281,7 +273,7 @@ export default function Admissions() {
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">{admissionTypeLabel(a.AdmissionType)}</TableCell>
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">{new Date(a.AdmittedAt).toLocaleDateString('vi-VN')}</TableCell>
                   <TableCell className="px-4 py-3 text-sm">
-                    <span className={cn('inline-block rounded-full px-2.5 py-1 text-xs font-semibold', a.DischargedAt ? STATUS_STYLES.discharged : STATUS_STYLES.active)}>
+                    <span className={cn('inline-block', admissionStatusBadgeClass(a.DischargedAt ? 'discharged' : 'active'))}>
                       {a.DischargedAt ? 'Đã xuất viện' : 'Đang điều trị'}
                     </span>
                   </TableCell>
@@ -409,9 +401,7 @@ export default function Admissions() {
             )}
 
             {formError && (
-              <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-                {formError}
-              </div>
+              <ErrorAlert icon={false} className="mt-4">{formError}</ErrorAlert>
             )}
 
             <DialogFooter className="mx-0 mt-6 mb-0 justify-end gap-3 rounded-none border-t-0 bg-transparent p-0">
@@ -427,7 +417,7 @@ export default function Admissions() {
               <Button
                 type="submit"
                 disabled={saving || !patientId || !departmentId || !attendingDoctorId || doctors.length === 0}
-                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                size="cta"
               >
                 {saving ? 'Đang lưu…' : 'Nhập viện'}
               </Button>

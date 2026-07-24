@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { getDepartments } from '@/api/department';
@@ -268,12 +269,7 @@ export default function DoctorDetail() {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(380px,1fr))] gap-5">
         <Card className="rounded-2xl border-[#e8edf2] p-6">
@@ -356,15 +352,13 @@ export default function DoctorDetail() {
             </div>
 
             {shiftError && (
-              <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-                {shiftError}
-              </div>
+              <ErrorAlert icon={false} className="mt-4">{shiftError}</ErrorAlert>
             )}
 
             <Button
               type="submit"
               disabled={savingShift || !shiftDepartmentId}
-              className="mt-5 h-auto w-full justify-center rounded-xl bg-[#307bc4] py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              size="cta-block" className="mt-5"
             >
               {savingShift ? 'Đang lưu…' : 'Thêm ca trực'}
             </Button>
@@ -452,15 +446,13 @@ export default function DoctorDetail() {
             />
 
             {leaveError && (
-              <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-                {leaveError}
-              </div>
+              <ErrorAlert icon={false} className="mt-4">{leaveError}</ErrorAlert>
             )}
 
             <Button
               type="submit"
               disabled={savingLeave}
-              className="mt-5 h-auto w-full justify-center rounded-xl bg-[#307bc4] py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              size="cta-block" className="mt-5"
             >
               {savingLeave ? 'Đang gửi…' : 'Tạo đơn nghỉ phép'}
             </Button>
@@ -489,16 +481,14 @@ export default function DoctorDetail() {
             <Button
               type="submit"
               disabled={perfLoading}
-              className="h-auto rounded-xl bg-[#307bc4] px-5 py-3 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              size="cta"
             >
               {perfLoading ? 'Đang tính…' : 'Xem báo cáo'}
             </Button>
           </form>
 
           {perfError && (
-            <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-              {perfError}
-            </div>
+            <ErrorAlert icon={false} className="mb-4">{perfError}</ErrorAlert>
           )}
 
           {performance && (

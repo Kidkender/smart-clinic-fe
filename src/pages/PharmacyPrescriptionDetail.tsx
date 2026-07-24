@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import {
   getPrescriptionById, updatePrescriptionStatus, getPrescriptionLabel, flagPrescriptionItem,
 } from '@/api/prescription';
@@ -175,12 +176,7 @@ export default function PharmacyPrescriptionDetail() {
   }
 
   if (error && !detail) {
-    return (
-      <div className="flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-        <Icon icon="fa6-solid:circle-exclamation" />
-        {error}
-      </div>
-    );
+    return <ErrorAlert>{error}</ErrorAlert>;
   }
 
   if (!detail) return null;
@@ -215,18 +211,11 @@ export default function PharmacyPrescriptionDetail() {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       {detail.has_shortage && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:triangle-exclamation" />
-          Có thuốc không đủ tồn kho. Liên hệ bác sĩ nếu cần thay đổi đơn thuốc trước khi cấp phát.
-        </div>
+        <ErrorAlert icon={false} className="mb-5"><Icon icon="fa6-solid:triangle-exclamation" />
+          Có thuốc không đủ tồn kho. Liên hệ bác sĩ nếu cần thay đổi đơn thuốc trước khi cấp phát.</ErrorAlert>
       )}
 
       <Card className="rounded-2xl border-[#e8edf2] p-6">
@@ -307,7 +296,7 @@ export default function PharmacyPrescriptionDetail() {
               <Button
                 type="submit"
                 disabled={flagging}
-                className="h-auto rounded-lg bg-[#307bc4] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                size="cta-xs"
               >
                 {flagging ? 'Đang gửi…' : 'Gửi báo cáo'}
               </Button>
@@ -329,7 +318,8 @@ export default function PharmacyPrescriptionDetail() {
               disabled={acting || detail.has_shortage}
               onClick={handleDispense}
               title={detail.has_shortage ? 'Không thể cấp phát vì còn thuốc chưa đủ tồn kho — báo bác sĩ hoặc chờ nhập kho.' : undefined}
-              className="h-auto rounded-lg bg-[#307bc4] px-4 py-2 text-xs font-semibold text-white hover:bg-[#307bc4]/90 disabled:opacity-40"
+              size="cta-sm"
+              className="disabled:opacity-40"
             >
               <Icon icon="fa6-solid:check" className="mr-1.5 text-[11px]" />Cấp phát
             </Button>
@@ -381,7 +371,8 @@ export default function PharmacyPrescriptionDetail() {
               <Button
                 type="submit"
                 disabled={acting}
-                className="h-auto rounded-lg bg-[#dc3545] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#dc3545]/90"
+                variant="danger"
+                size="cta-xs"
               >
                 {acting ? 'Đang hủy…' : 'Xác nhận hủy'}
               </Button>

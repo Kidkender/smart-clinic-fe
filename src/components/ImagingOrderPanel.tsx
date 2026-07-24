@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import {
   getImagingOrderDetail,
   scheduleImagingStudy,
@@ -266,7 +267,7 @@ export default function ImagingOrderPanel({
                       type="button"
                       disabled={busy || !selectedProcedureId}
                       onClick={handleSchedule}
-                      className="h-auto shrink-0 rounded-lg bg-[#307bc4] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                      size="cta-md"
                     >
                       Lên lịch
                     </Button>
@@ -294,7 +295,8 @@ export default function ImagingOrderPanel({
                       type="button"
                       disabled={busy}
                       onClick={handlePerform}
-                      className="h-auto self-start rounded-lg bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                      size="cta-sm"
+                      className="self-start"
                     >
                       Xác nhận đã chụp
                     </Button>
@@ -322,7 +324,7 @@ export default function ImagingOrderPanel({
                       type="button"
                       disabled={busy}
                       onClick={handleSubmitReport}
-                      className="h-auto rounded-lg bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                      size="cta-sm"
                     >
                       Lưu báo cáo
                     </Button>
@@ -347,12 +349,7 @@ export default function ImagingOrderPanel({
                 </div>
               )}
 
-              {error && (
-                <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-3.5 py-2.5 text-[13px] text-[#dc3545]">
-                  <Icon icon="fa6-solid:circle-exclamation" />
-                  {error}
-                </div>
-              )}
+              {error && <ErrorAlert variant="compact" className="mt-2.5">{error}</ErrorAlert>}
             </>
           )}
         </div>

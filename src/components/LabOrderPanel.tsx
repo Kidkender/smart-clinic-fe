@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import {
   getLabOrderDetail,
   attachLabItems,
@@ -12,6 +13,7 @@ import {
 } from '@/api/lab';
 import { resolveError } from '@/utils/errorMessages';
 import { labSpecimenStatusLabel, labResultFlagLabel, labResultFlagBadgeClass } from '@/utils/labels';
+import { toneBadgeClass } from '@/utils/badgeStyles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -250,7 +252,7 @@ export default function LabOrderPanel({
                   <span className="text-[13px] text-[#6c757d]">
                     Bệnh phẩm: {specimenTypeOptions.find(t => t.Code === detail.specimen?.SpecimenType)?.Name ?? detail.specimen.SpecimenType}
                   </span>
-                  <Badge className="rounded-full bg-[#307bc4]/10 px-2.5 py-1 text-xs font-semibold text-[#307bc4] hover:bg-[#307bc4]/10">
+                  <Badge className={toneBadgeClass('info')}>
                     {labSpecimenStatusLabel(specimenStatus ?? 'pending_collection')}
                   </Badge>
                 </div>
@@ -282,7 +284,7 @@ export default function LabOrderPanel({
                     type="button"
                     disabled={busy}
                     onClick={handleCollect}
-                    className="h-auto shrink-0 rounded-lg bg-[#307bc4] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                    size="cta-md"
                   >
                     Lấy mẫu
                   </Button>
@@ -294,7 +296,7 @@ export default function LabOrderPanel({
                   type="button"
                   disabled={busy}
                   onClick={handleReceive}
-                  className="mb-3 h-auto rounded-lg bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                  size="cta-sm" className="mb-3"
                 >
                   Nhận mẫu
                 </Button>
@@ -331,7 +333,7 @@ export default function LabOrderPanel({
                           type="button"
                           disabled={busy}
                           onClick={handleSubmitResults}
-                          className="h-auto rounded-lg bg-[#307bc4] px-4 py-2.25 text-xs font-semibold text-white hover:bg-[#307bc4]/90"
+                          size="cta-sm"
                         >
                           Lưu kết quả
                         </Button>
@@ -351,12 +353,7 @@ export default function LabOrderPanel({
                 </div>
               )}
 
-              {error && (
-                <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-3.5 py-2.5 text-[13px] text-[#dc3545]">
-                  <Icon icon="fa6-solid:circle-exclamation" />
-                  {error}
-                </div>
-              )}
+              {error && <ErrorAlert variant="compact" className="mt-2.5">{error}</ErrorAlert>}
             </>
           )}
         </div>

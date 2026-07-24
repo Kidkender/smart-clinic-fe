@@ -9,6 +9,7 @@ import { getAvailableSlots, listDoctorSchedules } from '@/api/doctorSchedule';
 import { resolveError } from '@/utils/errorMessages';
 import { appointmentTypeLabel, APPOINTMENT_TYPES } from '@/utils/labels';
 import { cn } from '@/lib/utils';
+import { ErrorAlert } from '@/components/ui/alert';
 import { appointmentSchema, type AppointmentFormValues } from '@/schemas/appointment';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -400,11 +401,7 @@ export default function CreateAppointmentDialog({
             )}
           />
 
-          {formError && (
-            <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-              {formError}
-            </div>
-          )}
+          {formError && <ErrorAlert icon={false} className="mt-4">{formError}</ErrorAlert>}
 
           <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
             <Button
@@ -419,7 +416,7 @@ export default function CreateAppointmentDialog({
             <Button
               type="submit"
               disabled={saving || !patientId || !departmentIdValue || !scheduledAt}
-              className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+              size="cta"
             >
               {saving ? 'Đang lưu…' : 'Đặt lịch'}
             </Button>

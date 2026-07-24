@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { listImagingWorklist } from '@/api/imaging';
 import { resolveError } from '@/utils/errorMessages';
 import { imagingStudyStatusLabel, imagingReportStatusLabel } from '@/utils/labels';
-import { imagingStudyBadgeClass } from '@/utils/badgeStyles';
+import { imagingStudyBadgeClass, toneBadgeClass } from '@/utils/badgeStyles';
 import { useAuth } from '@/context/AuthContext';
 import ImagingOrderPanel from '@/components/ImagingOrderPanel';
 import { Card } from '@/components/ui/card';
@@ -69,12 +70,7 @@ export default function ImagingWorklist() {
         />
       </div>
 
-      {error && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-[#dc3545]/30 bg-[#dc3545]/8 px-4.5 py-3.5 text-[#dc3545]">
-          <Icon icon="fa6-solid:circle-exclamation" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       {loading ? (
         <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>
@@ -102,7 +98,7 @@ export default function ImagingWorklist() {
                     {item.study_status ? imagingStudyStatusLabel(item.study_status) : 'Chưa lên lịch'}
                   </Badge>
                   {item.study_status === 'completed' && (
-                    <Badge className="rounded-full bg-[#6c757d]/10 px-2.5 py-1 text-xs font-semibold text-[#6c757d] hover:bg-[#6c757d]/10">
+                    <Badge className={toneBadgeClass('neutral')}>
                       {imagingReportStatusLabel(item.report_status)}
                     </Badge>
                   )}

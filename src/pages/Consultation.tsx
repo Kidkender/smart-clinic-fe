@@ -9,6 +9,8 @@ import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { resolveError } from '@/utils/errorMessages';
 import { encounterStatusLabel, encounterTypeLabel } from '@/utils/labels';
+import { allergyWarningClass } from '@/utils/badgeStyles';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import VitalsSection from '@/components/consultation/VitalsSection';
@@ -126,7 +128,7 @@ export default function Consultation() {
             {canCompleteEncounter && encounter.Status === 'in_progress' && (
               <Button
                 onClick={handleComplete}
-                className="h-auto rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white hover:bg-[#307bc4]/90"
+                size="cta"
               >
                 <Icon icon="fa6-solid:check" className="mr-1.5 text-[13px]" />Hoàn tất khám
               </Button>
@@ -134,7 +136,7 @@ export default function Consultation() {
           </div>
         </div>
         {encounter.Patient?.Allergies && (
-          <div className="mt-3.5 rounded-lg bg-[#dc3545]/8 px-3.5 py-2.5 text-[13px] font-semibold text-[#dc3545]">
+          <div className={cn('mt-3.5', allergyWarningClass)}>
             <Icon icon="fa6-solid:triangle-exclamation" className="mr-1.5" />Dị ứng: {encounter.Patient.Allergies}
           </div>
         )}
