@@ -408,6 +408,7 @@ export default function Doctors() {
                 <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số CCHN</label>
                 <Input
                   {...register('license_no')}
+                  placeholder="VD: 001234/BYT-CCHN"
                   className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
                 />
               </div>

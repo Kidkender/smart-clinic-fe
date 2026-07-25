@@ -27,6 +27,7 @@ const NAV: NavItem[] = [
   { to: '/imaging-procedures', label: 'Danh mục CĐHA', icon: 'fa6-solid:radiation', roles: ['admin', 'radiology_tech'] },
   { to: '/wards', label: 'Khu điều trị & Giường', icon: 'fa6-solid:hospital-user', roles: ['admin'] },
   { to: '/pharmacy/ward-issues', label: 'Cấp thuốc nội trú', icon: 'fa6-solid:pills', roles: ['admin', 'pharmacist'] },
+  { to: '/inventory', label: 'Kho thuốc', icon: 'fa6-solid:boxes-stacked', roles: ['admin', 'pharmacist'] },
   { to: '/doctors', label: 'Bác sĩ', icon: 'fa6-solid:user-doctor', roles: ['admin'] },
   { to: '/doctor-schedules', label: 'Lịch làm việc BS', icon: 'fa6-solid:calendar-check', roles: ['admin'] },
   { to: '/users', label: 'Nhân viên', icon: 'fa6-solid:user-check', roles: ['admin'] },

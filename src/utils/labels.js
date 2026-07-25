@@ -162,6 +162,18 @@ const INVOICE_STATUS = {
   cancelled: 'Đã hủy',
 };
 
+const STOCK_TRANSACTION_TYPE = {
+  purchase: 'Nhập kho',
+  transfer_in: 'Chuyển kho vào',
+  transfer_out: 'Chuyển kho ra',
+  adjustment: 'Điều chỉnh kiểm kê',
+};
+
+const STOCK_AUDIT_STATUS = {
+  draft: 'Đang kiểm kê',
+  completed: 'Đã hoàn tất',
+};
+
 const ATTACHMENT_CATEGORY = {
   document: 'Giấy tờ',
   xray: 'X-quang',
@@ -187,6 +199,22 @@ const LAB_RESULT_FLAG_BADGE_TONE = {
 };
 
 export const labResultFlagBadgeClass = flag => toneBadgeClass(LAB_RESULT_FLAG_BADGE_TONE[flag] ?? 'neutral');
+
+const STOCK_AUDIT_STATUS_BADGE_TONE = {
+  draft: 'warning',
+  completed: 'success',
+};
+
+export const stockAuditStatusBadgeClass = status => toneBadgeClass(STOCK_AUDIT_STATUS_BADGE_TONE[status] ?? 'neutral');
+
+const STOCK_TRANSACTION_TYPE_BADGE_TONE = {
+  purchase: 'success',
+  transfer_in: 'success',
+  transfer_out: 'warning',
+  adjustment: 'info',
+};
+
+export const stockTransactionTypeBadgeClass = type => toneBadgeClass(STOCK_TRANSACTION_TYPE_BADGE_TONE[type] ?? 'neutral');
 
 export const appointmentStatusLabel = value => translate(APPOINTMENT_STATUS, value);
 export const appointmentTypeLabel = value => translate(APPOINTMENT_TYPE, value);
@@ -216,3 +244,6 @@ export const userStatusLabel = value => translate(USER_STATUS, value);
 export const invoiceStatusLabel = value => translate(INVOICE_STATUS, value);
 export const attachmentCategoryLabel = value => translate(ATTACHMENT_CATEGORY, value);
 export const ATTACHMENT_CATEGORIES = Object.keys(ATTACHMENT_CATEGORY);
+export const stockTransactionTypeLabel = value => translate(STOCK_TRANSACTION_TYPE, value);
+export const STOCK_TRANSACTION_TYPES = Object.keys(STOCK_TRANSACTION_TYPE);
+export const stockAuditStatusLabel = value => translate(STOCK_AUDIT_STATUS, value);

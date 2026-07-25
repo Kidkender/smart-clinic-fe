@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,7 @@ import {
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import SortableTableHead from '@/components/ui/sortable-table-head';
 
 interface Department {
   ID: number | string;
@@ -82,6 +83,11 @@ export default function Admissions() {
   const { role } = useAuth();
   const canAdmit = role === 'admin' || role === 'doctor' || role === 'receptionist';
   const [statusFilter, setStatusFilter] = useState<string[]>(['active']);
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [sortBy, setSortBy] = useState('admitted_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [admissions, setAdmissions] = useState<Admission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -110,14 +116,20 @@ export default function Admissions() {
     setLoading(true);
     setError('');
     try {
-      const result = await listAdmissions({ status: statusFilter.length === 0 ? undefined : statusFilter.join(',') });
+      const result = await listAdmissions({
+        status: statusFilter.length === 0 ? undefined : statusFilter.join(','),
+        department_id: departmentFilter || undefined,
+        q: appliedSearch || undefined,
+        sort_by: sortBy || undefined,
+        sort_dir: sortBy ? sortDir : undefined,
+      });
       setAdmissions(result.data ?? []);
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, departmentFilter, appliedSearch, sortBy, sortDir]);
 
   useEffect(() => {
     fetchAdmissions();
@@ -126,6 +138,20 @@ export default function Admissions() {
   useEffect(() => {
     getDepartments().then(r => setDepartments(r.data ?? [])).catch(() => setDepartments([]));
   }, []);
+
+  const handleSearchSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setAppliedSearch(search.trim());
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
 
   const openAdmit = () => {
     reset(EMPTY_FORM);
@@ -223,7 +249,21 @@ export default function Admissions() {
           <h1 className="m-0 text-[26px] font-bold text-[#274760]">Nội trú</h1>
           <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">Danh sách bệnh nhân đang điều trị nội trú</p>
         </div>
-        <div className="flex gap-2.5">
+        <div className="flex flex-wrap gap-2.5">
+          <Select
+            value={departmentFilter || 'all'}
+            onValueChange={value => setDepartmentFilter(value === 'all' ? '' : value)}
+          >
+            <SelectTrigger className="h-auto min-w-[180px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+              <SelectValue placeholder="Tất cả khoa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả khoa</SelectItem>
+              {departments.map(d => (
+                <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <MultiSelect
             options={ADMISSION_STATUS_OPTIONS}
             selected={statusFilter}
@@ -243,6 +283,22 @@ export default function Admissions() {
         </div>
       </div>
 
+      <form onSubmit={handleSearchSubmit} noValidate className="mb-5 flex gap-2.5">
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Tìm theo tên bệnh nhân, MRN…"
+          className="h-auto max-w-[360px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+        />
+        <Button
+          type="submit"
+          variant="outline"
+          className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+        >
+          Tìm kiếm
+        </Button>
+      </form>
+
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
@@ -254,11 +310,11 @@ export default function Admissions() {
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Bệnh nhân</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Khoa</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Giường</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Diện</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Ngày nhập</TableHead>
+                <SortableTableHead label="Bệnh nhân" column="patient" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Khoa" column="department" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Giường" column="ward" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Diện" column="type" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Ngày nhập" column="admitted_at" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Trạng thái</TableHead>
               </TableRow>
             </TableHeader>

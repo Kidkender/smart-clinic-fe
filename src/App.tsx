@@ -21,6 +21,10 @@ import PharmacyWardIssues from './pages/PharmacyWardIssues';
 import PharmacyWorklist from './pages/PharmacyWorklist';
 import PharmacyPrescriptionDetail from './pages/PharmacyPrescriptionDetail';
 import Departments from './pages/Departments';
+import Inventory from './pages/Inventory';
+import StockTransactions from './pages/StockTransactions';
+import StockAudits from './pages/StockAudits';
+import StockAuditDetail from './pages/StockAuditDetail';
 import LabTests from './pages/LabTests';
 import LabWorklist from './pages/LabWorklist';
 import ImagingProcedures from './pages/ImagingProcedures';
@@ -118,6 +122,38 @@ function App() {
           element={
             <RequireAuth roles={['admin']}>
               <Departments />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="inventory"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <Inventory />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="inventory/transactions"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <StockTransactions />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="inventory/audits"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <StockAudits />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="inventory/audits/:id"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <StockAuditDetail />
             </RequireAuth>
           }
         />
