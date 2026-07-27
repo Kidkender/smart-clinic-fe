@@ -17,6 +17,7 @@ import { toLocalDateInput, type Appointment, type Department, type DoctorFilterO
 
 const PAGE_LIMIT = 20;
 const today = () => toLocalDateInput(new Date());
+const DEFAULT_STATUS_FILTER = ['booked', 'checked_in'];
 
 export default function Appointments() {
   const { role } = useAuth();
@@ -33,7 +34,7 @@ export default function Appointments() {
 
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>(DEFAULT_STATUS_FILTER);
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [doctorFilter, setDoctorFilter] = useState('all');
   const [doctorOptions, setDoctorOptions] = useState<DoctorFilterOption[]>([]);
@@ -93,13 +94,16 @@ export default function Appointments() {
     }
   };
 
-  const hasActiveFilters = !!searchInput || statusFilter.length > 0 || departmentFilter !== 'all'
+  const isDefaultStatusFilter = statusFilter.length === DEFAULT_STATUS_FILTER.length
+    && DEFAULT_STATUS_FILTER.every(status => statusFilter.includes(status));
+
+  const hasActiveFilters = !!searchInput || !isDefaultStatusFilter || departmentFilter !== 'all'
     || doctorFilter !== 'all' || !!dateFrom || !!dateTo || sortBy !== 'scheduled' || sortDir !== 'asc';
 
   const handleResetFilters = () => {
     setSearchInput('');
     setSearch('');
-    setStatusFilter([]);
+    setStatusFilter(DEFAULT_STATUS_FILTER);
     setDepartmentFilter('all');
     setDoctorFilter('all');
     setDateFrom('');
