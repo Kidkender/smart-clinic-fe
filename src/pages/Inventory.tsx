@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   Table,
   TableBody,
@@ -25,6 +26,13 @@ import StockOutDialog from '@/components/inventory/StockOutDialog';
 import type { Drug, DrugBatch } from '@/components/inventory/types';
 
 const EXPIRING_DAYS = 30;
+const SEARCH_DEBOUNCE_MS = 400;
+
+const STOCK_STATUS_OPTIONS = [
+  { value: 'in_stock', label: 'Còn hàng' },
+  { value: 'low', label: 'Dưới định mức' },
+  { value: 'out', label: 'Hết hàng' },
+];
 
 type DrugModal =
   | { mode: 'create' }
@@ -38,11 +46,11 @@ export default function Inventory() {
   const [drugs, setDrugs] = useState<Drug[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
+  const [stockFilter, setStockFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [lowStockOnly, setLowStockOnly] = useState(false);
 
   const [lowStockCount, setLowStockCount] = useState(0);
   const [expiringBatchesList, setExpiringBatchesList] = useState<DrugBatch[]>([]);
@@ -52,12 +60,18 @@ export default function Inventory() {
   const [stockInDrug, setStockInDrug] = useState<Drug | null>(null);
   const [stockOutDrug, setStockOutDrug] = useState<Drug | null>(null);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const fetchDrugs = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       const result = await searchDrugs({
-        name: appliedSearch || undefined,
+        name: search || undefined,
+        stock: stockFilter.length === 0 ? undefined : stockFilter.join(','),
         page: 1,
         limit: 100,
         sort_by: sortBy || undefined,
@@ -69,7 +83,7 @@ export default function Inventory() {
     } finally {
       setLoading(false);
     }
-  }, [appliedSearch, sortBy, sortDir]);
+  }, [search, stockFilter, sortBy, sortDir]);
 
   const fetchAlerts = useCallback(async () => {
     try {
@@ -97,11 +111,6 @@ export default function Inventory() {
     await Promise.all([fetchDrugs(), fetchAlerts()]);
   };
 
-  const handleSearchSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    setAppliedSearch(search.trim());
-  };
-
   const handleSort = (column: string) => {
     if (sortBy === column) {
       setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
@@ -111,9 +120,16 @@ export default function Inventory() {
     }
   };
 
-  const visibleDrugs = lowStockOnly
-    ? drugs.filter(d => d.MinStockLevel > 0 && d.StockQuantity < d.MinStockLevel)
-    : drugs;
+  const hasActiveFilters = !!searchInput || stockFilter.length > 0;
+
+  const handleResetFilters = () => {
+    setSearchInput('');
+    setStockFilter([]);
+  };
+
+  const toggleLowStockOnly = () => {
+    setStockFilter(prev => (prev.length === 1 && prev[0] === 'low' ? [] : ['low']));
+  };
 
   return (
     <>
@@ -133,12 +149,12 @@ export default function Inventory() {
       <InventoryTabs />
 
       <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
-        <button type="button" onClick={() => setLowStockOnly(v => !v)} className="cursor-pointer border-none bg-transparent p-0 text-left">
+        <button type="button" onClick={toggleLowStockOnly} className="cursor-pointer border-none bg-transparent p-0 text-left">
           <StatCard
             label="Thuốc dưới định mức"
             value={lowStockCount}
             color="#dc3545"
-            active={lowStockOnly}
+            active={stockFilter.length === 1 && stockFilter[0] === 'low'}
           />
         </button>
         <button type="button" onClick={() => setShowExpiringPanel(v => !v)} className="cursor-pointer border-none bg-transparent p-0 text-left">
@@ -180,55 +196,59 @@ export default function Inventory() {
         </Card>
       )}
 
-      <form onSubmit={handleSearchSubmit} noValidate className="mb-5 flex gap-2.5">
-        <Input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Tìm theo tên thuốc…"
-          className="h-auto max-w-[360px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="relative max-w-[360px] flex-1">
+          <Icon icon="fa6-solid:magnifying-glass" className="absolute top-1/2 left-4 -translate-y-1/2 text-sm text-[#adb5bd]" />
+          <Input
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="Tìm theo tên thuốc…"
+            className="h-auto rounded-xl border-[#dde2e8] py-3 pr-4 pl-10 text-[15px] text-[#274760]"
+          />
+        </div>
+        <MultiSelect
+          options={STOCK_STATUS_OPTIONS}
+          selected={stockFilter}
+          onChange={setStockFilter}
+          placeholder="Tất cả tồn kho"
+          className="w-[180px]"
         />
-        <Button
-          type="submit"
-          variant="outline"
-          className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
-        >
-          Tìm kiếm
-        </Button>
-        {lowStockOnly && (
+        {hasActiveFilters && (
           <Button
             type="button"
             variant="outline"
-            onClick={() => setLowStockOnly(false)}
+            onClick={handleResetFilters}
             className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#dc3545]"
           >
-            Bỏ lọc dưới định mức
+            <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
+            Xóa bộ lọc
           </Button>
         )}
-      </form>
+      </div>
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
         {loading ? (
           <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>
-        ) : visibleDrugs.length === 0 ? (
+        ) : drugs.length === 0 ? (
           <div className="p-15 text-center text-[#6c757d]">Không tìm thấy thuốc nào.</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
                 <SortableTableHead label="Tên thuốc" column="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Hoạt chất</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Hàm lượng</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Đơn vị</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Giá</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Tồn kho</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Định mức tối thiểu</TableHead>
+                <SortableTableHead label="Hoạt chất" column="active_ingredient" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Hàm lượng" column="strength" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Đơn vị" column="unit" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Giá" column="price" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Tồn kho" column="stock_quantity" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Định mức tối thiểu" column="min_stock_level" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 {canManage && <TableHead className="h-auto px-4 py-3"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visibleDrugs.map(d => {
+              {drugs.map(d => {
                 const isLow = d.MinStockLevel > 0 && d.StockQuantity < d.MinStockLevel;
                 return (
                   <TableRow key={d.ID} className="border-t border-[#f0f4f8]">

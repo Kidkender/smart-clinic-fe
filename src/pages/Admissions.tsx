@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import { listBeds } from '@/api/bed';
 import { searchPatients } from '@/api/patient';
 import { resolveError } from '@/utils/errorMessages';
 import { admissionTypeLabel } from '@/utils/labels';
+import { DatePicker } from '@/components/ui/date-picker';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { admissionStatusBadgeClass } from '@/utils/badgeStyles';
@@ -74,6 +75,11 @@ const ADMISSION_STATUS_OPTIONS = [
   { value: 'discharged', label: 'Đã xuất viện' },
 ];
 
+const ADMISSION_TYPE_OPTIONS = ADMISSION_TYPES.map(value => ({
+  value,
+  label: admissionTypeLabel(value),
+}));
+
 const EMPTY_FORM: AdmissionFormValues = {
   patient_id: '', department_id: '', attending_doctor_id: '', admission_type: 'bhyt', ward_id: '', bed_id: '',
 };
@@ -83,9 +89,12 @@ export default function Admissions() {
   const { role } = useAuth();
   const canAdmit = role === 'admin' || role === 'doctor' || role === 'receptionist';
   const [statusFilter, setStatusFilter] = useState<string[]>(['active']);
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [departmentFilter, setDepartmentFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
   const [sortBy, setSortBy] = useState('admitted_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [admissions, setAdmissions] = useState<Admission[]>([]);
@@ -118,8 +127,11 @@ export default function Admissions() {
     try {
       const result = await listAdmissions({
         status: statusFilter.length === 0 ? undefined : statusFilter.join(','),
+        type: typeFilter.length === 0 ? undefined : typeFilter.join(','),
         department_id: departmentFilter || undefined,
-        q: appliedSearch || undefined,
+        from: dateFrom || undefined,
+        to: dateTo || undefined,
+        q: search || undefined,
         sort_by: sortBy || undefined,
         sort_dir: sortBy ? sortDir : undefined,
       });
@@ -129,7 +141,12 @@ export default function Admissions() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, departmentFilter, appliedSearch, sortBy, sortDir]);
+  }, [statusFilter, typeFilter, departmentFilter, dateFrom, dateTo, search, sortBy, sortDir]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     fetchAdmissions();
@@ -139,11 +156,6 @@ export default function Admissions() {
     getDepartments().then(r => setDepartments(r.data ?? [])).catch(() => setDepartments([]));
   }, []);
 
-  const handleSearchSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    setAppliedSearch(search.trim());
-  };
-
   const handleSort = (column: string) => {
     if (sortBy === column) {
       setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
@@ -151,6 +163,19 @@ export default function Admissions() {
       setSortBy(column);
       setSortDir('asc');
     }
+  };
+
+  const hasActiveFilters = !!searchInput || statusFilter.length > 0 || typeFilter.length > 0
+    || !!departmentFilter || !!dateFrom || !!dateTo;
+
+  const handleResetFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setStatusFilter([]);
+    setTypeFilter([]);
+    setDepartmentFilter('');
+    setDateFrom('');
+    setDateTo('');
   };
 
   const openAdmit = () => {
@@ -249,55 +274,86 @@ export default function Admissions() {
           <h1 className="m-0 text-[26px] font-bold text-[#274760]">Nội trú</h1>
           <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">Danh sách bệnh nhân đang điều trị nội trú</p>
         </div>
-        <div className="flex flex-wrap gap-2.5">
-          <Select
-            value={departmentFilter || 'all'}
-            onValueChange={value => setDepartmentFilter(value === 'all' ? '' : value)}
+        {canAdmit && (
+          <Button
+            onClick={openAdmit}
+            size="cta"
           >
-            <SelectTrigger className="h-auto min-w-[180px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-              <SelectValue placeholder="Tất cả khoa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả khoa</SelectItem>
-              {departments.map(d => (
-                <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <MultiSelect
-            options={ADMISSION_STATUS_OPTIONS}
-            selected={statusFilter}
-            onChange={setStatusFilter}
-            placeholder="Tất cả"
-            className="w-[180px]"
-          />
-          {canAdmit && (
-            <Button
-              onClick={openAdmit}
-              size="cta"
-            >
-              <Icon icon="fa6-solid:bed-pulse" className="text-sm" />
-              Nhập viện
-            </Button>
-          )}
-        </div>
+            <Icon icon="fa6-solid:bed-pulse" className="text-sm" />
+            Nhập viện
+          </Button>
+        )}
       </div>
 
-      <form onSubmit={handleSearchSubmit} noValidate className="mb-5 flex gap-2.5">
-        <Input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Tìm theo tên bệnh nhân, MRN…"
-          className="h-auto max-w-[360px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[220px] flex-1">
+          <Icon icon="fa6-solid:magnifying-glass" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-[#6c757d]" />
+          <Input
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="Tìm theo tên bệnh nhân, MRN…"
+            className="h-auto rounded-xl border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
+          />
+        </div>
+        <MultiSelect
+          options={ADMISSION_STATUS_OPTIONS}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+          placeholder="Tất cả trạng thái"
+          className="w-[170px]"
         />
-        <Button
-          type="submit"
-          variant="outline"
-          className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+        <MultiSelect
+          options={ADMISSION_TYPE_OPTIONS}
+          selected={typeFilter}
+          onChange={setTypeFilter}
+          placeholder="Tất cả diện"
+          className="w-[170px]"
+        />
+        <Select
+          value={departmentFilter || 'all'}
+          onValueChange={value => setDepartmentFilter(value === 'all' ? '' : value)}
         >
-          Tìm kiếm
-        </Button>
-      </form>
+          <SelectTrigger className="h-auto w-[180px] rounded-xl px-4 py-2.75 text-sm">
+            <SelectValue placeholder="Tất cả khoa" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả khoa</SelectItem>
+            {departments.map(d => (
+              <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex items-center rounded-xl border border-border bg-background py-2.75 pr-3.5 pl-4 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Từ ngày</span>
+            <DatePicker
+              value={dateFrom}
+              onChange={setDateFrom}
+              className="h-auto w-[110px] justify-start gap-1.5 border-0 bg-transparent p-0 text-sm text-[#274760] shadow-none hover:bg-transparent"
+            />
+          </div>
+          <div className="mx-3 h-4.5 w-px bg-border" />
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Đến ngày</span>
+            <DatePicker
+              value={dateTo}
+              onChange={setDateTo}
+              className="h-auto w-[110px] justify-start gap-1.5 border-0 bg-transparent p-0 text-sm text-[#274760] shadow-none hover:bg-transparent"
+            />
+          </div>
+        </div>
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleResetFilters}
+            className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.75 text-sm font-medium text-[#6c757d] hover:text-[#dc3545]"
+          >
+            <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
+            Xóa bộ lọc
+          </Button>
+        )}
+      </div>
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 

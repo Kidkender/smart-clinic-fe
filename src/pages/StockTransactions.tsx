@@ -1,17 +1,12 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   Table,
   TableBody,
@@ -20,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import SortableTableHead from '@/components/ui/sortable-table-head';
 import { listStockTransactions } from '@/api/inventory';
 import { resolveError } from '@/utils/errorMessages';
 import { stockTransactionTypeLabel, stockTransactionTypeBadgeClass, STOCK_TRANSACTION_TYPES } from '@/utils/labels';
@@ -27,17 +23,27 @@ import type { StockTransaction } from '@/components/inventory/types';
 import InventoryTabs from '@/components/inventory/InventoryTabs';
 
 const PAGE_LIMIT = 20;
+const SEARCH_DEBOUNCE_MS = 400;
+
+const TYPE_OPTIONS = STOCK_TRANSACTION_TYPES.map(value => ({ value, label: stockTransactionTypeLabel(value) }));
 
 export default function StockTransactions() {
   const [transactions, setTransactions] = useState<StockTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [drugQueryInput, setDrugQueryInput] = useState('');
   const [drugQuery, setDrugQuery] = useState('');
-  const [appliedDrugQuery, setAppliedDrugQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDrugQuery(drugQueryInput.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [drugQueryInput]);
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -46,7 +52,10 @@ export default function StockTransactions() {
       const result = await listStockTransactions({
         page,
         limit: PAGE_LIMIT,
-        type: typeFilter === 'all' ? undefined : typeFilter,
+        q: drugQuery || undefined,
+        type: typeFilter.length === 0 ? undefined : typeFilter.join(','),
+        sort_by: sortBy,
+        sort_dir: sortDir,
       });
       setTransactions(result.data ?? []);
       setTotal(result.meta?.total ?? 0);
@@ -56,7 +65,7 @@ export default function StockTransactions() {
     } finally {
       setLoading(false);
     }
-  }, [page, typeFilter]);
+  }, [page, drugQuery, typeFilter, sortBy, sortDir]);
 
   useEffect(() => {
     fetchTransactions();
@@ -64,16 +73,23 @@ export default function StockTransactions() {
 
   useEffect(() => {
     setPage(1);
-  }, [typeFilter, appliedDrugQuery]);
+  }, [typeFilter, drugQuery]);
 
-  const handleSearchSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    setAppliedDrugQuery(drugQuery.trim().toLowerCase());
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
   };
 
-  const visibleTransactions = appliedDrugQuery
-    ? transactions.filter(t => (t.Drug?.Name ?? '').toLowerCase().includes(appliedDrugQuery))
-    : transactions;
+  const hasActiveFilters = !!drugQueryInput || typeFilter.length > 0;
+
+  const handleResetFilters = () => {
+    setDrugQueryInput('');
+    setTypeFilter([]);
+  };
 
   return (
     <>
@@ -86,52 +102,57 @@ export default function StockTransactions() {
 
       <InventoryTabs />
 
-      <form onSubmit={handleSearchSubmit} noValidate className="mb-5 flex flex-wrap items-center gap-2.5">
-        <Input
-          value={drugQuery}
-          onChange={e => setDrugQuery(e.target.value)}
-          placeholder="Tìm theo tên thuốc…"
-          className="h-auto max-w-[280px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="relative max-w-[280px] flex-1">
+          <Icon icon="fa6-solid:magnifying-glass" className="absolute top-1/2 left-4 -translate-y-1/2 text-sm text-[#adb5bd]" />
+          <Input
+            value={drugQueryInput}
+            onChange={e => setDrugQueryInput(e.target.value)}
+            placeholder="Tìm theo tên thuốc…"
+            className="h-auto rounded-xl border-[#dde2e8] py-3 pr-4 pl-10 text-[15px] text-[#274760]"
+          />
+        </div>
+        <MultiSelect
+          options={TYPE_OPTIONS}
+          selected={typeFilter}
+          onChange={setTypeFilter}
+          placeholder="Tất cả loại"
+          className="w-[200px]"
         />
-        <Button
-          type="submit"
-          variant="outline"
-          className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
-        >
-          Tìm kiếm
-        </Button>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="h-auto w-[200px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả loại</SelectItem>
-            {STOCK_TRANSACTION_TYPES.map(t => <SelectItem key={t} value={t}>{stockTransactionTypeLabel(t)}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </form>
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleResetFilters}
+            className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#dc3545]"
+          >
+            <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
+            Xóa bộ lọc
+          </Button>
+        )}
+      </div>
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
         {loading ? (
           <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>
-        ) : visibleTransactions.length === 0 ? (
+        ) : transactions.length === 0 ? (
           <div className="p-15 text-center text-[#6c757d]">Không có giao dịch nào.</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Thời gian</TableHead>
+                <SortableTableHead label="Thời gian" column="created_at" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Thuốc</TableHead>
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Lô</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Loại</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Số lượng</TableHead>
+                <SortableTableHead label="Loại" column="type" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Số lượng" column="quantity" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Ghi chú</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visibleTransactions.map(t => (
+              {transactions.map(t => (
                 <TableRow key={t.ID} className="border-t border-[#f0f4f8]">
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">{new Date(t.CreatedAt).toLocaleString('vi-VN')}</TableCell>
                   <TableCell className="px-4 py-3 text-sm font-semibold text-[#274760]">{t.Drug?.Name ?? `#${t.DrugID}`}</TableCell>

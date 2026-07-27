@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
+import { MultiSelect } from '@/components/ui/multi-select';
+import { Pagination } from '@/components/ui/pagination';
 import {
   Select,
   SelectContent,
@@ -47,7 +49,9 @@ interface Patient {
   CCCD: string;
 }
 
+const PAGE_LIMIT = 20;
 const GENDERS = ['male', 'female', 'other'];
+const GENDER_OPTIONS = GENDERS.map(value => ({ value, label: genderLabel(value) }));
 const EMPTY_FORM: PatientFormValues = {
   fullname: '',
   gender: 'other',
@@ -66,10 +70,14 @@ export default function Patients() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
+  const [genderFilter, setGenderFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('mrn');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -85,27 +93,42 @@ export default function Patients() {
     setError('');
     try {
       const result = await searchPatients({
-        q: appliedSearch || undefined,
-        page: 1,
-        limit: 20,
+        q: search || undefined,
+        gender: genderFilter.length === 0 ? undefined : genderFilter.join(','),
+        page,
+        limit: PAGE_LIMIT,
         sort_by: sortBy || undefined,
         sort_dir: sortBy ? sortDir : undefined,
       });
       setPatients(result.data ?? []);
+      setTotal(result.meta?.total ?? 0);
+      setTotalPages(result.meta?.total_pages ?? 1);
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setLoading(false);
     }
-  }, [appliedSearch, sortBy, sortDir]);
+  }, [search, genderFilter, sortBy, sortDir, page]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, genderFilter, sortBy, sortDir]);
 
   useEffect(() => {
     fetchPatients();
   }, [fetchPatients]);
 
-  const handleSearchSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    setAppliedSearch(search.trim());
+  const hasActiveFilters = !!searchInput || genderFilter.length > 0;
+
+  const handleResetFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setGenderFilter([]);
   };
 
   const handleSort = (column: string) => {
@@ -159,21 +182,35 @@ export default function Patients() {
         )}
       </div>
 
-      <form onSubmit={handleSearchSubmit} noValidate className="mb-5 flex gap-2.5">
-        <Input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Tìm theo tên, SĐT, CCCD, MRN…"
-          className="h-auto max-w-[360px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[220px] flex-1">
+          <Icon icon="fa6-solid:magnifying-glass" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-[#6c757d]" />
+          <Input
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="Tìm theo tên, SĐT, CCCD, MRN…"
+            className="h-auto rounded-xl border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
+          />
+        </div>
+        <MultiSelect
+          options={GENDER_OPTIONS}
+          selected={genderFilter}
+          onChange={setGenderFilter}
+          placeholder="Tất cả giới tính"
+          className="w-[170px]"
         />
-        <Button
-          type="submit"
-          variant="outline"
-          className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
-        >
-          Tìm kiếm
-        </Button>
-      </form>
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleResetFilters}
+            className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.75 text-sm font-medium text-[#6c757d] hover:text-[#dc3545]"
+          >
+            <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
+            Xóa bộ lọc
+          </Button>
+        )}
+      </div>
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
@@ -211,6 +248,10 @@ export default function Patients() {
           </Table>
         )}
       </Card>
+
+      {!loading && total > 0 && (
+        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} itemLabel="bệnh nhân" />
+      )}
 
       <Dialog open={canManage && modalOpen} onOpenChange={open => { if (!saving) setModalOpen(open); }}>
         <DialogContent className="max-h-[90vh] sm:max-w-[720px] overflow-y-auto rounded-[20px] p-8">

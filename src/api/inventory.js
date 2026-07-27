@@ -35,8 +35,8 @@ export async function createStockAudit(payload) {
   return data;
 }
 
-export async function listStockAudits() {
-  const { data } = await client.get('/inventory/stock-audits');
+export async function listStockAudits(params) {
+  const { data } = await client.get('/inventory/stock-audits', { params });
   return data;
 }
 

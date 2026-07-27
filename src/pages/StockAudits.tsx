@@ -11,7 +11,9 @@ import { stockAuditStatusLabel, stockAuditStatusBadgeClass } from '@/utils/label
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   Table,
   TableBody,
@@ -20,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import SortableTableHead from '@/components/ui/sortable-table-head';
 import {
   Dialog,
   DialogContent,
@@ -36,11 +39,23 @@ const createAuditSchema = z.object({
 
 type CreateAuditFormValues = z.infer<typeof createAuditSchema>;
 
+const SEARCH_DEBOUNCE_MS = 400;
+
+const STATUS_OPTIONS = [
+  { value: 'draft', label: 'Đang kiểm kê' },
+  { value: 'completed', label: 'Đã hoàn tất' },
+];
+
 export default function StockAudits() {
   const navigate = useNavigate();
   const [audits, setAudits] = useState<StockAudit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState('audit_date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [modalOpen, setModalOpen] = useState(false);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -51,22 +66,48 @@ export default function StockAudits() {
     defaultValues: { notes: '' },
   });
 
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const fetchAudits = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const result = await listStockAudits();
+      const result = await listStockAudits({
+        q: search || undefined,
+        status: statusFilter.length === 0 ? undefined : statusFilter.join(','),
+        sort_by: sortBy,
+        sort_dir: sortDir,
+      });
       setAudits(result.data ?? []);
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [search, statusFilter, sortBy, sortDir]);
 
   useEffect(() => {
     fetchAudits();
   }, [fetchAudits]);
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
+
+  const hasActiveFilters = !!searchInput || statusFilter.length > 0;
+
+  const handleResetFilters = () => {
+    setSearchInput('');
+    setStatusFilter([]);
+  };
 
   const openCreate = () => {
     reset({ notes: '' });
@@ -104,6 +145,36 @@ export default function StockAudits() {
 
       <InventoryTabs />
 
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="relative max-w-[280px] flex-1">
+          <Icon icon="fa6-solid:magnifying-glass" className="absolute top-1/2 left-4 -translate-y-1/2 text-sm text-[#adb5bd]" />
+          <Input
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="Tìm theo ghi chú…"
+            className="h-auto rounded-xl border-[#dde2e8] py-3 pr-4 pl-10 text-[15px] text-[#274760]"
+          />
+        </div>
+        <MultiSelect
+          options={STATUS_OPTIONS}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+          placeholder="Tất cả trạng thái"
+          className="w-[200px]"
+        />
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleResetFilters}
+            className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#dc3545]"
+          >
+            <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
+            Xóa bộ lọc
+          </Button>
+        )}
+      </div>
+
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
@@ -115,10 +186,10 @@ export default function StockAudits() {
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Ngày kiểm kê</TableHead>
+                <SortableTableHead label="Ngày kiểm kê" column="audit_date" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Ghi chú</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Trạng thái</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Hoàn tất lúc</TableHead>
+                <SortableTableHead label="Trạng thái" column="status" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Hoàn tất lúc" column="completed_at" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
               </TableRow>
             </TableHeader>
             <TableBody>

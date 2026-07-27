@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { MultiSelect } from '@/components/ui/multi-select';
 import FieldError from '@/components/FieldError';
 import {
   Select,
@@ -77,6 +78,12 @@ const SPECIALTIES = [
   'Gây mê hồi sức', 'Chẩn đoán hình ảnh', 'Xét nghiệm', 'Khác',
 ];
 
+const STATUS_OPTIONS = [
+  { value: 'active', label: 'Đang hoạt động' },
+  { value: 'pending', label: 'Chờ duyệt' },
+  { value: 'locked', label: 'Đã khóa' },
+];
+
 const EMPTY_PROFILE_FORM: DoctorProfileFormValues = {
   specialty: '',
   license_no: '',
@@ -96,6 +103,9 @@ export default function Doctors() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [departmentId, setDepartmentId] = useState('all');
   const [specialty, setSpecialty] = useState('all');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -135,8 +145,10 @@ export default function Doctors() {
     setError('');
     try {
       const result = await listDoctors({
+        q: search || undefined,
         department_id: departmentId !== 'all' ? Number(departmentId) : undefined,
         specialty: specialty !== 'all' ? specialty : undefined,
+        status: statusFilter.length === 0 ? undefined : statusFilter.join(','),
         sort_by: sortBy,
         sort_dir: sortDir,
         limit: 100,
@@ -147,11 +159,26 @@ export default function Doctors() {
     } finally {
       setLoading(false);
     }
-  }, [departmentId, specialty, sortBy, sortDir]);
+  }, [search, departmentId, specialty, statusFilter, sortBy, sortDir]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     fetchDoctors();
   }, [fetchDoctors]);
+
+  const hasActiveFilters = !!searchInput || departmentId !== 'all' || specialty !== 'all' || statusFilter.length > 0;
+
+  const handleResetFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setDepartmentId('all');
+    setSpecialty('all');
+    setStatusFilter([]);
+  };
 
   const handleSort = (column: string) => {
     if (sortBy === column) {
@@ -265,35 +292,63 @@ export default function Doctors() {
             Hồ sơ chuyên môn, ca trực, nghỉ phép và hiệu suất khám bệnh
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2.5">
-          <Select value={departmentId} onValueChange={setDepartmentId}>
-            <SelectTrigger className="h-auto w-[220px] shrink-0 rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760] data-[size=default]:h-auto">
-              <SelectValue placeholder="Tất cả khoa/phòng" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả khoa/phòng</SelectItem>
-              {departments.map(d => (
-                <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={specialty} onValueChange={setSpecialty}>
-            <SelectTrigger className="h-auto w-[220px] shrink-0 rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760] data-[size=default]:h-auto">
-              <SelectValue placeholder="Tất cả chuyên khoa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả chuyên khoa</SelectItem>
-              {SPECIALTIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Button
-            onClick={openCreate}
-            size="cta"
-            className="shrink-0"
-          >
-            <Icon icon="fa6-solid:plus" className="text-[13px]" /> Thêm bác sĩ
-          </Button>
+        <Button
+          onClick={openCreate}
+          size="cta"
+          className="shrink-0"
+        >
+          <Icon icon="fa6-solid:plus" className="text-[13px]" /> Thêm bác sĩ
+        </Button>
+      </div>
+
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[220px] flex-1">
+          <Icon icon="fa6-solid:magnifying-glass" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-[#6c757d]" />
+          <Input
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="Tìm theo tên, email…"
+            className="h-auto rounded-xl border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
+          />
         </div>
+        <Select value={departmentId} onValueChange={setDepartmentId}>
+          <SelectTrigger className="h-auto w-[200px] shrink-0 rounded-xl border-[#dde2e8] px-4 py-2.75 text-sm text-[#274760] data-[size=default]:h-auto">
+            <SelectValue placeholder="Tất cả khoa/phòng" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả khoa/phòng</SelectItem>
+            {departments.map(d => (
+              <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={specialty} onValueChange={setSpecialty}>
+          <SelectTrigger className="h-auto w-[200px] shrink-0 rounded-xl border-[#dde2e8] px-4 py-2.75 text-sm text-[#274760] data-[size=default]:h-auto">
+            <SelectValue placeholder="Tất cả chuyên khoa" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả chuyên khoa</SelectItem>
+            {SPECIALTIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <MultiSelect
+          options={STATUS_OPTIONS}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+          placeholder="Tất cả trạng thái"
+          className="w-[180px]"
+        />
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleResetFilters}
+            className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.75 text-sm font-medium text-[#6c757d] hover:text-[#dc3545]"
+          >
+            <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
+            Xóa bộ lọc
+          </Button>
+        )}
       </div>
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
