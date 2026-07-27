@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Pagination } from '@/components/ui/pagination';
 import {
   Select,
@@ -36,8 +35,6 @@ export default function StockTransactions() {
   const [drugQuery, setDrugQuery] = useState('');
   const [appliedDrugQuery, setAppliedDrugQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -50,8 +47,6 @@ export default function StockTransactions() {
         page,
         limit: PAGE_LIMIT,
         type: typeFilter === 'all' ? undefined : typeFilter,
-        from: dateFrom || undefined,
-        to: dateTo || undefined,
       });
       setTransactions(result.data ?? []);
       setTotal(result.meta?.total ?? 0);
@@ -61,7 +56,7 @@ export default function StockTransactions() {
     } finally {
       setLoading(false);
     }
-  }, [page, typeFilter, dateFrom, dateTo]);
+  }, [page, typeFilter]);
 
   useEffect(() => {
     fetchTransactions();
@@ -69,7 +64,7 @@ export default function StockTransactions() {
 
   useEffect(() => {
     setPage(1);
-  }, [typeFilter, dateFrom, dateTo, appliedDrugQuery]);
+  }, [typeFilter, appliedDrugQuery]);
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -114,18 +109,6 @@ export default function StockTransactions() {
             {STOCK_TRANSACTION_TYPES.map(t => <SelectItem key={t} value={t}>{stockTransactionTypeLabel(t)}</SelectItem>)}
           </SelectContent>
         </Select>
-        <DatePicker
-          value={dateFrom}
-          onChange={setDateFrom}
-          placeholder="Từ ngày"
-          className="h-auto w-[160px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
-        />
-        <DatePicker
-          value={dateTo}
-          onChange={setDateTo}
-          placeholder="Đến ngày"
-          className="h-auto w-[160px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
-        />
       </form>
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
