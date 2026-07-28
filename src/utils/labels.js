@@ -174,6 +174,13 @@ const STOCK_AUDIT_STATUS = {
   completed: 'Đã hoàn tất',
 };
 
+const SUPPLY_STOCK_TRANSACTION_TYPE = {
+  purchase: 'Nhập kho',
+  transfer_out: 'Chuyển kho ra',
+  adjustment: 'Điều chỉnh kiểm kê',
+  usage: 'Sử dụng cho bệnh nhân',
+};
+
 const ATTACHMENT_CATEGORY = {
   document: 'Giấy tờ',
   xray: 'X-quang',
@@ -216,6 +223,15 @@ const STOCK_TRANSACTION_TYPE_BADGE_TONE = {
 
 export const stockTransactionTypeBadgeClass = type => toneBadgeClass(STOCK_TRANSACTION_TYPE_BADGE_TONE[type] ?? 'neutral');
 
+const SUPPLY_STOCK_TRANSACTION_TYPE_BADGE_TONE = {
+  purchase: 'success',
+  transfer_out: 'warning',
+  adjustment: 'info',
+  usage: 'warning',
+};
+
+export const supplyStockTransactionTypeBadgeClass = type => toneBadgeClass(SUPPLY_STOCK_TRANSACTION_TYPE_BADGE_TONE[type] ?? 'neutral');
+
 export const appointmentStatusLabel = value => translate(APPOINTMENT_STATUS, value);
 export const appointmentTypeLabel = value => translate(APPOINTMENT_TYPE, value);
 export const APPOINTMENT_TYPES = Object.keys(APPOINTMENT_TYPE);
@@ -247,3 +263,12 @@ export const ATTACHMENT_CATEGORIES = Object.keys(ATTACHMENT_CATEGORY);
 export const stockTransactionTypeLabel = value => translate(STOCK_TRANSACTION_TYPE, value);
 export const STOCK_TRANSACTION_TYPES = Object.keys(STOCK_TRANSACTION_TYPE);
 export const stockAuditStatusLabel = value => translate(STOCK_AUDIT_STATUS, value);
+export const supplyStockTransactionTypeLabel = value => translate(SUPPLY_STOCK_TRANSACTION_TYPE, value);
+export const SUPPLY_STOCK_TRANSACTION_TYPES = Object.keys(SUPPLY_STOCK_TRANSACTION_TYPE);
+
+export function supplyStockTransactionReferenceLabel(reference) {
+  if (!reference) return null;
+  const match = /^supply_usage:(\d+)$/.exec(reference);
+  if (match) return `Sử dụng cho bệnh nhân (bản ghi #${match[1]})`;
+  return reference;
+}
