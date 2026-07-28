@@ -14,16 +14,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import SortableTableHead from '@/components/ui/sortable-table-head';
-import { searchDrugs } from '@/api/drug';
-import { lowStockAlerts, expiringBatches } from '@/api/inventory';
+import { searchMedicalSupplies, supplyLowStockAlerts, supplyExpiringBatches } from '@/api/medicalSupply';
 import { resolveError } from '@/utils/errorMessages';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
-import InventoryTabs from '@/components/inventory/InventoryTabs';
-import DrugFormDialog from '@/components/inventory/DrugFormDialog';
-import StockInDialog from '@/components/inventory/StockInDialog';
-import StockOutDialog from '@/components/inventory/StockOutDialog';
-import type { Drug, DrugBatch } from '@/components/inventory/types';
+import MedicalSupplyTabs from '@/components/medical-supplies/MedicalSupplyTabs';
+import MedicalSupplyFormDialog from '@/components/medical-supplies/MedicalSupplyFormDialog';
+import StockInDialog from '@/components/medical-supplies/StockInDialog';
+import StockOutDialog from '@/components/medical-supplies/StockOutDialog';
+import type { MedicalSupply, MedicalSupplyBatch } from '@/components/medical-supplies/types';
+import { CATEGORY_OPTIONS } from '@/components/medical-supplies/constants';
 
 const EXPIRING_DAYS = 30;
 const SEARCH_DEBOUNCE_MS = 400;
@@ -34,62 +34,66 @@ const STOCK_STATUS_OPTIONS = [
   { value: 'out', label: 'Hết hàng' },
 ];
 
-type DrugModal =
+const CATEGORY_FILTER_OPTIONS = CATEGORY_OPTIONS.map(value => ({ value, label: value }));
+
+type SupplyModal =
   | { mode: 'create' }
-  | { mode: 'edit'; drug: Drug }
+  | { mode: 'edit'; supply: MedicalSupply }
   | null;
 
-export default function Inventory() {
+export default function MedicalSupplies() {
   const { role } = useAuth();
   const canManage = role === 'admin' || role === 'pharmacist';
 
-  const [drugs, setDrugs] = useState<Drug[]>([]);
+  const [supplies, setSupplies] = useState<MedicalSupply[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [stockFilter, setStockFilter] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const [lowStockCount, setLowStockCount] = useState(0);
-  const [expiringBatchesList, setExpiringBatchesList] = useState<DrugBatch[]>([]);
+  const [expiringBatchesList, setExpiringBatchesList] = useState<MedicalSupplyBatch[]>([]);
   const [showExpiringPanel, setShowExpiringPanel] = useState(false);
 
-  const [drugModal, setDrugModal] = useState<DrugModal>(null);
-  const [stockInDrug, setStockInDrug] = useState<Drug | null>(null);
-  const [stockOutDrug, setStockOutDrug] = useState<Drug | null>(null);
+  const [supplyModal, setSupplyModal] = useState<SupplyModal>(null);
+  const [stockInSupplyItem, setStockInSupplyItem] = useState<MedicalSupply | null>(null);
+  const [stockOutSupplyItem, setStockOutSupplyItem] = useState<MedicalSupply | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const fetchDrugs = useCallback(async () => {
+  const fetchSupplies = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const result = await searchDrugs({
+      const result = await searchMedicalSupplies({
         name: search || undefined,
+        category: categoryFilter.length === 0 ? undefined : categoryFilter.join(','),
         stock: stockFilter.length === 0 ? undefined : stockFilter.join(','),
         page: 1,
         limit: 100,
         sort_by: sortBy || undefined,
         sort_dir: sortBy ? sortDir : undefined,
       });
-      setDrugs(result.data ?? []);
+      setSupplies(result.data ?? []);
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setLoading(false);
     }
-  }, [search, stockFilter, sortBy, sortDir]);
+  }, [search, categoryFilter, stockFilter, sortBy, sortDir]);
 
   const fetchAlerts = useCallback(async () => {
     try {
       const [lowStockResult, expiringResult] = await Promise.all([
-        lowStockAlerts(),
-        expiringBatches(EXPIRING_DAYS),
+        supplyLowStockAlerts(),
+        supplyExpiringBatches(EXPIRING_DAYS),
       ]);
       setLowStockCount((lowStockResult.data ?? []).length);
       setExpiringBatchesList(expiringResult.data ?? []);
@@ -100,15 +104,15 @@ export default function Inventory() {
   }, []);
 
   useEffect(() => {
-    fetchDrugs();
-  }, [fetchDrugs]);
+    fetchSupplies();
+  }, [fetchSupplies]);
 
   useEffect(() => {
     fetchAlerts();
   }, [fetchAlerts]);
 
   const refreshAll = async () => {
-    await Promise.all([fetchDrugs(), fetchAlerts()]);
+    await Promise.all([fetchSupplies(), fetchAlerts()]);
   };
 
   const handleSort = (column: string) => {
@@ -120,10 +124,11 @@ export default function Inventory() {
     }
   };
 
-  const hasActiveFilters = !!searchInput || stockFilter.length > 0;
+  const hasActiveFilters = !!searchInput || categoryFilter.length > 0 || stockFilter.length > 0;
 
   const handleResetFilters = () => {
     setSearchInput('');
+    setCategoryFilter([]);
     setStockFilter([]);
   };
 
@@ -135,23 +140,23 @@ export default function Inventory() {
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="m-0 text-[26px] font-bold text-[#274760]">Kho thuốc</h1>
-          <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">Danh mục thuốc, tồn kho theo lô/hạn sử dụng</p>
+          <h1 className="m-0 text-[26px] font-bold text-[#274760]">Vật tư y tế</h1>
+          <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">Danh mục vật tư tiêu hao, tồn kho theo lô/hạn sử dụng</p>
         </div>
         {canManage && (
-          <Button onClick={() => setDrugModal({ mode: 'create' })} size="cta">
+          <Button onClick={() => setSupplyModal({ mode: 'create' })} size="cta">
             <Icon icon="fa6-solid:plus" className="text-sm" />
-            Thêm thuốc
+            Thêm vật tư
           </Button>
         )}
       </div>
 
-      <InventoryTabs />
+      <MedicalSupplyTabs />
 
       <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         <button type="button" onClick={toggleLowStockOnly} className="cursor-pointer border-none bg-transparent p-0 text-left">
           <StatCard
-            label="Thuốc dưới định mức"
+            label="Vật tư dưới định mức"
             value={lowStockCount}
             color="#dc3545"
             active={stockFilter.length === 1 && stockFilter[0] === 'low'}
@@ -175,7 +180,7 @@ export default function Inventory() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                  <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Thuốc</TableHead>
+                  <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Vật tư</TableHead>
                   <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Số lô</TableHead>
                   <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Hạn sử dụng</TableHead>
                   <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Còn lại</TableHead>
@@ -184,9 +189,9 @@ export default function Inventory() {
               <TableBody>
                 {expiringBatchesList.map(b => (
                   <TableRow key={b.ID} className="border-t border-[#f0f4f8]">
-                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{b.Drug?.Name ?? `#${b.DrugID}`}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{b.Supply?.Name ?? `#${b.SupplyID}`}</TableCell>
                     <TableCell className="px-4 py-3 text-sm font-mono text-[#274760]">{b.LotNumber}</TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-[#dc3545]">{new Date(b.ExpiryDate).toLocaleDateString('vi-VN')}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-[#dc3545]">{b.ExpiryDate ? new Date(b.ExpiryDate).toLocaleDateString('vi-VN') : '—'}</TableCell>
                     <TableCell className="px-4 py-3 text-sm text-[#274760]">{b.QuantityRemaining}</TableCell>
                   </TableRow>
                 ))}
@@ -202,10 +207,17 @@ export default function Inventory() {
           <Input
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
-            placeholder="Tìm theo tên thuốc…"
+            placeholder="Tìm theo tên vật tư…"
             className="h-auto rounded-xl border-[#dde2e8] py-3 pr-4 pl-10 text-[15px] text-[#274760]"
           />
         </div>
+        <MultiSelect
+          options={CATEGORY_FILTER_OPTIONS}
+          selected={categoryFilter}
+          onChange={setCategoryFilter}
+          placeholder="Tất cả danh mục"
+          className="w-[200px]"
+        />
         <MultiSelect
           options={STOCK_STATUS_OPTIONS}
           selected={stockFilter}
@@ -231,41 +243,39 @@ export default function Inventory() {
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
         {loading ? (
           <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>
-        ) : drugs.length === 0 ? (
-          <div className="p-15 text-center text-[#6c757d]">Không tìm thấy thuốc nào.</div>
+        ) : supplies.length === 0 ? (
+          <div className="p-15 text-center text-[#6c757d]">Không tìm thấy vật tư nào.</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <SortableTableHead label="Tên thuốc" column="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <SortableTableHead label="Hoạt chất" column="active_ingredient" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <SortableTableHead label="Hàm lượng" column="strength" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Tên vật tư" column="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Danh mục" column="category" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <SortableTableHead label="Đơn vị" column="unit" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <SortableTableHead label="Giá" column="price" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Đơn giá" column="unit_cost" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <SortableTableHead label="Tồn kho" column="stock_quantity" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <SortableTableHead label="Định mức tối thiểu" column="min_stock_level" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 {canManage && <TableHead className="h-auto px-4 py-3"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {drugs.map(d => {
-                const isLow = d.MinStockLevel > 0 && d.StockQuantity < d.MinStockLevel;
+              {supplies.map(s => {
+                const isLow = s.MinStockLevel > 0 && s.StockQuantity < s.MinStockLevel;
                 return (
-                  <TableRow key={d.ID} className="border-t border-[#f0f4f8]">
-                    <TableCell className="px-4 py-3 text-sm font-semibold text-[#274760]">{d.Name}</TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{d.ActiveIngredient || '—'}</TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{d.Strength || '—'}</TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{d.Unit}</TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{d.Price?.toLocaleString('vi-VN')} đ</TableCell>
+                  <TableRow key={s.ID} className="border-t border-[#f0f4f8]">
+                    <TableCell className="px-4 py-3 text-sm font-semibold text-[#274760]">{s.Name}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{s.Category || '—'}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{s.Unit}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{s.UnitCost?.toLocaleString('vi-VN')} đ</TableCell>
                     <TableCell className={cn('px-4 py-3 text-sm font-semibold', isLow ? 'text-[#dc3545]' : 'text-[#274760]')}>
-                      {d.StockQuantity}
+                      {s.StockQuantity}
                     </TableCell>
-                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{d.MinStockLevel}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-[#274760]">{s.MinStockLevel}</TableCell>
                     {canManage && (
                       <TableCell className="px-4 py-3 text-right whitespace-nowrap">
                         <button
                           type="button"
-                          onClick={() => setDrugModal({ mode: 'edit', drug: d })}
+                          onClick={() => setSupplyModal({ mode: 'edit', supply: s })}
                           title="Sửa"
                           className="inline-flex size-[30px] cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#6c757d]"
                         >
@@ -273,16 +283,16 @@ export default function Inventory() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setStockInDrug(d)}
+                          onClick={() => setStockInSupplyItem(s)}
                           title="Nhập kho"
                           className="ml-2 inline-flex size-[30px] cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#198754]"
                         >
                           <Icon icon="fa6-solid:box-open" className="text-[13px]" />
                         </button>
-                        {d.StockQuantity > 0 && (
+                        {s.StockQuantity > 0 && (
                           <button
                             type="button"
-                            onClick={() => setStockOutDrug(d)}
+                            onClick={() => setStockOutSupplyItem(s)}
                             title="Xuất kho"
                             className="ml-2 inline-flex size-[30px] cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#307bc4]"
                           >
@@ -299,22 +309,22 @@ export default function Inventory() {
         )}
       </Card>
 
-      <DrugFormDialog
-        open={!!drugModal}
-        drug={drugModal?.mode === 'edit' ? drugModal.drug : null}
-        onClose={() => setDrugModal(null)}
+      <MedicalSupplyFormDialog
+        open={!!supplyModal}
+        supply={supplyModal?.mode === 'edit' ? supplyModal.supply : null}
+        onClose={() => setSupplyModal(null)}
         onSaved={refreshAll}
       />
       <StockInDialog
-        open={!!stockInDrug}
-        drug={stockInDrug}
-        onClose={() => setStockInDrug(null)}
+        open={!!stockInSupplyItem}
+        supply={stockInSupplyItem}
+        onClose={() => setStockInSupplyItem(null)}
         onSaved={refreshAll}
       />
       <StockOutDialog
-        open={!!stockOutDrug}
-        drug={stockOutDrug}
-        onClose={() => setStockOutDrug(null)}
+        open={!!stockOutSupplyItem}
+        supply={stockOutSupplyItem}
+        onClose={() => setStockOutSupplyItem(null)}
         onSaved={refreshAll}
       />
     </>

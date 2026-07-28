@@ -18,6 +18,7 @@ import DiagnosesSection from '@/components/consultation/DiagnosesSection';
 import ClinicalNotesSection from '@/components/consultation/ClinicalNotesSection';
 import OrdersSection from '@/components/consultation/OrdersSection';
 import PrescriptionsSection from '@/components/consultation/PrescriptionsSection';
+import RecordUsageDialog from '@/components/medical-supplies/RecordUsageDialog';
 import { SectionBadge, ErrorBox, includesRole } from '@/components/consultation/shared';
 import type { Encounter, VitalSign, Diagnosis, Order, Prescription } from '@/components/consultation/types';
 
@@ -38,8 +39,10 @@ export default function Consultation() {
   const canUpdateOrderStatus = includesRole(['admin', 'lab_tech', 'nurse'], role);
   const canPrescribe = includesRole(['admin', 'doctor'], role);
   const canUpdatePrescriptionStatus = includesRole(['admin', 'pharmacist'], role);
+  const canRecordSupplyUsage = includesRole(['admin', 'doctor', 'nurse', 'pharmacist'], role);
 
   const [confirm, ConfirmDialog] = useConfirm();
+  const [supplyUsageOpen, setSupplyUsageOpen] = useState(false);
 
   const [encounter, setEncounter] = useState<Encounter | null>(null);
   const [vitals, setVitals] = useState<VitalSign[]>([]);
@@ -125,6 +128,15 @@ export default function Consultation() {
           </div>
           <div className="flex items-center gap-3">
             <SectionBadge>{encounterStatusLabel(encounter.Status)}</SectionBadge>
+            {canRecordSupplyUsage && (
+              <Button
+                variant="outline"
+                onClick={() => setSupplyUsageOpen(true)}
+                className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.25 text-[13px] font-medium text-[#274760]"
+              >
+                <Icon icon="fa6-solid:kit-medical" className="mr-1.5 text-[13px]" />Ghi nhận vật tư
+              </Button>
+            )}
             {canCompleteEncounter && encounter.Status === 'in_progress' && (
               <Button
                 onClick={handleComplete}
@@ -170,6 +182,14 @@ export default function Consultation() {
           onChanged={loadAll}
         />
       </div>
+
+      <RecordUsageDialog
+        open={supplyUsageOpen}
+        onClose={() => setSupplyUsageOpen(false)}
+        onSaved={async () => {}}
+        fixedEncounterId={encounterId}
+        fixedEncounterLabel={`${encounter.Patient?.Fullname ?? `Bệnh nhân #${encounter.PatientID}`} — Lượt khám #${encounterId}`}
+      />
     </>
   );
 }

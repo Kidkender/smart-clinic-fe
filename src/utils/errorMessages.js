@@ -62,6 +62,13 @@ const ERROR_MESSAGES = {
   'error.drug_return.exceeds_dispensed': 'Số lượng hoàn trả vượt quá số lượng đã cấp phát.',
   'error.ward_drug_issue.empty': 'Cần thêm ít nhất một loại thuốc.',
   'error.ward_drug_issue.invalid_date': 'Ngày cấp thuốc không hợp lệ.',
+  'error.medical_supply.not_found': 'Không tìm thấy vật tư.',
+  'error.medical_supply.insufficient_stock': 'Không đủ vật tư trong kho. Vui lòng kiểm tra lại tồn kho.',
+  'error.medical_supply_batch.not_found': 'Không tìm thấy lô vật tư.',
+  'error.medical_supply_batch.insufficient_stock': 'Không đủ vật tư trong lô đã chọn. Vui lòng kiểm tra lại tồn kho.',
+  'error.medical_supply_batch.invalid_expiry_date': 'Hạn sử dụng không hợp lệ.',
+  'error.medical_supply_batch.invalid_days': 'Số ngày không hợp lệ.',
+
   'error.prescription.not_found': 'Không tìm thấy đơn thuốc.',
   'error.prescription.empty': 'Đơn thuốc cần ít nhất một loại thuốc.',
   'error.prescription.invalid_status': 'Không thể chuyển sang trạng thái này.',

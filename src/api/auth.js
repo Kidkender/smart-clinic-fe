@@ -40,8 +40,13 @@ export async function updateProfile(fullname) {
   return data;
 }
 
-export async function listUsers(status) {
-  const { data } = await client.get('/users', { params: status ? { status } : undefined });
+export async function listUsers(params) {
+  const { data } = await client.get('/users', { params });
+  return data;
+}
+
+export async function createUser(payload) {
+  const { data } = await client.post('/users', payload);
   return data;
 }
 

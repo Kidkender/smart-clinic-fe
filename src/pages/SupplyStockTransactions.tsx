@@ -16,43 +16,50 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import SortableTableHead from '@/components/ui/sortable-table-head';
-import { listStockTransactions } from '@/api/inventory';
+import { listSupplyStockTransactions } from '@/api/medicalSupply';
 import { resolveError } from '@/utils/errorMessages';
-import { stockTransactionTypeLabel, stockTransactionTypeBadgeClass, STOCK_TRANSACTION_TYPES } from '@/utils/labels';
-import type { StockTransaction } from '@/components/inventory/types';
-import InventoryTabs from '@/components/inventory/InventoryTabs';
+import {
+  supplyStockTransactionTypeLabel,
+  supplyStockTransactionTypeBadgeClass,
+  supplyStockTransactionReferenceLabel,
+  SUPPLY_STOCK_TRANSACTION_TYPES,
+} from '@/utils/labels';
+import type { SupplyStockTransaction } from '@/components/medical-supplies/types';
+import MedicalSupplyTabs from '@/components/medical-supplies/MedicalSupplyTabs';
+import TransactionDetailDialog from '@/components/medical-supplies/TransactionDetailDialog';
 
 const PAGE_LIMIT = 20;
 const SEARCH_DEBOUNCE_MS = 400;
 
-const TYPE_OPTIONS = STOCK_TRANSACTION_TYPES.map(value => ({ value, label: stockTransactionTypeLabel(value) }));
+const TYPE_OPTIONS = SUPPLY_STOCK_TRANSACTION_TYPES.map(value => ({ value, label: supplyStockTransactionTypeLabel(value) }));
 
-export default function StockTransactions() {
-  const [transactions, setTransactions] = useState<StockTransaction[]>([]);
+export default function SupplyStockTransactions() {
+  const [transactions, setTransactions] = useState<SupplyStockTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [drugQueryInput, setDrugQueryInput] = useState('');
-  const [drugQuery, setDrugQuery] = useState('');
+  const [supplyQueryInput, setSupplyQueryInput] = useState('');
+  const [supplyQuery, setSupplyQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('created_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [selectedTransaction, setSelectedTransaction] = useState<SupplyStockTransaction | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDrugQuery(drugQueryInput.trim()), SEARCH_DEBOUNCE_MS);
+    const timer = setTimeout(() => setSupplyQuery(supplyQueryInput.trim()), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [drugQueryInput]);
+  }, [supplyQueryInput]);
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const result = await listStockTransactions({
+      const result = await listSupplyStockTransactions({
         page,
         limit: PAGE_LIMIT,
-        q: drugQuery || undefined,
+        q: supplyQuery || undefined,
         type: typeFilter.length === 0 ? undefined : typeFilter.join(','),
         sort_by: sortBy,
         sort_dir: sortDir,
@@ -65,7 +72,7 @@ export default function StockTransactions() {
     } finally {
       setLoading(false);
     }
-  }, [page, drugQuery, typeFilter, sortBy, sortDir]);
+  }, [page, supplyQuery, typeFilter, sortBy, sortDir]);
 
   useEffect(() => {
     fetchTransactions();
@@ -73,7 +80,7 @@ export default function StockTransactions() {
 
   useEffect(() => {
     setPage(1);
-  }, [typeFilter, drugQuery]);
+  }, [typeFilter, supplyQuery]);
 
   const handleSort = (column: string) => {
     if (sortBy === column) {
@@ -84,10 +91,10 @@ export default function StockTransactions() {
     }
   };
 
-  const hasActiveFilters = !!drugQueryInput || typeFilter.length > 0;
+  const hasActiveFilters = !!supplyQueryInput || typeFilter.length > 0;
 
   const handleResetFilters = () => {
-    setDrugQueryInput('');
+    setSupplyQueryInput('');
     setTypeFilter([]);
   };
 
@@ -95,20 +102,20 @@ export default function StockTransactions() {
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="m-0 text-[26px] font-bold text-[#274760]">Lịch sử xuất-nhập kho</h1>
-          <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">Nhật ký giao dịch nhập/xuất/điều chỉnh tồn kho</p>
+          <h1 className="m-0 text-[26px] font-bold text-[#274760]">Lịch sử xuất-nhập kho vật tư</h1>
+          <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">Nhật ký giao dịch nhập/xuất/điều chỉnh/sử dụng vật tư</p>
         </div>
       </div>
 
-      <InventoryTabs />
+      <MedicalSupplyTabs />
 
       <div className="mb-5 flex flex-wrap items-center gap-2.5">
         <div className="relative max-w-[280px] flex-1">
           <Icon icon="fa6-solid:magnifying-glass" className="absolute top-1/2 left-4 -translate-y-1/2 text-sm text-[#adb5bd]" />
           <Input
-            value={drugQueryInput}
-            onChange={e => setDrugQueryInput(e.target.value)}
-            placeholder="Tìm theo tên thuốc…"
+            value={supplyQueryInput}
+            onChange={e => setSupplyQueryInput(e.target.value)}
+            placeholder="Tìm theo tên vật tư…"
             className="h-auto rounded-xl border-[#dde2e8] py-3 pr-4 pl-10 text-[15px] text-[#274760]"
           />
         </div>
@@ -144,7 +151,7 @@ export default function StockTransactions() {
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
                 <SortableTableHead label="Thời gian" column="created_at" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Thuốc</TableHead>
+                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Vật tư</TableHead>
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Lô</TableHead>
                 <SortableTableHead label="Loại" column="type" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <SortableTableHead label="Số lượng" column="quantity" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
@@ -153,17 +160,21 @@ export default function StockTransactions() {
             </TableHeader>
             <TableBody>
               {transactions.map(t => (
-                <TableRow key={t.ID} className="border-t border-[#f0f4f8]">
+                <TableRow
+                  key={t.ID}
+                  onClick={() => setSelectedTransaction(t)}
+                  className="cursor-pointer border-t border-[#f0f4f8] hover:bg-[#f4f7fa]"
+                >
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">{new Date(t.CreatedAt).toLocaleString('vi-VN')}</TableCell>
-                  <TableCell className="px-4 py-3 text-sm font-semibold text-[#274760]">{t.Drug?.Name ?? `#${t.DrugID}`}</TableCell>
+                  <TableCell className="px-4 py-3 text-sm font-semibold text-[#274760]">{t.Supply?.Name ?? `#${t.SupplyID}`}</TableCell>
                   <TableCell className="px-4 py-3 text-sm font-mono text-[#274760]">{t.Batch?.LotNumber ?? '—'}</TableCell>
                   <TableCell className="px-4 py-3">
-                    <Badge className={stockTransactionTypeBadgeClass(t.Type)}>{stockTransactionTypeLabel(t.Type)}</Badge>
+                    <Badge className={supplyStockTransactionTypeBadgeClass(t.Type)}>{supplyStockTransactionTypeLabel(t.Type)}</Badge>
                   </TableCell>
                   <TableCell className={`px-4 py-3 text-sm font-semibold ${t.Quantity < 0 ? 'text-[#dc3545]' : 'text-[#198754]'}`}>
                     {t.Quantity > 0 ? `+${t.Quantity}` : t.Quantity}
                   </TableCell>
-                  <TableCell className="px-4 py-3 text-sm text-[#6c757d]">{t.Notes || t.Reference || '—'}</TableCell>
+                  <TableCell className="px-4 py-3 text-sm text-[#6c757d]">{t.Notes || supplyStockTransactionReferenceLabel(t.Reference) || '—'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -174,6 +185,8 @@ export default function StockTransactions() {
       {!loading && total > 0 && (
         <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} itemLabel="giao dịch" />
       )}
+
+      <TransactionDetailDialog transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />
     </>
   );
 }

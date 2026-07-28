@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { MultiSelect } from '@/components/ui/multi-select';
 import FieldError from '@/components/FieldError';
 import {
   Table,
@@ -36,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import SortableTableHead from '@/components/ui/sortable-table-head';
 
 interface LabTest {
   ID: number | string;
@@ -51,6 +53,16 @@ interface LabTest {
 }
 
 type Modal = { mode: 'create' } | { mode: 'edit'; labTest: LabTest };
+
+const LAB_TEST_CATEGORY_OPTIONS = LAB_TEST_CATEGORIES.map(value => ({
+  value,
+  label: labTestCategoryLabel(value),
+}));
+
+const STATUS_OPTIONS = [
+  { value: 'active', label: 'Đang dùng' },
+  { value: 'inactive', label: 'Ngừng dùng' },
+];
 
 const EMPTY_FORM: LabTestFormValues = {
   code: '',
@@ -69,7 +81,10 @@ export default function LabTests() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [nameQuery, setNameQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>(['active']);
+  const [sortBy, setSortBy] = useState('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [modal, setModal] = useState<Modal | null>(null);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -87,7 +102,10 @@ export default function LabTests() {
     try {
       const result = await searchLabTests({
         name: nameQuery.trim() || undefined,
-        category: categoryFilter === 'all' ? undefined : categoryFilter,
+        category: categoryFilter.length === 0 ? undefined : categoryFilter.join(','),
+        active: statusFilter.length === 1 ? statusFilter[0] === 'active' : undefined,
+        sort_by: sortBy || undefined,
+        sort_dir: sortBy ? sortDir : undefined,
         page: 1,
         limit: 100,
       });
@@ -97,11 +115,28 @@ export default function LabTests() {
     } finally {
       setLoading(false);
     }
-  }, [nameQuery, categoryFilter]);
+  }, [nameQuery, categoryFilter, statusFilter, sortBy, sortDir]);
 
   useEffect(() => {
     fetchLabTests();
   }, [fetchLabTests]);
+
+  const hasActiveFilters = !!nameQuery || categoryFilter.length > 0 || statusFilter.length !== 1 || statusFilter[0] !== 'active';
+
+  const handleResetFilters = () => {
+    setNameQuery('');
+    setCategoryFilter([]);
+    setStatusFilter([]);
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
 
   const openCreate = () => {
     reset(EMPTY_FORM);
@@ -194,22 +229,41 @@ export default function LabTests() {
         </Button>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-3">
-        <Input
-          value={nameQuery}
-          onChange={e => setNameQuery(e.target.value)}
-          placeholder="Tìm theo tên xét nghiệm…"
-          className="h-auto min-w-[240px] flex-1 rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[220px] flex-1">
+          <Icon icon="fa6-solid:magnifying-glass" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-[#6c757d]" />
+          <Input
+            value={nameQuery}
+            onChange={e => setNameQuery(e.target.value)}
+            placeholder="Tìm theo tên xét nghiệm…"
+            className="h-auto rounded-xl border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
+          />
+        </div>
+        <MultiSelect
+          options={LAB_TEST_CATEGORY_OPTIONS}
+          selected={categoryFilter}
+          onChange={setCategoryFilter}
+          placeholder="Tất cả nhóm"
+          className="w-[190px]"
         />
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="h-auto w-[200px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả nhóm</SelectItem>
-            {LAB_TEST_CATEGORIES.map(c => <SelectItem key={c} value={c}>{labTestCategoryLabel(c)}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MultiSelect
+          options={STATUS_OPTIONS}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+          placeholder="Tất cả trạng thái"
+          className="w-[180px]"
+        />
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleResetFilters}
+            className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.75 text-sm font-medium text-[#6c757d] hover:text-[#dc3545]"
+          >
+            <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
+            Xóa bộ lọc
+          </Button>
+        )}
       </div>
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
@@ -232,13 +286,13 @@ export default function LabTests() {
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Mã</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Tên xét nghiệm</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Nhóm</TableHead>
+                <SortableTableHead label="Mã" column="code" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Tên xét nghiệm" column="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Nhóm" column="category" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Đơn vị</TableHead>
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Khoảng tham chiếu</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Giá</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Trạng thái</TableHead>
+                <SortableTableHead label="Giá" column="price" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Trạng thái" column="active" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3"></TableHead>
               </TableRow>
             </TableHeader>

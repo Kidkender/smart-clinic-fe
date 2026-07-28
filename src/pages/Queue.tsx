@@ -17,6 +17,7 @@ import { checkInSchema, type CheckInFormValues } from '@/schemas/queue';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { MultiSelect } from '@/components/ui/multi-select';
 import FieldError from '@/components/FieldError';
 import {
   Select,
@@ -51,7 +52,7 @@ interface Encounter {
   ID: number | string;
   QueueNumber: number;
   PatientID: number | string;
-  Patient?: { Fullname?: string };
+  Patient?: { Fullname?: string; Phone?: string; MRN?: string };
   DepartmentID: number | string;
   Department?: { Name?: string };
   Type: string;
@@ -74,6 +75,11 @@ const TYPES = [
 
 const EMPTY_CHECKIN_FORM: CheckInFormValues = { patient_id: '', type: 'new' };
 
+const QUEUE_STATUS_OPTIONS = ['waiting', 'in_progress', 'completed', 'cancelled'].map(value => ({
+  value,
+  label: encounterStatusLabel(value),
+}));
+
 export default function Queue() {
   const { role } = useAuth();
   // Must match backend role gates: POST /encounters + /encounters/call-next
@@ -89,6 +95,9 @@ export default function Queue() {
   const [calling, setCalling] = useState(false);
   const [sortBy, setSortBy] = useState('queue');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [patientQuery, setPatientQuery] = useState('');
@@ -116,6 +125,11 @@ export default function Queue() {
       setLoading(false);
     }
   }, [sortBy, sortDir]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     getDepartments()
@@ -212,6 +226,25 @@ export default function Queue() {
   const waitingCount = queue.filter(q => q.Status === 'waiting').length;
   const inProgress = queue.find(q => q.Status === 'in_progress');
 
+  const normalizedSearch = search.trim().toLowerCase();
+  const visibleQueue = queue.filter(q => {
+    if (statusFilter.length > 0 && !statusFilter.includes(q.Status)) return false;
+    if (!normalizedSearch) return true;
+    const haystack = [q.Patient?.Fullname, q.Patient?.Phone, q.Patient?.MRN]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(normalizedSearch);
+  });
+
+  const hasActiveFilters = !!searchInput || statusFilter.length > 0;
+
+  const handleResetFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setStatusFilter([]);
+  };
+
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -222,20 +255,6 @@ export default function Queue() {
           </p>
         </div>
         <div className="flex items-center gap-2.5">
-          <Select
-            value={departmentId || 'all'}
-            onValueChange={value => setDepartmentId(value === 'all' ? '' : value)}
-          >
-            <SelectTrigger className="h-auto min-w-[180px] max-w-[220px] rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-              <SelectValue placeholder="Tất cả khoa/phòng" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả khoa/phòng</SelectItem>
-              {departments.map(d => (
-                <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           {canCheckInWalkIn && (
             <Button
               onClick={openCheckIn}
@@ -250,6 +269,50 @@ export default function Queue() {
       </div>
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
+
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[220px] flex-1">
+          <Icon icon="fa6-solid:magnifying-glass" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-[#6c757d]" />
+          <Input
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="Tìm theo tên, SĐT, MRN…"
+            className="h-auto rounded-xl border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
+          />
+        </div>
+        <MultiSelect
+          options={QUEUE_STATUS_OPTIONS}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+          placeholder="Tất cả trạng thái"
+          className="w-[170px]"
+        />
+        <Select
+          value={departmentId || 'all'}
+          onValueChange={value => setDepartmentId(value === 'all' ? '' : value)}
+        >
+          <SelectTrigger className="h-auto w-[180px] rounded-xl px-4 py-2.75 text-sm">
+            <SelectValue placeholder="Tất cả khoa/phòng" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả khoa/phòng</SelectItem>
+            {departments.map(d => (
+              <SelectItem key={d.ID} value={String(d.ID)}>{d.Name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleResetFilters}
+            className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.75 text-sm font-medium text-[#6c757d] hover:text-[#dc3545]"
+          >
+            <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
+            Xóa bộ lọc
+          </Button>
+        )}
+      </div>
 
       <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         <StatCard label="Đang chờ" value={waitingCount} color="#307bc4" />
@@ -277,8 +340,10 @@ export default function Queue() {
       <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
         {loading ? (
           <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>
-        ) : queue.length === 0 ? (
-          <div className="p-15 text-center text-[#6c757d]">Hàng đợi trống.</div>
+        ) : visibleQueue.length === 0 ? (
+          <div className="p-15 text-center text-[#6c757d]">
+            {hasActiveFilters ? 'Không tìm thấy bệnh nhân phù hợp.' : 'Hàng đợi trống.'}
+          </div>
         ) : (
           <Table>
             <TableHeader>
@@ -295,7 +360,7 @@ export default function Queue() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {queue.map(q => (
+              {visibleQueue.map(q => (
                 <TableRow key={q.ID} className="border-t border-[#f0f4f8]">
                   <TableCell className="px-4 py-3 text-sm font-bold text-[#274760]">{q.QueueNumber}</TableCell>
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">{q.Patient?.Fullname ?? `#${q.PatientID}`}</TableCell>

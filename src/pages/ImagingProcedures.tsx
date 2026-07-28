@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { MultiSelect } from '@/components/ui/multi-select';
 import FieldError from '@/components/FieldError';
 import {
   Table,
@@ -36,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import SortableTableHead from '@/components/ui/sortable-table-head';
 
 interface ImagingProcedure {
   ID: number | string;
@@ -48,6 +50,16 @@ interface ImagingProcedure {
 }
 
 type Modal = { mode: 'create' } | { mode: 'edit'; procedure: ImagingProcedure };
+
+const IMAGING_MODALITY_OPTIONS = IMAGING_MODALITIES.map(value => ({
+  value,
+  label: imagingModalityLabel(value),
+}));
+
+const STATUS_OPTIONS = [
+  { value: 'active', label: 'Đang dùng' },
+  { value: 'inactive', label: 'Ngừng dùng' },
+];
 
 const EMPTY_FORM: ImagingProcedureFormValues = {
   code: '',
@@ -63,7 +75,10 @@ export default function ImagingProcedures() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [nameQuery, setNameQuery] = useState('');
-  const [modalityFilter, setModalityFilter] = useState('all');
+  const [modalityFilter, setModalityFilter] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string[]>(['active']);
+  const [sortBy, setSortBy] = useState('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [modal, setModal] = useState<Modal | null>(null);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -81,7 +96,10 @@ export default function ImagingProcedures() {
     try {
       const result = await searchImagingProcedures({
         name: nameQuery.trim() || undefined,
-        modality: modalityFilter === 'all' ? undefined : modalityFilter,
+        modality: modalityFilter.length === 0 ? undefined : modalityFilter.join(','),
+        active: statusFilter.length === 1 ? statusFilter[0] === 'active' : undefined,
+        sort_by: sortBy || undefined,
+        sort_dir: sortBy ? sortDir : undefined,
         page: 1,
         limit: 100,
       });
@@ -91,11 +109,28 @@ export default function ImagingProcedures() {
     } finally {
       setLoading(false);
     }
-  }, [nameQuery, modalityFilter]);
+  }, [nameQuery, modalityFilter, statusFilter, sortBy, sortDir]);
 
   useEffect(() => {
     fetchProcedures();
   }, [fetchProcedures]);
+
+  const hasActiveFilters = !!nameQuery || modalityFilter.length > 0 || statusFilter.length !== 1 || statusFilter[0] !== 'active';
+
+  const handleResetFilters = () => {
+    setNameQuery('');
+    setModalityFilter([]);
+    setStatusFilter([]);
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
 
   const openCreate = () => {
     reset(EMPTY_FORM);
@@ -172,22 +207,41 @@ export default function ImagingProcedures() {
         </Button>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-3">
-        <Input
-          value={nameQuery}
-          onChange={e => setNameQuery(e.target.value)}
-          placeholder="Tìm theo tên dịch vụ…"
-          className="h-auto min-w-[240px] flex-1 rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]"
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <div className="relative min-w-[220px] flex-1">
+          <Icon icon="fa6-solid:magnifying-glass" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-[#6c757d]" />
+          <Input
+            value={nameQuery}
+            onChange={e => setNameQuery(e.target.value)}
+            placeholder="Tìm theo tên dịch vụ…"
+            className="h-auto rounded-xl border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
+          />
+        </div>
+        <MultiSelect
+          options={IMAGING_MODALITY_OPTIONS}
+          selected={modalityFilter}
+          onChange={setModalityFilter}
+          placeholder="Tất cả kỹ thuật"
+          className="w-[190px]"
         />
-        <Select value={modalityFilter} onValueChange={setModalityFilter}>
-          <SelectTrigger className="h-auto w-[200px] rounded-xl border-[#dde2e8] px-3.5 py-2.5 text-sm text-[#274760]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả kỹ thuật</SelectItem>
-            {IMAGING_MODALITIES.map(m => <SelectItem key={m} value={m}>{imagingModalityLabel(m)}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <MultiSelect
+          options={STATUS_OPTIONS}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+          placeholder="Tất cả trạng thái"
+          className="w-[180px]"
+        />
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleResetFilters}
+            className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.75 text-sm font-medium text-[#6c757d] hover:text-[#dc3545]"
+          >
+            <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
+            Xóa bộ lọc
+          </Button>
+        )}
       </div>
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
@@ -210,12 +264,12 @@ export default function ImagingProcedures() {
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Mã</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Tên dịch vụ</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Kỹ thuật</TableHead>
+                <SortableTableHead label="Mã" column="code" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Tên dịch vụ" column="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Kỹ thuật" column="modality" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Vùng chụp</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Giá</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Trạng thái</TableHead>
+                <SortableTableHead label="Giá" column="price" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Trạng thái" column="active" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3"></TableHead>
               </TableRow>
             </TableHeader>

@@ -25,6 +25,11 @@ import Inventory from './pages/Inventory';
 import StockTransactions from './pages/StockTransactions';
 import StockAudits from './pages/StockAudits';
 import StockAuditDetail from './pages/StockAuditDetail';
+import MedicalSupplies from './pages/MedicalSupplies';
+import SupplyStockTransactions from './pages/SupplyStockTransactions';
+import SupplyUsages from './pages/SupplyUsages';
+import SupplyStockAudits from './pages/SupplyStockAudits';
+import SupplyStockAuditDetail from './pages/SupplyStockAuditDetail';
 import LabTests from './pages/LabTests';
 import LabWorklist from './pages/LabWorklist';
 import ImagingProcedures from './pages/ImagingProcedures';
@@ -154,6 +159,46 @@ function App() {
           element={
             <RequireAuth roles={['admin', 'pharmacist']}>
               <StockAuditDetail />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="medical-supplies"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <MedicalSupplies />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="medical-supplies/transactions"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <SupplyStockTransactions />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="medical-supplies/usages"
+          element={
+            <RequireAuth roles={['admin', 'doctor', 'nurse', 'pharmacist']}>
+              <SupplyUsages />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="medical-supplies/stock-audits"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <SupplyStockAudits />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="medical-supplies/stock-audits/:id"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <SupplyStockAuditDetail />
             </RequireAuth>
           }
         />
