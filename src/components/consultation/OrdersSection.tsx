@@ -343,7 +343,7 @@ export default function OrdersSection({
                 );
               })()}
               {o.Type === 'lab' && <LabOrderPanel orderId={o.ID} orderName={o.Name} orderStatus={o.Status} role={role} onOrderChanged={onChanged} />}
-              {o.Type !== 'lab' && <ImagingOrderPanel orderId={o.ID} orderStatus={o.Status} role={role} onOrderChanged={onChanged} />}
+              {o.Type !== 'lab' && <ImagingOrderPanel orderId={o.ID} orderName={o.Name} orderStatus={o.Status} role={role} onOrderChanged={onChanged} />}
             </li>
           ))}
         </ul>

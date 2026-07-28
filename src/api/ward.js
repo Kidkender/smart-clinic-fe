@@ -10,8 +10,8 @@ export async function createWard(payload) {
   return data;
 }
 
-export async function updateWard(id, name) {
-  const { data } = await client.put(`/wards/${id}`, { name });
+export async function updateWard(id, name, dailyRate) {
+  const { data } = await client.put(`/wards/${id}`, { name, daily_rate: dailyRate });
   return data;
 }
 

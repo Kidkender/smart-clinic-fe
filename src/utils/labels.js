@@ -162,6 +162,20 @@ const INVOICE_STATUS = {
   cancelled: 'Đã hủy',
 };
 
+const INVOICE_ITEM_CATEGORY = {
+  visit_fee: 'Phí khám',
+  service_fee: 'Dịch vụ cận lâm sàng',
+  drug_fee: 'Tiền thuốc',
+  bed_fee: 'Tiền giường bệnh',
+  supply_fee: 'Vật tư y tế',
+};
+
+const PAYMENT_METHOD = {
+  cash: 'Tiền mặt',
+  transfer: 'Chuyển khoản',
+  qr: 'Quét mã QR',
+};
+
 const STOCK_TRANSACTION_TYPE = {
   purchase: 'Nhập kho',
   transfer_in: 'Chuyển kho vào',
@@ -258,6 +272,8 @@ export const shiftTypeLabel = value => translate(SHIFT_TYPE, value);
 export const leaveStatusLabel = value => translate(LEAVE_STATUS, value);
 export const userStatusLabel = value => translate(USER_STATUS, value);
 export const invoiceStatusLabel = value => translate(INVOICE_STATUS, value);
+export const invoiceItemCategoryLabel = value => translate(INVOICE_ITEM_CATEGORY, value);
+export const paymentMethodLabel = value => translate(PAYMENT_METHOD, value);
 export const attachmentCategoryLabel = value => translate(ATTACHMENT_CATEGORY, value);
 export const ATTACHMENT_CATEGORIES = Object.keys(ATTACHMENT_CATEGORY);
 export const stockTransactionTypeLabel = value => translate(STOCK_TRANSACTION_TYPE, value);

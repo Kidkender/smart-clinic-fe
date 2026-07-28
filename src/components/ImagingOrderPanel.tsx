@@ -68,11 +68,13 @@ function safeExternalUrl(url: string | undefined): string | undefined {
 
 export default function ImagingOrderPanel({
   orderId,
+  orderName,
   orderStatus,
   role,
   onOrderChanged,
 }: {
   orderId: number | string;
+  orderName?: string;
   orderStatus: string;
   role: string | null;
   onOrderChanged: () => Promise<void>;
@@ -114,7 +116,14 @@ export default function ImagingOrderPanel({
   const loadProcedureOptions = async () => {
     try {
       const res = await searchImagingProcedures({ active: true, page: 1, limit: 100 });
-      setProcedureOptions(res.data ?? []);
+      const options: ImagingProcedureOption[] = res.data ?? [];
+      setProcedureOptions(options);
+      // The order's Name is chosen directly from this same procedure catalog when the
+      // doctor creates the order (see OrdersSection.tsx), so it should already match a
+      // procedure here exactly — default the schedule dropdown to it instead of leaving
+      // staff to re-pick a service that may not match what was actually ordered.
+      const matched = options.find(p => p.Name === orderName);
+      if (matched) setSelectedProcedureId(String(matched.ID));
     } catch {
       setProcedureOptions([]);
     }

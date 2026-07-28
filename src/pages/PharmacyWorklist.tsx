@@ -6,6 +6,7 @@ import { listPrescriptionWorklist } from '@/api/prescription';
 import { resolveError } from '@/utils/errorMessages';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import PharmacyTabs from '@/components/pharmacy/PharmacyTabs';
 
 interface WorklistDrugItem {
   drug_name: string;
@@ -55,6 +56,8 @@ export default function PharmacyWorklist() {
           Toàn bộ đơn thuốc đang chờ cấp phát — chỉ hiện đơn của các lượt khám bác sĩ đã hoàn tất
         </p>
       </div>
+
+      <PharmacyTabs />
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
