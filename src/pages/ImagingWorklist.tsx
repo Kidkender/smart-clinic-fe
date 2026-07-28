@@ -110,7 +110,7 @@ export default function ImagingWorklist() {
                   </Link>
                 </div>
               </div>
-              <ImagingOrderPanel orderId={item.order_id} orderStatus={item.order_status} role={role} onOrderChanged={fetchWorklist} />
+              <ImagingOrderPanel orderId={item.order_id} orderName={item.order_name} orderStatus={item.order_status} role={role} onOrderChanged={fetchWorklist} />
             </Card>
           ))}
         </div>

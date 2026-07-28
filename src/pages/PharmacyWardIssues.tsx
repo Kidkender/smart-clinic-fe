@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import PharmacyTabs from '@/components/pharmacy/PharmacyTabs';
 
 interface Ward {
   ID: number | string;
@@ -174,6 +175,8 @@ export default function PharmacyWardIssues() {
           </SelectContent>
         </Select>
       </div>
+
+      <PharmacyTabs />
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
 
