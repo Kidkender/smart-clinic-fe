@@ -69,7 +69,7 @@ function App() {
         <Route
           path="encounters/:id"
           element={
-            <RequireAuth roles={['admin', 'doctor', 'nurse', 'pharmacist']}>
+            <RequireAuth roles={['admin', 'doctor', 'nurse', 'pharmacist', 'cashier', 'receptionist']}>
               <Consultation />
             </RequireAuth>
           }

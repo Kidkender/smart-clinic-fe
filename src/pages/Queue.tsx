@@ -87,6 +87,7 @@ export default function Queue() {
   // cancel) and the exam link are admin+doctor+nurse only.
   const canCheckInWalkIn = role === 'admin' || role === 'receptionist';
   const canDoClinical = role === 'admin' || role === 'doctor' || role === 'nurse';
+  const canManageBilling = (role === 'cashier' || role === 'receptionist') && !canDoClinical;
   const [departments, setDepartments] = useState<Department[]>([]);
   const [departmentId, setDepartmentId] = useState('');
   const [queue, setQueue] = useState<Encounter[]>([]);
@@ -393,6 +394,15 @@ export default function Queue() {
                         className="inline-flex size-[30px] items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#6c757d] no-underline"
                       >
                         <Icon icon="fa6-solid:eye" className="text-[13px]" />
+                      </Link>
+                    )}
+                    {canManageBilling && q.Status === 'completed' && (
+                      <Link
+                        to={`/encounters/${q.ID}`}
+                        title="Hóa đơn viện phí"
+                        className="inline-flex size-[30px] items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#307bc4] no-underline"
+                      >
+                        <Icon icon="fa6-solid:file-invoice-dollar" className="text-[13px]" />
                       </Link>
                     )}
                     {canDoClinical && q.Status === 'in_progress' && (

@@ -19,6 +19,7 @@ import ClinicalNotesSection from '@/components/consultation/ClinicalNotesSection
 import OrdersSection from '@/components/consultation/OrdersSection';
 import PrescriptionsSection from '@/components/consultation/PrescriptionsSection';
 import RecordUsageDialog from '@/components/medical-supplies/RecordUsageDialog';
+import InvoiceDialog from '@/components/consultation/InvoiceDialog';
 import { SectionBadge, ErrorBox, includesRole } from '@/components/consultation/shared';
 import type { Encounter, VitalSign, Diagnosis, Order, Prescription } from '@/components/consultation/types';
 
@@ -40,9 +41,11 @@ export default function Consultation() {
   const canPrescribe = includesRole(['admin', 'doctor'], role);
   const canUpdatePrescriptionStatus = includesRole(['admin', 'pharmacist'], role);
   const canRecordSupplyUsage = includesRole(['admin', 'doctor', 'nurse', 'pharmacist'], role);
+  const canManageBilling = includesRole(['admin', 'cashier', 'receptionist'], role);
 
   const [confirm, ConfirmDialog] = useConfirm();
   const [supplyUsageOpen, setSupplyUsageOpen] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
 
   const [encounter, setEncounter] = useState<Encounter | null>(null);
   const [vitals, setVitals] = useState<VitalSign[]>([]);
@@ -137,6 +140,15 @@ export default function Consultation() {
                 <Icon icon="fa6-solid:kit-medical" className="mr-1.5 text-[13px]" />Ghi nhận vật tư
               </Button>
             )}
+            {canManageBilling && isCompleted && (
+              <Button
+                variant="outline"
+                onClick={() => setInvoiceOpen(true)}
+                className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.25 text-[13px] font-medium text-[#274760]"
+              >
+                <Icon icon="fa6-solid:file-invoice-dollar" className="mr-1.5 text-[13px]" />Hóa đơn viện phí
+              </Button>
+            )}
             {canCompleteEncounter && encounter.Status === 'in_progress' && (
               <Button
                 onClick={handleComplete}
@@ -189,6 +201,12 @@ export default function Consultation() {
         onSaved={async () => {}}
         fixedEncounterId={encounterId}
         fixedEncounterLabel={`${encounter.Patient?.Fullname ?? `Bệnh nhân #${encounter.PatientID}`} — Lượt khám #${encounterId}`}
+      />
+
+      <InvoiceDialog
+        open={invoiceOpen}
+        onClose={() => setInvoiceOpen(false)}
+        encounterId={encounterId}
       />
     </>
   );

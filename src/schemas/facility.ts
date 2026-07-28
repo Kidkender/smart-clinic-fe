@@ -16,6 +16,7 @@ export const wardSchema = z.object({
     const message = validateFacilityName(value);
     if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message });
   }),
+  daily_rate: z.number({ message: 'Đơn giá phải là số.' }).min(0, 'Đơn giá không được âm.'),
 });
 
 export type WardFormValues = z.infer<typeof wardSchema>;

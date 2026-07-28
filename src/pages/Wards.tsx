@@ -4,7 +4,7 @@ import { ErrorAlert } from '@/components/ui/alert';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { getDepartments } from '@/api/department';
-import { listWards, createWard, deleteWard } from '@/api/ward';
+import { listWards, createWard, updateWard, deleteWard } from '@/api/ward';
 import { listBeds, createBed, updateBedStatus, deleteBed } from '@/api/bed';
 import { resolveError } from '@/utils/errorMessages';
 import { bedStatusLabel } from '@/utils/labels';
@@ -30,6 +30,7 @@ interface Department {
 interface Ward {
   ID: number | string;
   Name: string;
+  DailyRate: number;
 }
 
 interface Bed {
@@ -54,8 +55,11 @@ export default function Wards() {
     register: registerWard, handleSubmit: handleWardSubmit, reset: resetWard, formState: { errors: wardErrors },
   } = useForm<WardFormValues>({
     resolver: zodResolver(wardSchema),
-    defaultValues: { name: '' },
+    defaultValues: { name: '', daily_rate: 0 },
   });
+
+  const [rateForm, setRateForm] = useState<Record<string, string>>({});
+  const [savingRate, setSavingRate] = useState<Record<string, boolean>>({});
 
   const [bedForm, setBedForm] = useState<Record<string, string>>({});
   const [bedFormErrors, setBedFormErrors] = useState<Record<string, string>>({});
@@ -110,8 +114,12 @@ export default function Wards() {
     setWardError('');
     setSavingWard(true);
     try {
-      await createWard({ department_id: Number(departmentId), name: values.name.trim() });
-      resetWard({ name: '' });
+      await createWard({
+        department_id: Number(departmentId),
+        name: values.name.trim(),
+        daily_rate: values.daily_rate,
+      });
+      resetWard({ name: '', daily_rate: 0 });
       await fetchWards(departmentId);
     } catch (err) {
       setWardError(resolveError(err));
@@ -146,6 +154,24 @@ export default function Wards() {
       await fetchWards(departmentId);
     } catch (err) {
       setError(resolveError(err));
+    }
+  };
+
+  const handleUpdateRate = async (ward: Ward) => {
+    const raw = rateForm[ward.ID] ?? String(ward.DailyRate ?? 0);
+    const parsed = Number(raw);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      setError('Đơn giá giường không hợp lệ.');
+      return;
+    }
+    setSavingRate({ ...savingRate, [ward.ID]: true });
+    try {
+      await updateWard(ward.ID, ward.Name, parsed);
+      await fetchWards(departmentId);
+    } catch (err) {
+      setError(resolveError(err));
+    } finally {
+      setSavingRate({ ...savingRate, [ward.ID]: false });
     }
   };
 
@@ -204,6 +230,18 @@ export default function Wards() {
             />
             <FieldError message={wardErrors.name?.message} />
           </div>
+          <div className="w-[180px]">
+            <Input
+              {...registerWard('daily_rate', { valueAsNumber: true })}
+              type="number"
+              min="0"
+              step="1000"
+              placeholder="Đơn giá giường/ngày"
+              aria-invalid={!!wardErrors.daily_rate}
+              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+            />
+            <FieldError message={wardErrors.daily_rate?.message} />
+          </div>
           <Button
             type="submit"
             disabled={savingWard || !departmentId}
@@ -240,6 +278,25 @@ export default function Wards() {
                 >
                   <Icon icon="fa6-solid:trash" className="text-[13px]" />
                 </button>
+              </div>
+              <div className="mb-3.5 flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={rateForm[ward.ID] ?? String(ward.DailyRate ?? 0)}
+                  onChange={e => setRateForm({ ...rateForm, [ward.ID]: e.target.value })}
+                  className="h-auto flex-1 rounded-xl border-[#dde2e8] px-3 py-2.25 text-[13px] text-[#274760]"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={savingRate[ward.ID]}
+                  onClick={() => handleUpdateRate(ward)}
+                  className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2 text-xs font-semibold whitespace-nowrap text-[#274760]"
+                >
+                  Lưu đơn giá/ngày
+                </Button>
               </div>
               {(bedsByWard[ward.ID] ?? []).length === 0 ? (
                 <p className="text-sm text-[#6c757d]">Chưa có giường nào.</p>
