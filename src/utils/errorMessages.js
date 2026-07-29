@@ -25,6 +25,7 @@ const ERROR_MESSAGES = {
   'error.encounter.not_found': 'Không tìm thấy lượt khám.',
   'error.encounter.invalid_status': 'Trạng thái lượt khám không hợp lệ.',
   'error.encounter.not_completed': 'Bác sĩ chưa hoàn tất lượt khám này. Vui lòng chờ bác sĩ kết thúc khám trước khi cấp phát.',
+  'error.encounter.already_completed': 'Lượt khám đã hoàn tất, không thể thao tác thêm.',
   'error.encounter.queue_empty': 'Hàng đợi hiện đang trống.',
 
   'error.appointment.not_found': 'Không tìm thấy lịch hẹn.',
@@ -88,6 +89,13 @@ const ERROR_MESSAGES = {
   'error.nursing_log.not_found': 'Không tìm thấy nhật ký điều dưỡng.',
   'error.invoice.not_found': 'Không tìm thấy hóa đơn.',
   'error.invoice.already_paid': 'Hóa đơn đã được thanh toán.',
+  'error.payment.exceeds_remaining': 'Số tiền vượt quá số tiền còn lại phải thu.',
+  'error.payment.partial_disabled': 'Hệ thống hiện chỉ hỗ trợ thanh toán một lần đủ số tiền, chưa hỗ trợ thanh toán một phần.',
+  'error.refund.exceeds_paid': 'Số tiền hoàn vượt quá số tiền đã thu.',
+  'error.invoice.no_payments': 'Hóa đơn này chưa có khoản thanh toán nào để hoàn tiền.',
+  'error.payer.not_found': 'Không tìm thấy người/đơn vị bảo lãnh.',
+  'error.gateway_transaction.not_found': 'Không tìm thấy giao dịch thanh toán.',
+  'error.gateway_transaction.unsupported_gateway': 'Cổng thanh toán này chưa được hỗ trợ.',
 
   'error.doctor_profile.not_found': 'Không tìm thấy bác sĩ.',
   'error.doctor.role_mismatch': 'Người dùng này không phải là bác sĩ.',

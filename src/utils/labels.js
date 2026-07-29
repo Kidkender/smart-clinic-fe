@@ -158,8 +158,14 @@ const USER_STATUS = {
 
 const INVOICE_STATUS = {
   unpaid: 'Chưa thanh toán',
+  partially_paid: 'Thanh toán một phần',
   paid: 'Đã thanh toán',
   cancelled: 'Đã hủy',
+};
+
+const PAYER_TYPE = {
+  individual: 'Bệnh nhân tự thanh toán',
+  insurance_company: 'Bảo hiểm bảo lãnh',
 };
 
 const INVOICE_ITEM_CATEGORY = {
@@ -174,6 +180,7 @@ const PAYMENT_METHOD = {
   cash: 'Tiền mặt',
   transfer: 'Chuyển khoản',
   qr: 'Quét mã QR',
+  vnpay: 'VNPay',
 };
 
 const STOCK_TRANSACTION_TYPE = {
@@ -274,6 +281,8 @@ export const userStatusLabel = value => translate(USER_STATUS, value);
 export const invoiceStatusLabel = value => translate(INVOICE_STATUS, value);
 export const invoiceItemCategoryLabel = value => translate(INVOICE_ITEM_CATEGORY, value);
 export const paymentMethodLabel = value => translate(PAYMENT_METHOD, value);
+export const payerTypeLabel = value => translate(PAYER_TYPE, value);
+export const PAYER_TYPES = Object.keys(PAYER_TYPE);
 export const attachmentCategoryLabel = value => translate(ATTACHMENT_CATEGORY, value);
 export const ATTACHMENT_CATEGORIES = Object.keys(ATTACHMENT_CATEGORY);
 export const stockTransactionTypeLabel = value => translate(STOCK_TRANSACTION_TYPE, value);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { getEncounterById, updateEncounterStatus } from '@/api/encounter';
 import { listVitalSigns, listDiagnoses } from '@/api/consultation';
@@ -46,6 +46,19 @@ export default function Consultation() {
   const [confirm, ConfirmDialog] = useConfirm();
   const [supplyUsageOpen, setSupplyUsageOpen] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [pollInvoiceForSettlement, setPollInvoiceForSettlement] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('openInvoice') !== '1') return;
+    setInvoiceOpen(true);
+    setPollInvoiceForSettlement(searchParams.get('from') === 'vnpay');
+    const next = new URLSearchParams(searchParams);
+    next.delete('openInvoice');
+    next.delete('from');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [encounter, setEncounter] = useState<Encounter | null>(null);
   const [vitals, setVitals] = useState<VitalSign[]>([]);
@@ -131,7 +144,7 @@ export default function Consultation() {
           </div>
           <div className="flex items-center gap-3">
             <SectionBadge>{encounterStatusLabel(encounter.Status)}</SectionBadge>
-            {canRecordSupplyUsage && (
+            {canRecordSupplyUsage && !isCompleted && (
               <Button
                 variant="outline"
                 onClick={() => setSupplyUsageOpen(true)}
@@ -207,6 +220,7 @@ export default function Consultation() {
         open={invoiceOpen}
         onClose={() => setInvoiceOpen(false)}
         encounterId={encounterId}
+        pollForSettlement={pollInvoiceForSettlement}
       />
     </>
   );

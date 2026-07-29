@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { searchMedicalSupplies, recordSupplyUsage } from '@/api/medicalSupply';
+import { searchMedicalSupplies, recordSupplyUsage, listSupplyUsages } from '@/api/medicalSupply';
 import { resolveError } from '@/utils/errorMessages';
 import type { MedicalSupply } from './types';
 
@@ -19,6 +19,19 @@ interface UsageItemRow {
   name: string;
   quantity: number | string;
   stockQuantity: number;
+}
+
+interface UsageHistoryItem {
+  ID: number | string;
+  Supply: { Name: string; Unit: string };
+  Quantity: number;
+}
+
+interface UsageHistoryEntry {
+  ID: number | string;
+  Context: string;
+  CreatedAt: string;
+  Items: UsageHistoryItem[] | null;
 }
 
 interface RecordUsageDialogProps {
@@ -41,15 +54,36 @@ export default function RecordUsageDialog({
   const [supplyResults, setSupplyResults] = useState<MedicalSupply[]>([]);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [history, setHistory] = useState<UsageHistoryEntry[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const loadHistory = async (forEncounterId: string) => {
+    if (!forEncounterId.trim()) {
+      setHistory([]);
+      return;
+    }
+    setLoadingHistory(true);
+    try {
+      const res = await listSupplyUsages({ encounter_id: Number(forEncounterId), limit: 50 });
+      setHistory(res.data ?? []);
+    } catch {
+      setHistory([]);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
-    setEncounterId(fixedEncounterId != null ? String(fixedEncounterId) : '');
+    const initialEncounterId = fixedEncounterId != null ? String(fixedEncounterId) : '';
+    setEncounterId(initialEncounterId);
     setContext('');
     setItems([]);
     setSupplyQuery('');
     setSupplyResults([]);
     setFormError('');
+    loadHistory(initialEncounterId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, fixedEncounterId]);
 
   const closeDialog = () => {
@@ -137,9 +171,40 @@ export default function RecordUsageDialog({
                 min="1"
                 value={encounterId}
                 onChange={e => setEncounterId(e.target.value)}
+                onBlur={e => loadHistory(e.target.value)}
                 placeholder="VD: 123"
                 className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
               />
+            </div>
+          )}
+
+          {encounterId.trim() && (
+            <div className="mt-4">
+              <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Vật tư đã ghi nhận cho lượt khám này</label>
+              {loadingHistory ? (
+                <p className="m-0 text-sm text-[#6c757d]">Đang tải…</p>
+              ) : history.length === 0 ? (
+                <p className="m-0 text-sm text-[#6c757d]">Chưa có vật tư nào được ghi nhận.</p>
+              ) : (
+                <div className="flex flex-col gap-2 rounded-xl border border-[#e8edf2] bg-[#f4f7fa] p-3">
+                  {history.map(entry => (
+                    <div key={entry.ID} className="text-sm">
+                      <div className="flex items-center justify-between text-xs text-[#6c757d]">
+                        <span>{entry.Context || 'Không ghi bối cảnh'}</span>
+                        <span>{new Date(entry.CreatedAt).toLocaleString('vi-VN')}</span>
+                      </div>
+                      <ul className="m-0 mt-1 list-none p-0">
+                        {(entry.Items ?? []).map(it => (
+                          <li key={it.ID} className="flex items-center justify-between text-[#274760]">
+                            <span>{it.Supply.Name}</span>
+                            <span className="font-semibold">{it.Quantity} {it.Supply.Unit}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

@@ -26,6 +26,7 @@ const NAV: NavItem[] = [
   { to: '/lab-tests', label: 'Danh mục xét nghiệm', icon: 'fa6-solid:vial', roles: ['admin', 'lab_tech'] },
   { to: '/imaging-procedures', label: 'Danh mục CĐHA', icon: 'fa6-solid:radiation', roles: ['admin', 'radiology_tech'] },
   { to: '/wards', label: 'Khu điều trị & Giường', icon: 'fa6-solid:hospital-user', roles: ['admin'] },
+  { to: '/payers', label: 'Bên bảo lãnh & Công nợ', icon: 'fa6-solid:file-invoice-dollar', roles: ['admin', 'cashier', 'receptionist'] },
   { to: '/inventory', label: 'Kho thuốc', icon: 'fa6-solid:boxes-stacked', roles: ['admin', 'pharmacist'] },
   { to: '/medical-supplies/usages', label: 'Vật tư y tế', icon: 'fa6-solid:kit-medical', roles: ['admin', 'doctor', 'nurse', 'pharmacist'] },
   { to: '/doctors', label: 'Bác sĩ', icon: 'fa6-solid:user-doctor', roles: ['admin'] },

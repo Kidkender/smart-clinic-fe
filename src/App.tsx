@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import PaymentReturn from './pages/PaymentReturn';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import PatientDetail from './pages/PatientDetail';
@@ -17,6 +18,7 @@ import Consultation from './pages/Consultation';
 import Admissions from './pages/Admissions';
 import AdmissionDetail from './pages/AdmissionDetail';
 import Wards from './pages/Wards';
+import Payers from './pages/Payers';
 import PharmacyWardIssues from './pages/PharmacyWardIssues';
 import PharmacyWorklist from './pages/PharmacyWorklist';
 import PharmacyPrescriptionDetail from './pages/PharmacyPrescriptionDetail';
@@ -51,6 +53,7 @@ function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/payments/:gateway/return" element={<PaymentReturn />} />
 
       <Route
         path="/"
@@ -95,6 +98,14 @@ function App() {
           element={
             <RequireAuth roles={['admin']}>
               <Wards />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="payers"
+          element={
+            <RequireAuth roles={['admin', 'cashier', 'receptionist']}>
+              <Payers />
             </RequireAuth>
           }
         />

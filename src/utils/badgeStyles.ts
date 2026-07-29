@@ -56,6 +56,17 @@ export function appointmentStatusBadgeClass(status: string): string {
   return TONE_CLASS[APPOINTMENT_STATUS_TONE[status] ?? APPOINTMENT_STATUS_TONE.booked];
 }
 
+const INVOICE_STATUS_TONE: Record<string, BadgeTone> = {
+  unpaid: 'warning',
+  partially_paid: 'info',
+  paid: 'success',
+  cancelled: 'neutral',
+};
+
+export function invoiceStatusBadgeClass(status: string): string {
+  return TONE_CLASS[INVOICE_STATUS_TONE[status] ?? 'neutral'];
+}
+
 const ADMISSION_STATUS_TONE: Record<string, BadgeTone> = {
   active: 'success',
   discharged: 'neutral',
