@@ -32,6 +32,8 @@ export default function CheckInDialog({
   onCoveragePercentChange,
   registeredFacilityCode,
   onRegisteredFacilityCodeChange,
+  syncToPatientProfile,
+  onSyncToPatientProfileChange,
   checkingIn,
   onClose,
   onConfirm,
@@ -45,6 +47,8 @@ export default function CheckInDialog({
   onCoveragePercentChange: (value: string) => void;
   registeredFacilityCode: string;
   onRegisteredFacilityCodeChange: (value: string) => void;
+  syncToPatientProfile: boolean;
+  onSyncToPatientProfileChange: (value: boolean) => void;
   checkingIn: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -103,6 +107,17 @@ export default function CheckInDialog({
                 />
               </div>
             </div>
+          )}
+          {hasInsurance && (
+            <label className="mt-2.5 flex items-center gap-2 text-xs text-[#6c757d]">
+              <input
+                type="checkbox"
+                checked={syncToPatientProfile}
+                onChange={e => onSyncToPatientProfileChange(e.target.checked)}
+                className="size-3.5"
+              />
+              Cập nhật vào hồ sơ bệnh nhân
+            </label>
           )}
         </div>
         <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">

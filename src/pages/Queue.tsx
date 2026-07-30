@@ -64,6 +64,8 @@ interface PatientResult {
   ID: number | string;
   Fullname: string;
   MRN: string;
+  InsuranceNumber?: string;
+  RegisteredFacilityCode?: string;
 }
 
 const TYPES = [
@@ -78,6 +80,7 @@ const EMPTY_CHECKIN_FORM: CheckInFormValues = {
   has_insurance: false,
   coverage_percent: '',
   registered_facility_code: '',
+  sync_to_patient_profile: false,
 };
 
 const QUEUE_STATUS_OPTIONS = ['waiting', 'in_progress', 'completed', 'cancelled'].map(value => ({
@@ -198,6 +201,7 @@ export default function Queue() {
         has_insurance: values.has_insurance,
         coverage_percent: values.has_insurance && values.coverage_percent.trim() ? Number(values.coverage_percent) : null,
         registered_facility_code: values.has_insurance && values.registered_facility_code.trim() ? values.registered_facility_code.trim() : null,
+        sync_to_patient_profile: values.has_insurance && values.sync_to_patient_profile,
       });
       await fetchQueue(departmentId);
       setModalOpen(false);
@@ -472,7 +476,12 @@ export default function Queue() {
                 {patientResults.map(p => (
                   <div
                     key={p.ID}
-                    onClick={() => { setValue('patient_id', String(p.ID), { shouldValidate: true }); setPatientQuery(`${p.Fullname} (${p.MRN})`); setPatientResults([]); }}
+                    onClick={() => {
+                      setValue('patient_id', String(p.ID), { shouldValidate: true });
+                      setValue('registered_facility_code', p.RegisteredFacilityCode ?? '');
+                      setPatientQuery(`${p.Fullname} (${p.MRN})`);
+                      setPatientResults([]);
+                    }}
                     className={cn(
                       'cursor-pointer px-3.5 py-2.5 text-sm text-[#274760]',
                       String(patientId) === String(p.ID) ? 'bg-[#f4f7fa]' : 'bg-white',
@@ -531,6 +540,12 @@ export default function Queue() {
                   />
                 </div>
               </div>
+            )}
+            {hasInsurance && (
+              <label className="mt-2.5 flex items-center gap-2 text-xs text-[#6c757d]">
+                <input type="checkbox" {...register('sync_to_patient_profile')} className="size-3.5" />
+                Cập nhật vào hồ sơ bệnh nhân
+              </label>
             )}
 
             {formError && (

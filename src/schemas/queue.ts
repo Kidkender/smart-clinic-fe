@@ -6,6 +6,7 @@ export const checkInSchema = z.object({
   has_insurance: z.boolean(),
   coverage_percent: z.string(),
   registered_facility_code: z.string(),
+  sync_to_patient_profile: z.boolean(),
 });
 
 export type CheckInFormValues = z.infer<typeof checkInSchema>;

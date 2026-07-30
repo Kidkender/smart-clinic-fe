@@ -32,6 +32,7 @@ export default function Appointments() {
   const [checkInHasInsurance, setCheckInHasInsurance] = useState(false);
   const [checkInCoveragePercent, setCheckInCoveragePercent] = useState('');
   const [checkInFacilityCode, setCheckInFacilityCode] = useState('');
+  const [checkInSyncToProfile, setCheckInSyncToProfile] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
 
   const [search, setSearch] = useState('');
@@ -141,7 +142,8 @@ export default function Appointments() {
     setCheckInType('follow_up');
     setCheckInHasInsurance(false);
     setCheckInCoveragePercent('');
-    setCheckInFacilityCode('');
+    setCheckInFacilityCode(appt.Patient?.RegisteredFacilityCode ?? '');
+    setCheckInSyncToProfile(false);
   };
 
   const handleCheckIn = async () => {
@@ -160,6 +162,7 @@ export default function Appointments() {
         hasInsurance: checkInHasInsurance,
         coveragePercent: checkInHasInsurance && checkInCoveragePercent.trim() ? Number(checkInCoveragePercent) : null,
         registeredFacilityCode: checkInHasInsurance && checkInFacilityCode.trim() ? checkInFacilityCode.trim() : null,
+        syncToPatientProfile: checkInHasInsurance && checkInSyncToProfile,
       });
       await fetchAppointments();
       setCheckInTarget(null);
@@ -245,6 +248,8 @@ export default function Appointments() {
         onCoveragePercentChange={setCheckInCoveragePercent}
         registeredFacilityCode={checkInFacilityCode}
         onRegisteredFacilityCodeChange={setCheckInFacilityCode}
+        syncToPatientProfile={checkInSyncToProfile}
+        onSyncToPatientProfileChange={setCheckInSyncToProfile}
         checkingIn={checkingIn}
         onClose={() => setCheckInTarget(null)}
         onConfirm={handleCheckIn}
