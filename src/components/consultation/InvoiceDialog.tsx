@@ -25,6 +25,7 @@ import {
   initiateGatewayPayment,
 } from '@/api/billing';
 import { listPayers } from '@/api/payer';
+import { getEncounterById, updateEncounterInsurance } from '@/api/encounter';
 import useConfirm from '@/hooks/useConfirm';
 import { resolveError } from '@/utils/errorMessages';
 import { invoiceStatusLabel, invoiceItemCategoryLabel, paymentMethodLabel, payerTypeLabel } from '@/utils/labels';
@@ -61,6 +62,13 @@ interface Payer {
   Type: string;
 }
 
+interface CoverageEstimate {
+  eligible_amount: number;
+  coverage_percent: number;
+  covered_amount: number;
+  patient_amount: number;
+}
+
 interface Invoice {
   ID: number | string;
   Status: 'unpaid' | 'partially_paid' | 'paid' | 'cancelled';
@@ -72,6 +80,13 @@ interface Invoice {
   Items: InvoiceItem[] | null;
   Payments: Payment[] | null;
   Refunds: Refund[] | null;
+  CoverageEstimate: CoverageEstimate | null;
+}
+
+interface Encounter {
+  ID: number | string;
+  HasInsurance: boolean;
+  CoveragePercent: number | null;
 }
 
 const PAYMENT_METHODS = ['cash', 'transfer', 'qr', 'vnpay'] as const;
@@ -113,6 +128,12 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
   const [assigningPayer, setAssigningPayer] = useState(false);
   const [showPayerForm, setShowPayerForm] = useState(false);
 
+  const [encounter, setEncounter] = useState<Encounter | null>(null);
+  const [showInsuranceForm, setShowInsuranceForm] = useState(false);
+  const [hasInsuranceInput, setHasInsuranceInput] = useState(false);
+  const [coveragePercentInput, setCoveragePercentInput] = useState('');
+  const [savingInsurance, setSavingInsurance] = useState(false);
+
   const changeDue = useMemo(() => {
     if (method !== 'cash') return null;
     const received = Number(cashReceived);
@@ -143,11 +164,15 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
     setRefundReason('');
     setRefundItemId('whole_invoice');
     setShowPayerForm(false);
+    setShowInsuranceForm(false);
     setLoading(true);
-    Promise.all([generateInvoice(encounterId), listPayers()])
-      .then(([invoiceRes, payersRes]) => {
+    Promise.all([generateInvoice(encounterId), listPayers(), getEncounterById(encounterId)])
+      .then(([invoiceRes, payersRes, encounterRes]) => {
         setInvoice(invoiceRes.data);
         setPayers(payersRes.data ?? []);
+        setEncounter(encounterRes.data);
+        setHasInsuranceInput(encounterRes.data.HasInsurance);
+        setCoveragePercentInput(encounterRes.data.CoveragePercent != null ? String(encounterRes.data.CoveragePercent) : '');
         const paid = (invoiceRes.data.Payments ?? []).reduce((s: number, p: Payment) => s + p.Amount, 0);
         const refunded = (invoiceRes.data.Refunds ?? []).reduce((s: number, r: Refund) => s + r.Amount, 0);
         setAmount(String(Math.max(invoiceRes.data.TotalAmount - (paid - refunded), 0)));
@@ -179,7 +204,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, pollForSettlement, encounterId]);
 
-  const busy = paying || vnpayLoading || refunding || assigningPayer;
+  const busy = paying || vnpayLoading || refunding || assigningPayer || savingInsurance;
 
   const closeDialog = () => {
     if (busy) return;
@@ -290,6 +315,30 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
       setError(resolveError(err));
     } finally {
       setAssigningPayer(false);
+    }
+  };
+
+  const handleSaveInsurance = async () => {
+    let coveragePercent: number | null = null;
+    if (coveragePercentInput.trim()) {
+      const parsed = Number(coveragePercentInput);
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+        setError('Mức hưởng BHYT phải là số từ 0 đến 100.');
+        return;
+      }
+      coveragePercent = parsed;
+    }
+    setError('');
+    setSavingInsurance(true);
+    try {
+      const res = await updateEncounterInsurance(encounterId, { hasInsurance: hasInsuranceInput, coveragePercent });
+      setEncounter(res.data);
+      setShowInsuranceForm(false);
+      await refreshInvoice();
+    } catch (err) {
+      setError(resolveError(err));
+    } finally {
+      setSavingInsurance(false);
     }
   };
 
@@ -511,6 +560,91 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {invoice.Status !== 'cancelled' && (
+              <div className="mt-4 border-t border-[#e8edf2] pt-4">
+                {!showInsuranceForm ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs text-[#6c757d]">
+                      {encounter?.HasInsurance ? (
+                        encounter.CoveragePercent != null ? (
+                          <>
+                            BHYT: <span className="font-semibold text-[#274760]">{encounter.CoveragePercent}%</span> · Tạm tính theo mức hưởng đã ghi nhận
+                          </>
+                        ) : (
+                          'Có BHYT · Chưa đủ thông tin để ước tính phần BHYT chi trả'
+                        )
+                      ) : (
+                        'Không sử dụng BHYT'
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => setShowInsuranceForm(true)}
+                      className="h-auto shrink-0 rounded-xl border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
+                    >
+                      Sửa thông tin BHYT
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2.5">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-[#274760]">
+                      <input
+                        type="checkbox"
+                        checked={hasInsuranceInput}
+                        onChange={e => setHasInsuranceInput(e.target.checked)}
+                        className="size-4"
+                      />
+                      Có sử dụng BHYT
+                    </label>
+                    {hasInsuranceInput && (
+                      <div className="w-[200px]">
+                        <label className="mb-1.5 block text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={coveragePercentInput}
+                          onChange={e => setCoveragePercentInput(e.target.value)}
+                          placeholder="VD: 80"
+                          className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
+                        />
+                      </div>
+                    )}
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => setShowInsuranceForm(false)}
+                        className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2 text-xs font-medium text-[#274760]"
+                      >
+                        Hủy
+                      </Button>
+                      <Button type="button" disabled={busy} onClick={handleSaveInsurance} size="cta-sm">
+                        {savingInsurance ? 'Đang lưu…' : 'Lưu'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {invoice.CoverageEstimate && (
+                  <div className="mt-3 rounded-xl bg-[#f4f7fa] px-3.5 py-2.5 text-xs text-[#6c757d]">
+                    <p className="m-0">Ước tính theo thông tin BHYT đã ghi nhận (chưa xác thực với BHXH):</p>
+                    <div className="mt-1 flex items-center justify-between">
+                      <span>BHYT dự kiến trả</span>
+                      <span className="font-semibold text-[#274760]">{invoice.CoverageEstimate.covered_amount.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Bệnh nhân dự kiến trả</span>
+                      <span className="font-semibold text-[#274760]">{invoice.CoverageEstimate.patient_amount.toLocaleString('vi-VN')} đ</span>
+                    </div>
                   </div>
                 )}
               </div>

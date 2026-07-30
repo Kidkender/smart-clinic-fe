@@ -29,3 +29,11 @@ export async function updateEncounterStatus(id, status) {
   const { data } = await client.patch(`/encounters/${id}/status`, { status });
   return data;
 }
+
+export async function updateEncounterInsurance(id, { hasInsurance, coveragePercent }) {
+  const { data } = await client.patch(`/encounters/${id}/insurance`, {
+    has_insurance: hasInsurance,
+    coverage_percent: coveragePercent,
+  });
+  return data;
+}
