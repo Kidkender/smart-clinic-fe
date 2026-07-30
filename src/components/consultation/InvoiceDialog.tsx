@@ -299,7 +299,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
     <>
       {ConfirmDialog}
       <Dialog open={open} onOpenChange={o => { if (!o) closeDialog(); }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[620px] rounded-[20px] p-8">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[900px] rounded-[20px] p-8">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-[#274760]">Hóa đơn viện phí</DialogTitle>
         </DialogHeader>
@@ -315,71 +315,75 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
               </span>
             </div>
 
-            <InvoiceSummary
-              invoice={invoice}
-              paidTotal={paidTotal}
-              refundedTotal={refundedTotal}
-              payableTotal={payableTotal}
-              remaining={remaining}
-            />
-
-            {canPay && (
-              <InvoicePaymentForm
-                amount={amount}
-                method={method}
-                onMethodChange={value => { setMethod(value); setCashReceived(''); }}
-                cashReceived={cashReceived}
-                onCashReceivedChange={setCashReceived}
-                changeDue={changeDue}
-                busy={busy}
-                paying={paying}
-                vnpayLoading={vnpayLoading}
-                onSubmit={handleSubmitPayment}
+            <div className="mt-4 grid gap-x-8 lg:grid-cols-2">
+              <InvoiceSummary
+                invoice={invoice}
+                paidTotal={paidTotal}
+                refundedTotal={refundedTotal}
+                payableTotal={payableTotal}
+                remaining={remaining}
               />
-            )}
 
-            <InvoicePayerSection
-              invoice={invoice}
-              payers={payers}
-              showPayerForm={showPayerForm}
-              onShowPayerForm={() => setShowPayerForm(true)}
-              onAssignPayer={handleAssignPayer}
-              busy={busy}
-            />
+              <div>
+                {canPay && (
+                  <InvoicePaymentForm
+                    amount={amount}
+                    method={method}
+                    onMethodChange={value => { setMethod(value); setCashReceived(''); }}
+                    cashReceived={cashReceived}
+                    onCashReceivedChange={setCashReceived}
+                    changeDue={changeDue}
+                    busy={busy}
+                    paying={paying}
+                    vnpayLoading={vnpayLoading}
+                    onSubmit={handleSubmitPayment}
+                  />
+                )}
 
-            <InvoiceInsuranceSection
-              invoice={invoice}
-              encounter={encounter}
-              showInsuranceForm={showInsuranceForm}
-              onShowInsuranceForm={() => setShowInsuranceForm(true)}
-              onCancel={() => setShowInsuranceForm(false)}
-              onSave={handleSaveInsurance}
-              hasInsuranceInput={hasInsuranceInput}
-              onHasInsuranceInputChange={setHasInsuranceInput}
-              coveragePercentInput={coveragePercentInput}
-              onCoveragePercentInputChange={setCoveragePercentInput}
-              registeredFacilityCodeInput={registeredFacilityCodeInput}
-              onRegisteredFacilityCodeInputChange={setRegisteredFacilityCodeInput}
-              busy={busy}
-              savingInsurance={savingInsurance}
-            />
+                <InvoicePayerSection
+                  invoice={invoice}
+                  payers={payers}
+                  showPayerForm={showPayerForm}
+                  onShowPayerForm={() => setShowPayerForm(true)}
+                  onAssignPayer={handleAssignPayer}
+                  busy={busy}
+                />
 
-            <InvoiceRefundSection
-              invoice={invoice}
-              canRefund={canRefund}
-              showRefundForm={showRefundForm}
-              onShowRefundForm={() => setShowRefundForm(true)}
-              onCancel={() => setShowRefundForm(false)}
-              onSubmit={handleRecordRefund}
-              refundItemId={refundItemId}
-              onRefundItemIdChange={setRefundItemId}
-              refundAmount={refundAmount}
-              onRefundAmountChange={setRefundAmount}
-              refundReason={refundReason}
-              onRefundReasonChange={setRefundReason}
-              busy={busy}
-              refunding={refunding}
-            />
+                <InvoiceInsuranceSection
+                  invoice={invoice}
+                  encounter={encounter}
+                  showInsuranceForm={showInsuranceForm}
+                  onShowInsuranceForm={() => setShowInsuranceForm(true)}
+                  onCancel={() => setShowInsuranceForm(false)}
+                  onSave={handleSaveInsurance}
+                  hasInsuranceInput={hasInsuranceInput}
+                  onHasInsuranceInputChange={setHasInsuranceInput}
+                  coveragePercentInput={coveragePercentInput}
+                  onCoveragePercentInputChange={setCoveragePercentInput}
+                  registeredFacilityCodeInput={registeredFacilityCodeInput}
+                  onRegisteredFacilityCodeInputChange={setRegisteredFacilityCodeInput}
+                  busy={busy}
+                  savingInsurance={savingInsurance}
+                />
+
+                <InvoiceRefundSection
+                  invoice={invoice}
+                  canRefund={canRefund}
+                  showRefundForm={showRefundForm}
+                  onShowRefundForm={() => setShowRefundForm(true)}
+                  onCancel={() => setShowRefundForm(false)}
+                  onSubmit={handleRecordRefund}
+                  refundItemId={refundItemId}
+                  onRefundItemIdChange={setRefundItemId}
+                  refundAmount={refundAmount}
+                  onRefundAmountChange={setRefundAmount}
+                  refundReason={refundReason}
+                  onRefundReasonChange={setRefundReason}
+                  busy={busy}
+                  refunding={refunding}
+                />
+              </div>
+            </div>
           </>
         ) : null}
 

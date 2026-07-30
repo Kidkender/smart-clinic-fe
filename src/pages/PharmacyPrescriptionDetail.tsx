@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
+import { invoiceStatusBadgeClass } from '@/utils/badgeStyles';
+import { invoiceStatusLabel } from '@/utils/labels';
 import {
   getPrescriptionById, updatePrescriptionStatus, getPrescriptionLabel, flagPrescriptionItem,
 } from '@/api/prescription';
@@ -47,6 +49,8 @@ interface PrescriptionDetail {
   doctor_name: string;
   items: PrescriptionDetailItem[];
   has_shortage: boolean;
+  invoice_status?: 'unpaid' | 'partially_paid' | 'paid' | 'cancelled';
+  payment_required: boolean;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -90,7 +94,7 @@ export default function PharmacyPrescriptionDetail() {
   }, [fetchDetail]);
 
   const handleDispense = async () => {
-    if (!encounterId || !prescriptionId || !detail || detail.has_shortage) return;
+    if (!encounterId || !prescriptionId || !detail || detail.has_shortage || detail.payment_required) return;
     const ok = await confirm(`Xác nhận cấp phát đơn thuốc cho "${detail.patient_name}"?`, {
       title: 'Cấp phát đơn thuốc',
       confirmLabel: 'Cấp phát',
@@ -198,8 +202,13 @@ export default function PharmacyPrescriptionDetail() {
           <h1 className="m-0 text-[24px] font-bold text-[#274760]">
             {detail.patient_name} <span className="text-sm font-normal text-[#6c757d]">({detail.patient_mrn})</span>
           </h1>
-          <p className="mt-1 mb-0 text-[14px] text-[#6c757d]">
+          <p className="mt-1 mb-0 flex flex-wrap items-center gap-1.5 text-[14px] text-[#6c757d]">
             Đơn #{detail.prescription_id} · {new Date(detail.created_at).toLocaleString('vi-VN')} · {STATUS_LABEL[detail.status] ?? detail.status}
+            {detail.invoice_status && (
+              <span className={invoiceStatusBadgeClass(detail.invoice_status)}>
+                {invoiceStatusLabel(detail.invoice_status)}
+              </span>
+            )}
           </p>
         </div>
         <div
@@ -216,6 +225,11 @@ export default function PharmacyPrescriptionDetail() {
       {detail.has_shortage && (
         <ErrorAlert icon={false} className="mb-5"><Icon icon="fa6-solid:triangle-exclamation" />
           Có thuốc không đủ tồn kho. Liên hệ bác sĩ nếu cần thay đổi đơn thuốc trước khi cấp phát.</ErrorAlert>
+      )}
+
+      {isActive && detail.payment_required && (
+        <ErrorAlert icon={false} className="mb-5"><Icon icon="fa6-solid:circle-dollar-to-slot" />
+          Bệnh nhân tự chi trả và chưa thanh toán đủ hóa đơn. Vui lòng hướng dẫn bệnh nhân ra quầy thu ngân trước khi cấp phát.</ErrorAlert>
       )}
 
       <Card className="rounded-2xl border-[#e8edf2] p-6">
@@ -315,9 +329,15 @@ export default function PharmacyPrescriptionDetail() {
         {isActive && (
           <div className="mt-5 flex flex-wrap gap-2 border-t border-[#f0f4f8] pt-5">
             <Button
-              disabled={acting || detail.has_shortage}
+              disabled={acting || detail.has_shortage || detail.payment_required}
               onClick={handleDispense}
-              title={detail.has_shortage ? 'Không thể cấp phát vì còn thuốc chưa đủ tồn kho — báo bác sĩ hoặc chờ nhập kho.' : undefined}
+              title={
+                detail.has_shortage
+                  ? 'Không thể cấp phát vì còn thuốc chưa đủ tồn kho — báo bác sĩ hoặc chờ nhập kho.'
+                  : detail.payment_required
+                    ? 'Không thể cấp phát vì bệnh nhân chưa thanh toán đủ hóa đơn.'
+                    : undefined
+              }
               size="cta-sm"
               className="disabled:opacity-40"
             >

@@ -27,6 +27,8 @@ const ERROR_MESSAGES = {
   'error.encounter.not_completed': 'Bác sĩ chưa hoàn tất lượt khám này. Vui lòng chờ bác sĩ kết thúc khám trước khi cấp phát.',
   'error.encounter.already_completed': 'Lượt khám đã hoàn tất, không thể thao tác thêm.',
   'error.encounter.queue_empty': 'Hàng đợi hiện đang trống.',
+  'error.encounter.service_type_no_insurance': 'Khám dịch vụ không áp dụng BHYT. Vui lòng bỏ chọn BHYT hoặc đổi loại khám.',
+  'error.encounter.orders_not_completed': 'Còn chỉ định cận lâm sàng (xét nghiệm/CĐHA) chưa hoàn tất. Vui lòng hoàn tất hoặc hủy các chỉ định này trước khi kết thúc khám.',
 
   'error.appointment.not_found': 'Không tìm thấy lịch hẹn.',
   'error.appointment.invalid_status': 'Trạng thái lịch hẹn không hợp lệ.',
@@ -74,6 +76,8 @@ const ERROR_MESSAGES = {
   'error.prescription.empty': 'Đơn thuốc cần ít nhất một loại thuốc.',
   'error.prescription.invalid_status': 'Không thể chuyển sang trạng thái này.',
   'error.prescription.cancel_reason_required': 'Vui lòng nhập lý do hủy đơn thuốc.',
+  'error.prescription.dispense_requires_pharmacy': 'Chỉ dược sĩ hoặc quản trị viên mới được cấp phát thuốc.',
+  'error.prescription.payment_required_before_dispense': 'Bệnh nhân tự chi trả cần thanh toán đủ hóa đơn trước khi cấp phát thuốc.',
 
   'error.ward.not_found': 'Không tìm thấy khu điều trị.',
   'error.ward.already_exists': 'Khu điều trị này đã tồn tại trong khoa.',
