@@ -8,6 +8,7 @@ export interface Drug {
   Price: number;
   StockQuantity: number;
   MinStockLevel: number;
+  CoveredByInsurance: boolean;
 }
 
 export interface DrugBatch {

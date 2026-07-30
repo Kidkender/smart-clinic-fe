@@ -81,6 +81,7 @@ interface Invoice {
   Payments: Payment[] | null;
   Refunds: Refund[] | null;
   CoverageEstimate: CoverageEstimate | null;
+  TotalPatientAmount: number | null;
   InNetwork: boolean | null;
 }
 
@@ -672,7 +673,9 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Bệnh nhân dự kiến trả</span>
-                      <span className="font-semibold text-[#274760]">{invoice.CoverageEstimate.patient_amount.toLocaleString('vi-VN')} đ</span>
+                      <span className="font-semibold text-[#274760]">
+                        {(invoice.TotalPatientAmount ?? invoice.CoverageEstimate.patient_amount).toLocaleString('vi-VN')} đ
+                      </span>
                     </div>
                     {invoice.InNetwork === false && (
                       <p className="m-0 mt-2 text-[#dc3545]">

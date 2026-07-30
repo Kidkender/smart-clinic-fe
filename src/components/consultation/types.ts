@@ -42,6 +42,7 @@ export interface Order {
   Price?: number;
   Status: string;
   ResultSummary?: string;
+  CoveredByInsurance?: boolean;
 }
 
 export interface PrescriptionItemFlag {

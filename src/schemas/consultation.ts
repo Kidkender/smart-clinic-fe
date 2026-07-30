@@ -22,6 +22,7 @@ export type DiagnosisFormValues = z.infer<typeof diagnosisSchema>;
 export const orderSchema = z.object({
   type: z.string().min(1, 'Vui lòng chọn loại chỉ định.'),
   name: z.string().min(1, 'Vui lòng nhập tên dịch vụ.'),
+  covered_by_insurance: z.boolean(),
 });
 
 export type OrderFormValues = z.infer<typeof orderSchema>;

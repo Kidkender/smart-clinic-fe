@@ -25,6 +25,7 @@ const EMPTY_FORM: DrugFormValues = {
   manufacturer: '',
   price: 0,
   min_stock_level: 0,
+  covered_by_insurance: false,
 };
 
 interface DrugFormDialogProps {
@@ -55,6 +56,7 @@ export default function DrugFormDialog({ open, drug, onClose, onSaved }: DrugFor
       manufacturer: drug.Manufacturer ?? '',
       price: drug.Price ?? 0,
       min_stock_level: drug.MinStockLevel ?? 0,
+      covered_by_insurance: drug.CoveredByInsurance ?? false,
     } : EMPTY_FORM);
   }, [open, drug, reset]);
 
@@ -75,6 +77,7 @@ export default function DrugFormDialog({ open, drug, onClose, onSaved }: DrugFor
         manufacturer: values.manufacturer.trim(),
         price: values.price,
         min_stock_level: values.min_stock_level,
+        covered_by_insurance: values.covered_by_insurance,
       };
       if (drug) {
         await updateDrug(drug.ID, payload);
@@ -172,6 +175,11 @@ export default function DrugFormDialog({ open, drug, onClose, onSaved }: DrugFor
               <FieldError message={errors.min_stock_level?.message} />
             </div>
           </div>
+
+          <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#274760]">
+            <input type="checkbox" {...register('covered_by_insurance')} className="size-4" />
+            Trong danh mục BHYT chi trả
+          </label>
 
           {formError && (
             <ErrorAlert icon={false} className="mt-4">{formError}</ErrorAlert>

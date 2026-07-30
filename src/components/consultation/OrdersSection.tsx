@@ -90,7 +90,7 @@ export default function OrdersSection({
     register, control, watch, setValue, handleSubmit, reset, formState: { errors },
   } = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
-    defaultValues: { type: 'lab', name: '' },
+    defaultValues: { type: 'lab', name: '', covered_by_insurance: false },
   });
   const orderType = watch('type');
   const [confirm, ConfirmDialog] = useConfirm();
@@ -119,7 +119,7 @@ export default function OrdersSection({
     setSaving(true);
     try {
       await createOrder(encounterId, values);
-      reset({ type: 'lab', name: '' });
+      reset({ type: 'lab', name: '', covered_by_insurance: false });
       setOpen(false);
       await onChanged();
     } catch (err) {
@@ -273,6 +273,10 @@ export default function OrdersSection({
             />
           )}
           <FieldError message={errors.name?.message} />
+          <label className="mt-2.5 flex items-center gap-2 text-[13px] font-semibold text-[#274760]">
+            <input type="checkbox" {...register('covered_by_insurance')} className="size-4" />
+            Trong danh mục BHYT chi trả
+          </label>
           {formError && <div className="mt-2.5"><ErrorBox>{formError}</ErrorBox></div>}
           <Button type="submit" disabled={saving} size="cta" className="mt-3">
             {saving ? 'Đang lưu…' : 'Tạo chỉ định'}
