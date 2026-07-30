@@ -511,7 +511,7 @@ export default function Queue() {
             {hasInsurance && (
               <div className="mt-2.5 flex flex-wrap gap-2.5">
                 <div className="w-[180px]">
-                  <label className="mb-1.5 block text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
+                  <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
                   <Input
                     type="number"
                     min="0"
@@ -523,7 +523,7 @@ export default function Queue() {
                   />
                 </div>
                 <div className="w-[180px]">
-                  <label className="mb-1.5 block text-xs font-semibold text-[#274760]">Mã cơ sở KCB ban đầu</label>
+                  <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mã cơ sở KCB ban đầu</label>
                   <Input
                     {...register('registered_facility_code')}
                     placeholder="VD: 79001"

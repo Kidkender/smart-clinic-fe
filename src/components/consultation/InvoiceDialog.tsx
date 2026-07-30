@@ -627,7 +627,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
                     {hasInsuranceInput && (
                       <div className="flex flex-wrap gap-2.5">
                         <div className="w-[200px]">
-                          <label className="mb-1.5 block text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
+                          <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
                           <Input
                             type="number"
                             min="0"
@@ -640,7 +640,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
                           />
                         </div>
                         <div className="w-[200px]">
-                          <label className="mb-1.5 block text-xs font-semibold text-[#274760]">Mã cơ sở KCB ban đầu — để trống nếu chưa biết</label>
+                          <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mã cơ sở KCB ban đầu — để trống nếu chưa biết</label>
                           <Input
                             value={registeredFacilityCodeInput}
                             onChange={e => setRegisteredFacilityCodeInput(e.target.value)}
