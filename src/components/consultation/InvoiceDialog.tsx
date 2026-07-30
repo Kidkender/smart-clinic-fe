@@ -601,15 +601,17 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
                         'Không sử dụng BHYT'
                       )}
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={busy}
-                      onClick={() => setShowInsuranceForm(true)}
-                      className="h-auto shrink-0 rounded-xl border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
-                    >
-                      Sửa thông tin BHYT
-                    </Button>
+                    {invoice.Status !== 'paid' && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => setShowInsuranceForm(true)}
+                        className="h-auto shrink-0 rounded-xl border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
+                      >
+                        Sửa thông tin BHYT
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2.5">

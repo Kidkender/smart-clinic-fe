@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -25,6 +26,12 @@ export default function CheckInDialog({
   target,
   checkInType,
   onCheckInTypeChange,
+  hasInsurance,
+  onHasInsuranceChange,
+  coveragePercent,
+  onCoveragePercentChange,
+  registeredFacilityCode,
+  onRegisteredFacilityCodeChange,
   checkingIn,
   onClose,
   onConfirm,
@@ -32,6 +39,12 @@ export default function CheckInDialog({
   target: Appointment | null;
   checkInType: string;
   onCheckInTypeChange: (value: string) => void;
+  hasInsurance: boolean;
+  onHasInsuranceChange: (value: boolean) => void;
+  coveragePercent: string;
+  onCoveragePercentChange: (value: string) => void;
+  registeredFacilityCode: string;
+  onRegisteredFacilityCodeChange: (value: string) => void;
   checkingIn: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -55,6 +68,42 @@ export default function CheckInDialog({
               {CHECKIN_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
             </SelectContent>
           </Select>
+
+          <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#274760]">
+            <input
+              type="checkbox"
+              checked={hasInsurance}
+              onChange={e => onHasInsuranceChange(e.target.checked)}
+              className="size-4"
+            />
+            Có sử dụng BHYT
+          </label>
+          {hasInsurance && (
+            <div className="mt-2.5 flex flex-wrap gap-2.5">
+              <div className="w-[160px]">
+                <label className="mb-1.5 block text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={coveragePercent}
+                  onChange={e => onCoveragePercentChange(e.target.value)}
+                  placeholder="VD: 80"
+                  className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
+                />
+              </div>
+              <div className="w-[160px]">
+                <label className="mb-1.5 block text-xs font-semibold text-[#274760]">Mã cơ sở KCB ban đầu</label>
+                <Input
+                  value={registeredFacilityCode}
+                  onChange={e => onRegisteredFacilityCodeChange(e.target.value)}
+                  placeholder="VD: 79001"
+                  className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
+                />
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
           <Button

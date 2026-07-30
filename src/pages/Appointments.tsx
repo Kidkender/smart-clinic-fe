@@ -29,6 +29,9 @@ export default function Appointments() {
   const [confirm, ConfirmDialog] = useConfirm();
   const [checkInTarget, setCheckInTarget] = useState<Appointment | null>(null);
   const [checkInType, setCheckInType] = useState('follow_up');
+  const [checkInHasInsurance, setCheckInHasInsurance] = useState(false);
+  const [checkInCoveragePercent, setCheckInCoveragePercent] = useState('');
+  const [checkInFacilityCode, setCheckInFacilityCode] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
 
   const [search, setSearch] = useState('');
@@ -136,13 +139,28 @@ export default function Appointments() {
   const openCheckIn = (appt: Appointment) => {
     setCheckInTarget(appt);
     setCheckInType('follow_up');
+    setCheckInHasInsurance(false);
+    setCheckInCoveragePercent('');
+    setCheckInFacilityCode('');
   };
 
   const handleCheckIn = async () => {
     if (!checkInTarget) return;
+    if (checkInHasInsurance && checkInCoveragePercent.trim()) {
+      const parsed = Number(checkInCoveragePercent);
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+        setError('Mức hưởng BHYT phải là số từ 0 đến 100.');
+        return;
+      }
+    }
     setCheckingIn(true);
     try {
-      await checkInAppointment(checkInTarget.ID, checkInType);
+      await checkInAppointment(checkInTarget.ID, {
+        type: checkInType,
+        hasInsurance: checkInHasInsurance,
+        coveragePercent: checkInHasInsurance && checkInCoveragePercent.trim() ? Number(checkInCoveragePercent) : null,
+        registeredFacilityCode: checkInHasInsurance && checkInFacilityCode.trim() ? checkInFacilityCode.trim() : null,
+      });
       await fetchAppointments();
       setCheckInTarget(null);
     } catch (err) {
@@ -221,6 +239,12 @@ export default function Appointments() {
         target={checkInTarget}
         checkInType={checkInType}
         onCheckInTypeChange={setCheckInType}
+        hasInsurance={checkInHasInsurance}
+        onHasInsuranceChange={setCheckInHasInsurance}
+        coveragePercent={checkInCoveragePercent}
+        onCoveragePercentChange={setCheckInCoveragePercent}
+        registeredFacilityCode={checkInFacilityCode}
+        onRegisteredFacilityCodeChange={setCheckInFacilityCode}
         checkingIn={checkingIn}
         onClose={() => setCheckInTarget(null)}
         onConfirm={handleCheckIn}
