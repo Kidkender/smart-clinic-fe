@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -10,13 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   generateInvoice,
   recordPayment,
@@ -28,75 +20,14 @@ import { listPayers } from '@/api/payer';
 import { getEncounterById, updateEncounterInsurance } from '@/api/encounter';
 import useConfirm from '@/hooks/useConfirm';
 import { resolveError } from '@/utils/errorMessages';
-import { invoiceStatusLabel, invoiceItemCategoryLabel, paymentMethodLabel, payerTypeLabel } from '@/utils/labels';
+import { invoiceStatusLabel, paymentMethodLabel } from '@/utils/labels';
 import { invoiceStatusBadgeClass } from '@/utils/badgeStyles';
-
-interface InvoiceItem {
-  ID: number | string;
-  Category: string;
-  Description: string;
-  UnitPrice: number;
-  Quantity: number;
-  Amount: number;
-}
-
-interface Payment {
-  ID: number | string;
-  Amount: number;
-  Method: string;
-  PaidAt: string;
-}
-
-interface Refund {
-  ID: number | string;
-  Amount: number;
-  Reason: string;
-  RefundedAt: string;
-  InvoiceItemID: number | string | null;
-  InvoiceItem: InvoiceItem | null;
-}
-
-interface Payer {
-  ID: number | string;
-  Name: string;
-  Type: string;
-}
-
-interface CoverageEstimate {
-  eligible_amount: number;
-  coverage_percent: number;
-  covered_amount: number;
-  patient_amount: number;
-}
-
-interface Invoice {
-  ID: number | string;
-  Status: 'unpaid' | 'partially_paid' | 'paid' | 'cancelled';
-  SubtotalAmount: number;
-  TaxAmount: number;
-  TotalAmount: number;
-  PayerID: number | string | null;
-  Payer: Payer | null;
-  Items: InvoiceItem[] | null;
-  Payments: Payment[] | null;
-  Refunds: Refund[] | null;
-  CoverageEstimate: CoverageEstimate | null;
-  TotalPatientAmount: number | null;
-  InNetwork: boolean | null;
-}
-
-interface Encounter {
-  ID: number | string;
-  HasInsurance: boolean;
-  CoveragePercent: number | null;
-  RegisteredFacilityCode: string | null;
-}
-
-const PAYMENT_METHODS = ['cash', 'transfer', 'qr', 'vnpay'] as const;
-// Only cash and VNPay are wired up end-to-end right now; transfer/qr stay in
-// the type union (backend + history rendering still need them) but are
-// hidden from the picker until those flows are actually implemented.
-const SELECTABLE_PAYMENT_METHODS = ['cash', 'vnpay'] as const satisfies readonly (typeof PAYMENT_METHODS)[number][];
+import InvoiceSummary from './invoice/InvoiceSummary';
+import InvoicePaymentForm from './invoice/InvoicePaymentForm';
+import InvoicePayerSection from './invoice/InvoicePayerSection';
+import InvoiceInsuranceSection from './invoice/InvoiceInsuranceSection';
+import InvoiceRefundSection from './invoice/InvoiceRefundSection';
+import { PAYMENT_METHODS, type Encounter, type Invoice, type Payer, type Payment, type Refund } from './invoice/types';
 
 interface InvoiceDialogProps {
   open: boolean;
@@ -108,6 +39,10 @@ interface InvoiceDialogProps {
    * outraced the server-to-server IPN callback. */
   pollForSettlement?: boolean;
 }
+
+const paymentTotal = (payments: Payment[] | null | undefined) => (payments ?? []).reduce((sum, p) => sum + p.Amount, 0);
+const refundTotal = (refunds: Refund[] | null | undefined) => (refunds ?? []).reduce((sum, r) => sum + r.Amount, 0);
+const payableAmount = (invoice: Invoice) => invoice.TotalPatientAmount ?? invoice.TotalAmount;
 
 export default function InvoiceDialog({ open, onClose, encounterId, pollForSettlement }: InvoiceDialogProps) {
   const [confirm, ConfirmDialog] = useConfirm();
@@ -146,14 +81,21 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
     return received - due;
   }, [method, cashReceived, amount]);
 
-  const paidTotal = useMemo(() => (invoice?.Payments ?? []).reduce((sum, p) => sum + p.Amount, 0), [invoice]);
-  const refundedTotal = useMemo(() => (invoice?.Refunds ?? []).reduce((sum, r) => sum + r.Amount, 0), [invoice]);
-  const remaining = invoice ? Math.max(invoice.TotalAmount - (paidTotal - refundedTotal), 0) : 0;
+  const paidTotal = useMemo(() => paymentTotal(invoice?.Payments), [invoice]);
+  const refundedTotal = useMemo(() => refundTotal(invoice?.Refunds), [invoice]);
+  const payableTotal = invoice ? payableAmount(invoice) : 0;
+  const remaining = invoice ? Math.max(payableTotal - (paidTotal - refundedTotal), 0) : 0;
+
+  const seedAmount = (data: Invoice) => {
+    const paid = paymentTotal(data.Payments);
+    const refunded = refundTotal(data.Refunds);
+    setAmount(String(Math.max(payableAmount(data) - (paid - refunded), 0)));
+  };
 
   const refreshInvoice = async () => {
     const res = await generateInvoice(encounterId);
     setInvoice(res.data);
-    setAmount(String(Math.max(res.data.TotalAmount - ((res.data.Payments ?? []).reduce((s: number, p: Payment) => s + p.Amount, 0) - (res.data.Refunds ?? []).reduce((s: number, r: Refund) => s + r.Amount, 0)), 0)));
+    seedAmount(res.data);
     return res.data as Invoice;
   };
 
@@ -178,12 +120,11 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
         setHasInsuranceInput(encounterRes.data.HasInsurance);
         setCoveragePercentInput(encounterRes.data.CoveragePercent != null ? String(encounterRes.data.CoveragePercent) : '');
         setRegisteredFacilityCodeInput(encounterRes.data.RegisteredFacilityCode ?? '');
-        const paid = (invoiceRes.data.Payments ?? []).reduce((s: number, p: Payment) => s + p.Amount, 0);
-        const refunded = (invoiceRes.data.Refunds ?? []).reduce((s: number, r: Refund) => s + r.Amount, 0);
-        setAmount(String(Math.max(invoiceRes.data.TotalAmount - (paid - refunded), 0)));
+        seedAmount(invoiceRes.data);
       })
       .catch(err => setError(resolveError(err)))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, encounterId]);
 
   useEffect(() => {
@@ -352,7 +293,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
   };
 
   const canPay = invoice && invoice.Status !== 'paid' && invoice.Status !== 'cancelled' && remaining > 0;
-  const canRefund = invoice && paidTotal - refundedTotal > 0;
+  const canRefund = !!invoice && paidTotal - refundedTotal > 0;
 
   return (
     <>
@@ -374,389 +315,71 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
               </span>
             </div>
 
-            <div className="mt-4 flex flex-col gap-2">
-              {(invoice.Items ?? []).map(item => (
-                <div key={item.ID} className="flex items-center justify-between gap-2 rounded-xl border border-[#e8edf2] px-3.5 py-2.5">
-                  <div>
-                    <div className="text-sm font-medium text-[#274760]">{item.Description}</div>
-                    <div className="text-xs text-[#6c757d]">
-                      {invoiceItemCategoryLabel(item.Category)} · {item.Quantity} x {item.UnitPrice.toLocaleString('vi-VN')} đ
-                    </div>
-                  </div>
-                  <span className="shrink-0 text-sm font-semibold text-[#274760]">
-                    {item.Amount.toLocaleString('vi-VN')} đ
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 flex flex-col gap-1.5 border-t border-[#e8edf2] pt-3.5">
-              {invoice.TaxAmount > 0 && (
-                <>
-                  <div className="flex items-center justify-between text-sm text-[#6c757d]">
-                    <span>Tạm tính</span>
-                    <span>{invoice.SubtotalAmount.toLocaleString('vi-VN')} đ</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-[#6c757d]">
-                    <span>Thuế VAT</span>
-                    <span>{invoice.TaxAmount.toLocaleString('vi-VN')} đ</span>
-                  </div>
-                </>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-[#274760]">Tổng cộng</span>
-                <span className="text-lg font-bold text-[#274760]">{invoice.TotalAmount.toLocaleString('vi-VN')} đ</span>
-              </div>
-              {paidTotal > 0 && (
-                <div className="flex items-center justify-between text-sm text-[#28a745]">
-                  <span>Đã thu</span>
-                  <span>{paidTotal.toLocaleString('vi-VN')} đ</span>
-                </div>
-              )}
-              {refundedTotal > 0 && (
-                <div className="flex items-center justify-between text-sm text-[#dc3545]">
-                  <span>Đã hoàn</span>
-                  <span>-{refundedTotal.toLocaleString('vi-VN')} đ</span>
-                </div>
-              )}
-              {remaining > 0 && invoice.Status !== 'cancelled' && invoice.Status !== 'paid' && (
-                <div className="flex items-center justify-between text-sm font-semibold text-[#274760]">
-                  <span>Còn phải thu</span>
-                  <span>{remaining.toLocaleString('vi-VN')} đ</span>
-                </div>
-              )}
-            </div>
-
-            {(invoice.Payments?.length ?? 0) > 0 && (
-              <div className="mt-4 border-t border-[#e8edf2] pt-3.5">
-                <h3 className="mb-2 text-sm font-bold text-[#274760]">Lịch sử thanh toán</h3>
-                <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-                  {invoice.Payments!.map(p => (
-                    <li key={p.ID} className="flex items-center justify-between text-xs text-[#6c757d]">
-                      <span>{paymentMethodLabel(p.Method)} · {new Date(p.PaidAt).toLocaleString('vi-VN')}</span>
-                      <span className="font-semibold text-[#274760]">{p.Amount.toLocaleString('vi-VN')} đ</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {(invoice.Refunds?.length ?? 0) > 0 && (
-              <div className="mt-3 border-t border-[#e8edf2] pt-3.5">
-                <h3 className="mb-2 text-sm font-bold text-[#274760]">Lịch sử hoàn tiền</h3>
-                <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-                  {invoice.Refunds!.map(r => (
-                    <li key={r.ID} className="flex items-center justify-between text-xs text-[#6c757d]">
-                      <span>
-                        {r.Reason}
-                        {r.InvoiceItem && <> · <span className="italic">{r.InvoiceItem.Description}</span></>}
-                        {' '}· {new Date(r.RefundedAt).toLocaleString('vi-VN')}
-                      </span>
-                      <span className="font-semibold text-[#dc3545]">-{r.Amount.toLocaleString('vi-VN')} đ</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <InvoiceSummary
+              invoice={invoice}
+              paidTotal={paidTotal}
+              refundedTotal={refundedTotal}
+              payableTotal={payableTotal}
+              remaining={remaining}
+            />
 
             {canPay && (
-              <form onSubmit={handleSubmitPayment} noValidate className="mt-4 flex flex-col gap-2.5 border-t border-[#e8edf2] pt-4">
-                <div className="flex items-end gap-2.5">
-                  <div className="w-[160px]">
-                    <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Số tiền</label>
-                    <Input
-                      type="number"
-                      readOnly
-                      value={amount}
-                      className="h-auto rounded-xl border-[#dde2e8] bg-[#f4f7fa] px-4 py-3 text-[15px] text-[#274760]"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Phương thức</label>
-                    <Select value={method} onValueChange={value => { setMethod(value as typeof method); setCashReceived(''); }}>
-                      <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SELECTABLE_PAYMENT_METHODS.map(m => (
-                          <SelectItem key={m} value={m}>{paymentMethodLabel(m)}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button type="submit" disabled={busy} size="cta" className="shrink-0">
-                    {method === 'vnpay'
-                      ? (vnpayLoading ? 'Đang chuyển hướng…' : 'Thanh toán qua VNPay')
-                      : (paying ? 'Đang ghi nhận…' : 'Ghi nhận')}
-                  </Button>
-                </div>
-
-                {method === 'cash' && (
-                  <div className="flex items-end gap-2.5">
-                    <div className="w-[160px]">
-                      <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Tiền khách đưa <span className="text-[#dc3545]">*</span></label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={cashReceived}
-                        onChange={e => setCashReceived(e.target.value)}
-                        placeholder="VD: 500000"
-                        className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-                      />
-                    </div>
-                    {changeDue !== null && (
-                      <div className="flex-1 rounded-xl bg-[#f4f7fa] px-4 py-3 text-sm">
-                        {changeDue >= 0 ? (
-                          <span className="text-[#274760]">
-                            Tiền thừa trả lại khách: <span className="font-bold">{changeDue.toLocaleString('vi-VN')} đ</span>
-                          </span>
-                        ) : (
-                          <span className="font-semibold text-[#dc3545]">
-                            Còn thiếu {Math.abs(changeDue).toLocaleString('vi-VN')} đ
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </form>
+              <InvoicePaymentForm
+                amount={amount}
+                method={method}
+                onMethodChange={value => { setMethod(value); setCashReceived(''); }}
+                cashReceived={cashReceived}
+                onCashReceivedChange={setCashReceived}
+                changeDue={changeDue}
+                busy={busy}
+                paying={paying}
+                vnpayLoading={vnpayLoading}
+                onSubmit={handleSubmitPayment}
+              />
             )}
 
-            {invoice.Status !== 'cancelled' && (
-              <div className="mt-4 border-t border-[#e8edf2] pt-4">
-                {!showPayerForm ? (
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs text-[#6c757d]">
-                      {invoice.PayerID && invoice.Payer ? (
-                        <>
-                          Bên chịu trách nhiệm công nợ:{' '}
-                          <span className="font-semibold text-[#274760]">{invoice.Payer.Name}</span> · {payerTypeLabel(invoice.Payer.Type)}
-                        </>
-                      ) : (
-                        'Bệnh nhân tự thanh toán (mặc định)'
-                      )}
-                    </div>
-                    {invoice.Status !== 'paid' && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => setShowPayerForm(true)}
-                        className="h-auto shrink-0 rounded-xl border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
-                      >
-                        {invoice.PayerID ? 'Đổi' : 'Để nợ – gán bên chịu trách nhiệm'}
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between gap-2">
-                    <label className="text-sm font-semibold text-[#274760]">Bên chịu trách nhiệm công nợ (nếu để nợ)</label>
-                    <Select
-                      value={invoice.PayerID ? String(invoice.PayerID) : 'none'}
-                      onValueChange={handleAssignPayer}
-                      disabled={busy}
-                    >
-                      <SelectTrigger className="h-auto max-w-[280px] rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Bệnh nhân tự thanh toán</SelectItem>
-                        {payers.map(p => (
-                          <SelectItem key={p.ID} value={String(p.ID)}>
-                            {p.Name} · {payerTypeLabel(p.Type)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-            )}
+            <InvoicePayerSection
+              invoice={invoice}
+              payers={payers}
+              showPayerForm={showPayerForm}
+              onShowPayerForm={() => setShowPayerForm(true)}
+              onAssignPayer={handleAssignPayer}
+              busy={busy}
+            />
 
-            {invoice.Status !== 'cancelled' && (
-              <div className="mt-4 border-t border-[#e8edf2] pt-4">
-                {!showInsuranceForm ? (
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs text-[#6c757d]">
-                      {encounter?.HasInsurance ? (
-                        <>
-                          {encounter.CoveragePercent != null ? (
-                            <>
-                              BHYT: <span className="font-semibold text-[#274760]">{encounter.CoveragePercent}%</span> · Tạm tính theo mức hưởng đã ghi nhận
-                            </>
-                          ) : (
-                            'Có BHYT · Chưa đủ thông tin để ước tính phần BHYT chi trả'
-                          )}
-                          {invoice.InNetwork != null && (
-                            <>
-                              {' · '}
-                              <span className={invoice.InNetwork ? 'font-semibold text-[#28a745]' : 'font-semibold text-[#dc3545]'}>
-                                {invoice.InNetwork ? 'Đúng tuyến' : 'Trái tuyến'}
-                              </span>
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        'Không sử dụng BHYT'
-                      )}
-                    </div>
-                    {invoice.Status !== 'paid' && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => setShowInsuranceForm(true)}
-                        className="h-auto shrink-0 rounded-xl border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
-                      >
-                        Sửa thông tin BHYT
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2.5">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-[#274760]">
-                      <input
-                        type="checkbox"
-                        checked={hasInsuranceInput}
-                        onChange={e => setHasInsuranceInput(e.target.checked)}
-                        className="size-4"
-                      />
-                      Có sử dụng BHYT
-                    </label>
-                    {hasInsuranceInput && (
-                      <div className="flex flex-wrap gap-2.5">
-                        <div className="w-[200px]">
-                          <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="1"
-                            value={coveragePercentInput}
-                            onChange={e => setCoveragePercentInput(e.target.value)}
-                            placeholder="VD: 80"
-                            className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
-                          />
-                        </div>
-                        <div className="w-[200px]">
-                          <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mã cơ sở KCB ban đầu — để trống nếu chưa biết</label>
-                          <Input
-                            value={registeredFacilityCodeInput}
-                            onChange={e => setRegisteredFacilityCodeInput(e.target.value)}
-                            placeholder="VD: 79001"
-                            className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => setShowInsuranceForm(false)}
-                        className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2 text-xs font-medium text-[#274760]"
-                      >
-                        Hủy
-                      </Button>
-                      <Button type="button" disabled={busy} onClick={handleSaveInsurance} size="cta-sm">
-                        {savingInsurance ? 'Đang lưu…' : 'Lưu'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                {invoice.CoverageEstimate && (
-                  <div className="mt-3 rounded-xl bg-[#f4f7fa] px-3.5 py-2.5 text-xs text-[#6c757d]">
-                    <p className="m-0">Ước tính theo thông tin BHYT đã ghi nhận (chưa xác thực với BHXH):</p>
-                    <div className="mt-1 flex items-center justify-between">
-                      <span>BHYT dự kiến trả</span>
-                      <span className="font-semibold text-[#274760]">{invoice.CoverageEstimate.covered_amount.toLocaleString('vi-VN')} đ</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Bệnh nhân dự kiến trả</span>
-                      <span className="font-semibold text-[#274760]">
-                        {(invoice.TotalPatientAmount ?? invoice.CoverageEstimate.patient_amount).toLocaleString('vi-VN')} đ
-                      </span>
-                    </div>
-                    {invoice.InNetwork === false && (
-                      <p className="m-0 mt-2 text-[#dc3545]">
-                        Trái tuyến — mức hưởng thực tế theo BHXH thường thấp hơn mức ghi trên thẻ. Vui lòng xác nhận lại mức hưởng với bệnh nhân trước khi thu.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+            <InvoiceInsuranceSection
+              invoice={invoice}
+              encounter={encounter}
+              showInsuranceForm={showInsuranceForm}
+              onShowInsuranceForm={() => setShowInsuranceForm(true)}
+              onCancel={() => setShowInsuranceForm(false)}
+              onSave={handleSaveInsurance}
+              hasInsuranceInput={hasInsuranceInput}
+              onHasInsuranceInputChange={setHasInsuranceInput}
+              coveragePercentInput={coveragePercentInput}
+              onCoveragePercentInputChange={setCoveragePercentInput}
+              registeredFacilityCodeInput={registeredFacilityCodeInput}
+              onRegisteredFacilityCodeInputChange={setRegisteredFacilityCodeInput}
+              busy={busy}
+              savingInsurance={savingInsurance}
+            />
 
-            {canRefund && !showRefundForm && (
-              <div className="mt-4 border-t border-[#e8edf2] pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => setShowRefundForm(true)}
-                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.5 text-sm font-semibold text-[#dc3545]"
-                >
-                  <Icon icon="fa6-solid:rotate-left" className="mr-1.5 text-xs" />Hoàn tiền
-                </Button>
-              </div>
-            )}
-
-            {canRefund && showRefundForm && (
-              <form onSubmit={handleRecordRefund} noValidate className="mt-4 flex flex-col gap-2.5 border-t border-[#e8edf2] pt-4">
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Áp dụng cho</label>
-                  <Select value={refundItemId} onValueChange={setRefundItemId}>
-                    <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="whole_invoice">Toàn hóa đơn (không gắn dòng cụ thể)</SelectItem>
-                      {(invoice.Items ?? []).map(item => (
-                        <SelectItem key={item.ID} value={String(item.ID)}>{item.Description}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end gap-2.5">
-                  <div className="w-[160px]">
-                    <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Số tiền hoàn</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      value={refundAmount}
-                      onChange={e => setRefundAmount(e.target.value)}
-                      className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Lý do</label>
-                    <Input
-                      value={refundReason}
-                      onChange={e => setRefundReason(e.target.value)}
-                      placeholder="VD: Hủy dịch vụ, trả thuốc dư"
-                      className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => setShowRefundForm(false)}
-                    className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.5 text-sm font-medium text-[#274760]"
-                  >
-                    Hủy
-                  </Button>
-                  <Button type="submit" disabled={busy} size="cta">
-                    {refunding ? 'Đang hoàn…' : 'Xác nhận hoàn tiền'}
-                  </Button>
-                </div>
-              </form>
-            )}
+            <InvoiceRefundSection
+              invoice={invoice}
+              canRefund={canRefund}
+              showRefundForm={showRefundForm}
+              onShowRefundForm={() => setShowRefundForm(true)}
+              onCancel={() => setShowRefundForm(false)}
+              onSubmit={handleRecordRefund}
+              refundItemId={refundItemId}
+              onRefundItemIdChange={setRefundItemId}
+              refundAmount={refundAmount}
+              onRefundAmountChange={setRefundAmount}
+              refundReason={refundReason}
+              onRefundReasonChange={setRefundReason}
+              busy={busy}
+              refunding={refunding}
+            />
           </>
         ) : null}
 
