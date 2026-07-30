@@ -30,10 +30,11 @@ export async function updateEncounterStatus(id, status) {
   return data;
 }
 
-export async function updateEncounterInsurance(id, { hasInsurance, coveragePercent }) {
+export async function updateEncounterInsurance(id, { hasInsurance, coveragePercent, registeredFacilityCode }) {
   const { data } = await client.patch(`/encounters/${id}/insurance`, {
     has_insurance: hasInsurance,
     coverage_percent: coveragePercent,
+    registered_facility_code: registeredFacilityCode,
   });
   return data;
 }
