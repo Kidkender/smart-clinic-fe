@@ -21,7 +21,6 @@ const ENCOUNTER_STATUS = {
 const ENCOUNTER_TYPE = {
   new: 'Khám mới',
   follow_up: 'Tái khám',
-  insurance: 'BHYT',
   service: 'Dịch vụ',
   inpatient: 'Nội trú',
 };

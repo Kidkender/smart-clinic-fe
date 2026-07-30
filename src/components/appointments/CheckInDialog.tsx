@@ -18,7 +18,6 @@ import type { Appointment } from './types';
 const CHECKIN_TYPES = [
   { value: 'new', label: 'Khám mới' },
   { value: 'follow_up', label: 'Tái khám' },
-  { value: 'insurance', label: 'BHYT' },
   { value: 'service', label: 'Dịch vụ' },
 ];
 
