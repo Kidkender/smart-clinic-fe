@@ -19,6 +19,8 @@ import Admissions from './pages/Admissions';
 import AdmissionDetail from './pages/AdmissionDetail';
 import Wards from './pages/Wards';
 import Payers from './pages/Payers';
+import FeeSettings from './pages/FeeSettings';
+import FinanceReport from './pages/FinanceReport';
 import PharmacyWardIssues from './pages/PharmacyWardIssues';
 import PharmacyWorklist from './pages/PharmacyWorklist';
 import PharmacyPrescriptionDetail from './pages/PharmacyPrescriptionDetail';
@@ -106,6 +108,22 @@ function App() {
           element={
             <RequireAuth roles={['admin', 'cashier', 'receptionist']}>
               <Payers />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="fee-settings"
+          element={
+            <RequireAuth roles={['admin']}>
+              <FeeSettings />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="finance-report"
+          element={
+            <RequireAuth roles={['admin', 'cashier']}>
+              <FinanceReport />
             </RequireAuth>
           }
         />

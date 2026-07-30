@@ -164,7 +164,7 @@ const INVOICE_STATUS = {
 };
 
 const PAYER_TYPE = {
-  individual: 'Bệnh nhân tự thanh toán',
+  individual: 'Cá nhân bảo lãnh',
   insurance_company: 'Bảo hiểm bảo lãnh',
 };
 

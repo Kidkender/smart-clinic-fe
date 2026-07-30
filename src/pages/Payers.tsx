@@ -1,24 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { listPayers, createPayer, getPayerDebt } from '@/api/payer';
 import { resolveError } from '@/utils/errorMessages';
-import { payerTypeLabel, invoiceStatusLabel, PAYER_TYPES } from '@/utils/labels';
+import { payerTypeLabel, invoiceStatusLabel } from '@/utils/labels';
 import { invoiceStatusBadgeClass } from '@/utils/badgeStyles';
 import { payerSchema, type PayerFormValues } from '@/schemas/payer';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import FieldError from '@/components/FieldError';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 interface Payer {
   ID: number | string;
@@ -53,7 +46,7 @@ export default function Payers() {
   const [debtError, setDebtError] = useState('');
 
   const {
-    register, handleSubmit, reset, control, formState: { errors },
+    register, handleSubmit, reset, formState: { errors },
   } = useForm<PayerFormValues>({
     resolver: zodResolver(payerSchema),
     defaultValues: { name: '', type: 'insurance_company', contact_phone: '', contact_email: '' },
@@ -111,9 +104,9 @@ export default function Payers() {
   return (
     <>
       <div className="mb-5">
-        <h1 className="m-0 text-[26px] font-bold text-[#274760]">Người/đơn vị bảo lãnh</h1>
+        <h1 className="m-0 text-[26px] font-bold text-[#274760]">Bên bảo lãnh viện phí</h1>
         <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">
-          Quản lý các bên chi trả hóa đơn (bệnh nhân tự thanh toán hoặc công ty bảo hiểm bảo lãnh) và công nợ chưa thu
+          Quản lý các công ty bảo hiểm bảo lãnh và công nợ chưa thu. Bệnh nhân tự thanh toán không cần khai báo ở đây.
         </p>
       </div>
 
@@ -130,24 +123,6 @@ export default function Payers() {
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
             <FieldError message={errors.name?.message} />
-          </div>
-          <div className="w-[220px]">
-            <Controller
-              control={control}
-              name="type"
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAYER_TYPES.map(t => (
-                      <SelectItem key={t} value={t}>{payerTypeLabel(t)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
           </div>
           <div className="w-[180px]">
             <Input
