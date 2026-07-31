@@ -10,6 +10,7 @@ export interface InvoiceItem {
 
 export interface Payment {
   ID: number | string;
+  AllocationID: number;
   Amount: number;
   Method: string;
   PaidAt: string;

@@ -76,3 +76,13 @@ export async function downloadAttachment(id, attachmentId) {
   });
   return data;
 }
+
+export async function addInsurancePolicy(id, payload) {
+  const { data } = await client.post(`/patients/${id}/insurance-policies`, payload);
+  return data;
+}
+
+export async function listInsurancePolicies(id) {
+  const { data } = await client.get(`/patients/${id}/insurance-policies`);
+  return data;
+}

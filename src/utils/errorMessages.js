@@ -108,6 +108,9 @@ const ERROR_MESSAGES = {
   'error.insurance_claim.already_exists': 'Khoản phân bổ này đã có claim được gửi.',
   'error.insurance_claim.already_responded': 'Claim này đã được ghi nhận kết quả duyệt.',
   'error.insurance_claim.approved_amount_invalid': 'Số tiền duyệt không hợp lệ (vượt quá số tiền đã gửi claim).',
+  'error.insurance_policy.not_found': 'Không tìm thấy hợp đồng bảo hiểm này.',
+  'error.insurance_policy.patient_mismatch': 'Hợp đồng bảo hiểm này không thuộc về bệnh nhân của lượt khám.',
+  'error.insurance_policy.payer_not_insurance_company': 'Bên bảo lãnh được chọn không phải là công ty bảo hiểm.',
   'error.gateway_transaction.not_found': 'Không tìm thấy giao dịch thanh toán.',
   'error.gateway_transaction.unsupported_gateway': 'Cổng thanh toán này chưa được hỗ trợ.',
 

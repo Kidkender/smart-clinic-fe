@@ -3,14 +3,16 @@ import type { Invoice } from './types';
 
 interface InvoiceSummaryProps {
   invoice: Invoice;
-  paidTotal: number;
+  patientPaidTotal: number;
   refundedTotal: number;
   payableTotal: number;
   remaining: number;
 }
 
-export default function InvoiceSummary({ invoice, paidTotal, refundedTotal, payableTotal, remaining }: InvoiceSummaryProps) {
+export default function InvoiceSummary({ invoice, patientPaidTotal, refundedTotal, payableTotal, remaining }: InvoiceSummaryProps) {
   const coverage = invoice.CoverageEstimate;
+  const items = invoice.Items ?? [];
+  const coveredItemCount = items.filter(i => i.CoveredByInsurance).length;
 
   return (
     <>
@@ -55,24 +57,28 @@ export default function InvoiceSummary({ invoice, paidTotal, refundedTotal, paya
         {coverage && (
           <>
             <div className="flex items-center justify-between text-sm text-[#28a745]">
-              <span>BHYT chi trả</span>
+              <span>BHYT tạm chi (ước tính)</span>
               <span>-{coverage.covered_amount.toLocaleString('vi-VN')} đ</span>
             </div>
-            {coverage.eligible_amount === 0 && (
+            {coverage.eligible_amount === 0 ? (
               <p className="m-0 text-xs italic text-[#6c757d]">
                 Không có dòng dịch vụ/thuốc nào trong danh mục BHYT trên hóa đơn này nên BHYT chưa chi trả gì.
               </p>
+            ) : (
+              <p className="m-0 text-xs italic text-[#6c757d]">
+                BHYT áp dụng cho {coveredItemCount}/{items.length} dòng — số tiền chốt cuối theo bảng Phân bổ chi trả bên dưới.
+              </p>
             )}
             <div className="flex items-center justify-between text-sm font-semibold text-[#274760]">
-              <span>Bệnh nhân phải trả</span>
+              <span>Bệnh nhân phải trả (ước tính)</span>
               <span>{payableTotal.toLocaleString('vi-VN')} đ</span>
             </div>
           </>
         )}
-        {paidTotal > 0 && (
+        {patientPaidTotal > 0 && (
           <div className="flex items-center justify-between text-sm text-[#28a745]">
-            <span>Đã thu</span>
-            <span>{paidTotal.toLocaleString('vi-VN')} đ</span>
+            <span>Đã thu từ bệnh nhân</span>
+            <span>{patientPaidTotal.toLocaleString('vi-VN')} đ</span>
           </div>
         )}
         {refundedTotal > 0 && (
@@ -83,7 +89,7 @@ export default function InvoiceSummary({ invoice, paidTotal, refundedTotal, paya
         )}
         {remaining > 0 && invoice.Status !== 'cancelled' && invoice.Status !== 'paid' && (
           <div className="flex items-center justify-between text-sm font-semibold text-[#274760]">
-            <span>Còn phải thu</span>
+            <span>Còn phải thu từ bệnh nhân</span>
             <span>{remaining.toLocaleString('vi-VN')} đ</span>
           </div>
         )}

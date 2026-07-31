@@ -17,8 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { splitInvoice, submitClaim, recordClaimResponse, recordAllocationPayment } from '@/api/billing';
+import { listEligibilityChecks } from '@/api/encounter';
 import useConfirm from '@/hooks/useConfirm';
 import { resolveError } from '@/utils/errorMessages';
 import { allocationStatusLabel, claimStatusLabel, payerTypeLabel, paymentMethodLabel } from '@/utils/labels';
@@ -28,8 +29,15 @@ import { SELECTABLE_PAYMENT_METHODS, type Invoice, type InvoicePayerAllocation, 
 interface InvoiceAllocationsSectionProps {
   invoice: Invoice;
   payers: Payer[];
+  encounterId: string;
   refreshInvoice: () => Promise<Invoice>;
   onBusyChange: (busy: boolean) => void;
+}
+
+interface EligibilityCheck {
+  ID: number;
+  Result: 'eligible' | 'ineligible' | 'unknown';
+  Policy: { PayerID: number } | null;
 }
 
 interface SplitRow {
@@ -44,10 +52,22 @@ const allocationPayerLabel = (allocation: InvoicePayerAllocation) => {
   return `${allocation.Payer.Name} · ${payerTypeLabel(allocation.Payer.Type)}`;
 };
 
-export default function InvoiceAllocationsSection({ invoice, payers, refreshInvoice, onBusyChange }: InvoiceAllocationsSectionProps) {
+// BHYT's "approved" status is set the instant the Coverage Engine computes
+// it — no one at BHXH has actually reviewed anything yet, unlike an
+// insurance_company allocation where "approved" really does mean the
+// insurer approved a claim. Same status value, different real-world
+// meaning, so the label needs to say which one this is.
+const allocationRowStatusLabel = (allocation: InvoicePayerAllocation) => {
+  if (allocation.Payer?.Type === 'government' && allocation.Status === 'approved') return 'Đã tính';
+  return allocationStatusLabel(allocation.Status);
+};
+
+export default function InvoiceAllocationsSection({ invoice, payers, encounterId, refreshInvoice, onBusyChange }: InvoiceAllocationsSectionProps) {
   const [confirm, ConfirmDialog] = useConfirm();
   const [error, setError] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
+
+  const [eligibilityChecks, setEligibilityChecks] = useState<EligibilityCheck[]>([]);
 
   const [showSplitDialog, setShowSplitDialog] = useState(false);
   const [splitRows, setSplitRows] = useState<SplitRow[]>([emptySplitRow()]);
@@ -74,20 +94,36 @@ export default function InvoiceAllocationsSection({ invoice, payers, refreshInvo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionBusy]);
 
+  useEffect(() => {
+    listEligibilityChecks(encounterId)
+      .then(r => setEligibilityChecks(r.data ?? []))
+      .catch(() => setEligibilityChecks([]));
+  }, [encounterId]);
+
   if (invoice.Status === 'cancelled') return null;
 
   const allocations = invoice.Allocations ?? [];
   const thirdPartyAllocations = allocations.filter(a => a.Payer && a.Payer.Type !== 'government');
 
+  // Most recent check wins (API already orders by checked_at desc) — this is
+  // what check-in declared as eligible, used only to pre-fill the first
+  // split row so billing doesn't re-ask for a payer reception already
+  // validated. Staff can still change/remove it; nothing here is binding.
+  const declaredEligiblePayer = eligibilityChecks
+    .find(c => c.Result === 'eligible' && c.Policy)
+    ?.Policy?.PayerID;
+
   const splitTotal = splitRows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
   const patientRemainder = Math.max(invoice.TotalAmount - splitTotal, 0);
 
   const openSplitDialog = () => {
-    setSplitRows(
-      thirdPartyAllocations.length > 0
-        ? thirdPartyAllocations.map(a => ({ payerId: String(a.PayerID), amount: String(a.AllocatedAmount) }))
-        : [emptySplitRow()],
-    );
+    if (thirdPartyAllocations.length > 0) {
+      setSplitRows(thirdPartyAllocations.map(a => ({ payerId: String(a.PayerID), amount: String(a.AllocatedAmount) })));
+    } else if (declaredEligiblePayer != null && payers.some(p => String(p.ID) === String(declaredEligiblePayer))) {
+      setSplitRows([{ payerId: String(declaredEligiblePayer), amount: '' }]);
+    } else {
+      setSplitRows([emptySplitRow()]);
+    }
     setShowSplitDialog(true);
   };
 
@@ -260,19 +296,20 @@ export default function InvoiceAllocationsSection({ invoice, payers, refreshInvo
             onClick={openSplitDialog}
             className="h-auto shrink-0 rounded-xl border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760]"
           >
-            {thirdPartyAllocations.length > 0 ? 'Sửa phân bổ' : 'Chia hóa đơn'}
+            {thirdPartyAllocations.length > 0 ? 'Sửa phân bổ' : 'Phân bổ thanh toán'}
           </Button>
         )}
       </div>
 
       {allocations.length === 0 ? (
-        invoice.CoverageEstimate ? (
-          <ErrorAlert variant="compact" className="mt-2.5">
-            Hóa đơn chưa được phân bổ — cần chạy Chia hóa đơn trước khi thu tiền.
-          </ErrorAlert>
-        ) : (
-          <div className="mt-2.5 text-xs text-[#6c757d]">Bệnh nhân tự thanh toán toàn bộ hóa đơn.</div>
-        )
+        // GenerateInvoice always runs the coverage/allocation pipeline before
+        // the dialog shows data, and it always seeds a default patient
+        // allocation unless there's an unresolved private-insurance signal
+        // (an eligible EncounterEligibilityCheck with no SplitInvoice yet) —
+        // so an empty list here can only mean "chưa phân bổ", never self-pay.
+        <ErrorAlert variant="compact" className="mt-2.5">
+          Hóa đơn chưa được phân bổ — cần bấm "Phân bổ thanh toán" trước khi thu tiền.
+        </ErrorAlert>
       ) : (
         <Table className="mt-2.5">
           <TableHeader>
@@ -298,7 +335,7 @@ export default function InvoiceAllocationsSection({ invoice, payers, refreshInvo
                   {allocation.AllocatedAmount.toLocaleString('vi-VN')} đ
                 </TableCell>
                 <TableCell>
-                  <span className={allocationStatusBadgeClass(allocation.Status)}>{allocationStatusLabel(allocation.Status)}</span>
+                  <span className={allocationStatusBadgeClass(allocation.Status)}>{allocationRowStatusLabel(allocation)}</span>
                 </TableCell>
                 <TableCell>
                   {allocation.Claim ? (
@@ -349,6 +386,15 @@ export default function InvoiceAllocationsSection({ invoice, payers, refreshInvo
               </TableRow>
             ))}
           </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell colSpan={2} className="text-[13px] font-bold text-[#274760]">Tổng</TableCell>
+              <TableCell className="text-[13px] font-bold text-[#274760]">
+                {allocations.reduce((sum, a) => sum + a.AllocatedAmount, 0).toLocaleString('vi-VN')} đ
+              </TableCell>
+              <TableCell colSpan={3} />
+            </TableRow>
+          </TableFooter>
         </Table>
       )}
 
@@ -358,9 +404,14 @@ export default function InvoiceAllocationsSection({ invoice, payers, refreshInvo
         <DialogContent className="sm:max-w-[560px] rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-[#274760]">
-              {thirdPartyAllocations.length > 0 ? 'Sửa phân bổ' : 'Chia hóa đơn'}
+              {thirdPartyAllocations.length > 0 ? 'Sửa phân bổ' : 'Phân bổ thanh toán'}
             </DialogTitle>
           </DialogHeader>
+          {thirdPartyAllocations.length === 0 && declaredEligiblePayer != null && (
+            <p className="m-0 -mt-2 text-xs text-[#6c757d]">
+              Đã tự điền công ty bảo hiểm bệnh nhân khai báo lúc check-in — nhập số tiền và chỉnh lại nếu cần.
+            </p>
+          )}
           <form onSubmit={handleSubmitSplit} noValidate className="flex flex-col gap-2.5">
             {splitRows.map((row, index) => (
               <div key={index} className="flex items-end gap-2.5">

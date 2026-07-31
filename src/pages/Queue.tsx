@@ -4,9 +4,10 @@ import { ErrorAlert } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { checkIn, getTodayQueue, callNext, updateEncounterStatus } from '@/api/encounter';
+import { checkIn, getTodayQueue, callNext, updateEncounterStatus, checkEligibility } from '@/api/encounter';
 import { getDepartments } from '@/api/department';
-import { searchPatients } from '@/api/patient';
+import { searchPatients, addInsurancePolicy } from '@/api/patient';
+import { listPayers } from '@/api/payer';
 import { resolveError } from '@/utils/errorMessages';
 import { encounterStatusLabel, encounterTypeLabel } from '@/utils/labels';
 import { useAuth } from '@/context/AuthContext';
@@ -14,6 +15,7 @@ import useConfirm from '@/hooks/useConfirm';
 import { cn } from '@/lib/utils';
 import { encounterStatusBadgeClass } from '@/utils/badgeStyles';
 import { checkInSchema, type CheckInFormValues } from '@/schemas/queue';
+import CheckInPrivateInsuranceFields from '@/components/queue/CheckInPrivateInsuranceFields';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -68,6 +70,12 @@ interface PatientResult {
   RegisteredFacilityCode?: string;
 }
 
+interface Payer {
+  ID: number | string;
+  Name: string;
+  Type: string;
+}
+
 const TYPES = [
   { value: 'new', label: 'Khám mới' },
   { value: 'follow_up', label: 'Tái khám' },
@@ -81,6 +89,13 @@ const EMPTY_CHECKIN_FORM: CheckInFormValues = {
   coverage_percent: '',
   registered_facility_code: '',
   sync_to_patient_profile: false,
+  has_private_insurance: false,
+  private_payer_id: '',
+  private_policy_number: '',
+  private_card_number: '',
+  private_valid_from: '',
+  private_valid_to: '',
+  private_coverage_percent_estimate: '',
 };
 
 const QUEUE_STATUS_OPTIONS = ['waiting', 'in_progress', 'completed', 'cancelled'].map(value => ({
@@ -113,6 +128,7 @@ export default function Queue() {
   const [patientResults, setPatientResults] = useState<PatientResult[]>([]);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [payers, setPayers] = useState<Payer[]>([]);
   const [confirm, ConfirmDialog] = useConfirm();
   const {
     control, handleSubmit, reset, setValue, watch, register, formState: { errors },
@@ -122,6 +138,8 @@ export default function Queue() {
   });
   const patientId = watch('patient_id');
   const hasInsurance = watch('has_insurance');
+  const hasPrivateInsurance = watch('has_private_insurance');
+  const checkInType = watch('type');
 
   const fetchQueue = useCallback(async (deptId: string) => {
     setLoading(true);
@@ -146,6 +164,13 @@ export default function Queue() {
       .then(r => setDepartments(r.data ?? []))
       .catch(err => setError(resolveError(err)));
   }, []);
+
+  useEffect(() => {
+    if (!canCheckInWalkIn) return;
+    listPayers()
+      .then(r => setPayers(r.data ?? []))
+      .catch(() => setPayers([]));
+  }, [canCheckInWalkIn]);
 
   useEffect(() => {
     fetchQueue(departmentId);
@@ -185,24 +210,65 @@ export default function Queue() {
 
   const handleCheckIn = handleSubmit(async values => {
     setFormError('');
-    if (values.has_insurance && values.coverage_percent.trim()) {
+    const hasInsuranceValue = values.has_insurance && values.type !== 'service';
+    if (hasInsuranceValue && values.coverage_percent.trim()) {
       const parsed = Number(values.coverage_percent);
       if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
         setFormError('Mức hưởng BHYT phải là số từ 0 đến 100.');
         return;
       }
     }
+    if (values.has_private_insurance) {
+      if (!values.private_payer_id) {
+        setFormError('Vui lòng chọn công ty bảo hiểm tư nhân.');
+        return;
+      }
+      if (!values.private_policy_number.trim()) {
+        setFormError('Vui lòng nhập số hợp đồng/thẻ bảo hiểm tư nhân.');
+        return;
+      }
+      if (values.private_valid_from && values.private_valid_to && values.private_valid_from > values.private_valid_to) {
+        setFormError('Ngày hiệu lực từ phải trước ngày hiệu lực đến.');
+        return;
+      }
+      if (values.private_coverage_percent_estimate.trim()) {
+        const parsed = Number(values.private_coverage_percent_estimate);
+        if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+          setFormError('Mức chi trả ước tính phải là số từ 0 đến 100.');
+          return;
+        }
+      }
+    }
     setSaving(true);
     try {
-      await checkIn({
+      const encounterRes = await checkIn({
         patient_id: Number(values.patient_id),
         department_id: Number(departmentId),
         type: values.type,
-        has_insurance: values.has_insurance,
-        coverage_percent: values.has_insurance && values.coverage_percent.trim() ? Number(values.coverage_percent) : null,
-        registered_facility_code: values.has_insurance && values.registered_facility_code.trim() ? values.registered_facility_code.trim() : null,
-        sync_to_patient_profile: values.has_insurance && values.sync_to_patient_profile,
+        has_insurance: hasInsuranceValue,
+        coverage_percent: hasInsuranceValue && values.coverage_percent.trim() ? Number(values.coverage_percent) : null,
+        registered_facility_code: hasInsuranceValue && values.registered_facility_code.trim() ? values.registered_facility_code.trim() : null,
+        sync_to_patient_profile: hasInsuranceValue && values.sync_to_patient_profile,
       });
+
+      if (values.has_private_insurance) {
+        const policyRes = await addInsurancePolicy(Number(values.patient_id), {
+          payer_id: Number(values.private_payer_id),
+          policy_number: values.private_policy_number.trim(),
+          card_number: values.private_card_number.trim(),
+          valid_from: values.private_valid_from || null,
+          valid_to: values.private_valid_to || null,
+        });
+        const today = new Date().toISOString().slice(0, 10);
+        const isExpired = !!values.private_valid_to && values.private_valid_to < today;
+        await checkEligibility(encounterRes.data.ID, {
+          policy_id: policyRes.data.ID,
+          result: isExpired ? 'ineligible' : 'eligible',
+          coverage_percent_estimate: values.private_coverage_percent_estimate.trim() ? Number(values.private_coverage_percent_estimate) : null,
+          note: 'Khai báo lúc check-in',
+        });
+      }
+
       await fetchQueue(departmentId);
       setModalOpen(false);
     } catch (err) {
@@ -502,7 +568,13 @@ export default function Queue() {
               control={control}
               name="type"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  value={field.value}
+                  onValueChange={value => {
+                    field.onChange(value);
+                    if (value === 'service') setValue('has_insurance', false);
+                  }}
+                >
                   <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
                     <SelectValue />
                   </SelectTrigger>
@@ -513,11 +585,14 @@ export default function Queue() {
               )}
             />
 
-            <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#274760]">
-              <input type="checkbox" {...register('has_insurance')} className="size-4" />
+            <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#274760] has-[:disabled]:opacity-50">
+              <input type="checkbox" disabled={checkInType === 'service'} {...register('has_insurance')} className="size-4" />
               Có sử dụng BHYT
             </label>
-            {hasInsurance && (
+            {checkInType === 'service' && (
+              <p className="m-0 mt-1 text-xs text-[#6c757d]">Khám dịch vụ không áp dụng BHYT.</p>
+            )}
+            {hasInsurance && checkInType !== 'service' && (
               <div className="mt-2.5 flex flex-wrap gap-2.5">
                 <div className="w-[180px]">
                   <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
@@ -541,12 +616,19 @@ export default function Queue() {
                 </div>
               </div>
             )}
-            {hasInsurance && (
+            {hasInsurance && checkInType !== 'service' && (
               <label className="mt-2.5 flex items-center gap-2 text-xs text-[#6c757d]">
                 <input type="checkbox" {...register('sync_to_patient_profile')} className="size-3.5" />
                 Cập nhật vào hồ sơ bệnh nhân
               </label>
             )}
+
+            <CheckInPrivateInsuranceFields
+              control={control}
+              register={register}
+              hasPrivateInsurance={hasPrivateInsurance}
+              payers={payers}
+            />
 
             {formError && (
               <ErrorAlert icon={false} className="mt-4">{formError}</ErrorAlert>

@@ -40,7 +40,7 @@ export default function InvoicePaymentForm({
     <form onSubmit={onSubmit} noValidate className="mt-4 flex flex-col gap-2.5 border-t border-[#e8edf2] pt-4">
       <div className="flex items-end gap-2.5">
         <div className="w-[160px]">
-          <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Số tiền cần thu</label>
+          <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Thu bệnh nhân</label>
           <Input
             type="number"
             disabled

@@ -22,9 +22,10 @@ interface Payer {
 }
 
 interface DebtInvoice {
-  ID: number | string;
-  Status: string;
-  TotalAmount: number;
+  invoice_id: number | string;
+  invoice_status: string;
+  allocated_amount: number;
+  remaining: number;
 }
 
 interface DebtSummary {
@@ -190,9 +191,9 @@ export default function Payers() {
                       ) : (
                         <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
                           {debt.invoices.map(inv => (
-                            <li key={inv.ID} className="flex items-center justify-between text-xs text-[#6c757d]">
-                              <span>Hóa đơn #{inv.ID} · <span className={invoiceStatusBadgeClass(inv.Status)}>{invoiceStatusLabel(inv.Status)}</span></span>
-                              <span className="font-semibold text-[#274760]">{inv.TotalAmount.toLocaleString('vi-VN')} đ</span>
+                            <li key={inv.invoice_id} className="flex items-center justify-between text-xs text-[#6c757d]">
+                              <span>Hóa đơn #{inv.invoice_id} · <span className={invoiceStatusBadgeClass(inv.invoice_status)}>{invoiceStatusLabel(inv.invoice_status)}</span></span>
+                              <span className="font-semibold text-[#274760]">{inv.remaining.toLocaleString('vi-VN')} đ</span>
                             </li>
                           ))}
                         </ul>

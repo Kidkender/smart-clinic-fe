@@ -38,3 +38,13 @@ export async function updateEncounterInsurance(id, { hasInsurance, coveragePerce
   });
   return data;
 }
+
+export async function checkEligibility(id, payload) {
+  const { data } = await client.post(`/encounters/${id}/eligibility-checks`, payload);
+  return data;
+}
+
+export async function listEligibilityChecks(id) {
+  const { data } = await client.get(`/encounters/${id}/eligibility-checks`);
+  return data;
+}

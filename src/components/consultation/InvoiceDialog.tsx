@@ -41,7 +41,18 @@ interface InvoiceDialogProps {
 
 const paymentTotal = (payments: Payment[] | null | undefined) => (payments ?? []).reduce((sum, p) => sum + p.Amount, 0);
 const refundTotal = (refunds: Refund[] | null | undefined) => (refunds ?? []).reduce((sum, r) => sum + r.Amount, 0);
-const payableAmount = (invoice: Invoice) => invoice.TotalPatientAmount ?? invoice.TotalAmount;
+
+// The patient's own outstanding balance must come from their allocation row
+// (source of truth once an invoice is split across BHYT/insurer/patient),
+// never from Invoice.TotalAmount or the legacy TotalPatientAmount estimate
+// — both count every payer's share, not just the patient's.
+const patientAllocationOf = (invoice: Invoice) => (invoice.Allocations ?? []).find(a => a.PayerID === null) ?? null;
+const patientPayableAmount = (invoice: Invoice) => patientAllocationOf(invoice)?.AllocatedAmount ?? 0;
+const patientPaidAmount = (invoice: Invoice) => {
+  const allocation = patientAllocationOf(invoice);
+  if (!allocation) return 0;
+  return (invoice.Payments ?? []).filter(p => p.AllocationID === allocation.ID).reduce((sum, p) => sum + p.Amount, 0);
+};
 
 export default function InvoiceDialog({ open, onClose, encounterId, pollForSettlement }: InvoiceDialogProps) {
   const [confirm, ConfirmDialog] = useConfirm();
@@ -81,13 +92,14 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
 
   const paidTotal = useMemo(() => paymentTotal(invoice?.Payments), [invoice]);
   const refundedTotal = useMemo(() => refundTotal(invoice?.Refunds), [invoice]);
-  const payableTotal = invoice ? payableAmount(invoice) : 0;
-  const remaining = invoice ? Math.max(payableTotal - (paidTotal - refundedTotal), 0) : 0;
+  const patientPaidTotal = useMemo(() => (invoice ? patientPaidAmount(invoice) : 0), [invoice]);
+  const payableTotal = invoice ? patientPayableAmount(invoice) : 0;
+  const remaining = invoice ? Math.max(payableTotal - (patientPaidTotal - refundedTotal), 0) : 0;
 
   const seedAmount = (data: Invoice) => {
-    const paid = paymentTotal(data.Payments);
+    const paid = patientPaidAmount(data);
     const refunded = refundTotal(data.Refunds);
-    setAmount(String(Math.max(payableAmount(data) - (paid - refunded), 0)));
+    setAmount(String(Math.max(patientPayableAmount(data) - (paid - refunded), 0)));
   };
 
   const refreshInvoice = async () => {
@@ -296,7 +308,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
             <div className="mt-4 grid gap-x-8 lg:grid-cols-2">
               <InvoiceSummary
                 invoice={invoice}
-                paidTotal={paidTotal}
+                patientPaidTotal={patientPaidTotal}
                 refundedTotal={refundedTotal}
                 payableTotal={payableTotal}
                 remaining={remaining}
@@ -357,6 +369,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
             <InvoiceAllocationsSection
               invoice={invoice}
               payers={payers}
+              encounterId={encounterId}
               refreshInvoice={refreshInvoice}
               onBusyChange={setAllocationsBusy}
             />
