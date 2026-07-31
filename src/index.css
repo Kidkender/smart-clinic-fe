@@ -27,17 +27,21 @@ body {
   background: rgba(48, 123, 196, 0.25);
 }
 
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #cfd8e2 transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: #cfd8e2;
-  border-radius: 20px;
-  border: 2px solid #f4f7fa;
+  border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #b7c3d0;
