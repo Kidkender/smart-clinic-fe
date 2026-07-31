@@ -38,7 +38,7 @@ export default function InvoiceInsuranceSection({
   if (invoice.Status === 'cancelled') return null;
 
   return (
-    <div className="mt-4 border-t border-[#e8edf2] pt-4">
+    <div className="rounded-2xl border border-[#e8edf2] p-3.5">
       {!showInsuranceForm ? (
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-col gap-1">

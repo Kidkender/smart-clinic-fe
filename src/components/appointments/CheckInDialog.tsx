@@ -73,16 +73,20 @@ export default function CheckInDialog({
             </SelectContent>
           </Select>
 
-          <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#274760]">
+          <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#274760] has-[:disabled]:opacity-50">
             <input
               type="checkbox"
-              checked={hasInsurance}
+              checked={hasInsurance && checkInType !== 'service'}
+              disabled={checkInType === 'service'}
               onChange={e => onHasInsuranceChange(e.target.checked)}
               className="size-4"
             />
             Có sử dụng BHYT
           </label>
-          {hasInsurance && (
+          {checkInType === 'service' && (
+            <p className="m-0 mt-1 text-xs text-[#6c757d]">Khám dịch vụ không áp dụng BHYT.</p>
+          )}
+          {hasInsurance && checkInType !== 'service' && (
             <div className="mt-2.5 flex flex-wrap gap-2.5">
               <div className="w-[160px]">
                 <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
@@ -108,7 +112,7 @@ export default function CheckInDialog({
               </div>
             </div>
           )}
-          {hasInsurance && (
+          {hasInsurance && checkInType !== 'service' && (
             <label className="mt-2.5 flex items-center gap-2 text-xs text-[#6c757d]">
               <input
                 type="checkbox"

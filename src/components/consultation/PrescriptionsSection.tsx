@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Icon } from '@iconify/react';
 import {
-  createPrescription, updatePrescriptionStatus,
+  createPrescription, updatePrescriptionStatus, confirmPrescriptionReady,
   getPrescriptionLabel, returnPrescriptionItem, resolvePrescriptionItemFlag,
 } from '@/api/prescription';
 import { searchDrugs, checkDrugInteractions } from '@/api/drug';
@@ -55,6 +55,7 @@ export default function PrescriptionsSection({
 
   const [resolvingFlagId, setResolvingFlagId] = useState<number | null>(null);
   const [flagResolveError, setFlagResolveError] = useState('');
+  const [confirmingReadyId, setConfirmingReadyId] = useState<number | string | null>(null);
   const [confirm, ConfirmDialog] = useConfirm();
 
   const handleResolveFlag = async (prescription: Prescription, item: PrescriptionItem, flag: PrescriptionItemFlag) => {
@@ -178,6 +179,19 @@ export default function PrescriptionsSection({
     }
   };
 
+  const handleConfirmReady = async (prescription: Prescription) => {
+    setConfirmingReadyId(prescription.ID);
+    setFormError('');
+    try {
+      await confirmPrescriptionReady(encounterId, prescription.ID);
+      await onChanged();
+    } catch (err) {
+      setFormError(resolveError(err));
+    } finally {
+      setConfirmingReadyId(null);
+    }
+  };
+
   const handleDispense = async (prescription: Prescription) => {
     try {
       await updatePrescriptionStatus(encounterId, prescription.ID, 'dispensed');
@@ -290,7 +304,9 @@ export default function PrescriptionsSection({
             <li key={p.ID} className="flex flex-col items-stretch gap-1 border-b border-[#f0f4f8] py-2.5">
               <div className="flex items-center justify-between">
                 <div className="font-semibold text-[#274760]">Đơn #{p.ID} ({(p.Items ?? []).length} thuốc)</div>
-                <SectionBadge tone={p.Status === 'cancelled' ? 'danger' : 'default'}>{prescriptionStatusLabel(p.Status)}</SectionBadge>
+                <SectionBadge tone={p.Status === 'cancelled' ? 'danger' : 'default'}>
+                  {p.Status === 'active' && p.ReadyAt ? 'Đã xác nhận đủ thuốc — chờ thanh toán' : prescriptionStatusLabel(p.Status)}
+                </SectionBadge>
               </div>
               <ul className="m-0 mt-1.5 list-none p-0 text-[13px] text-[#6c757d]">
                 {(p.Items ?? []).map(it => (
@@ -388,15 +404,26 @@ export default function PrescriptionsSection({
                         Sửa đơn
                       </Button>
                     )}
-                    {canUpdateStatus && (
+                    {canUpdateStatus && !p.ReadyAt && (
+                      <Button
+                        variant="outline"
+                        disabled={!encounterCompleted || confirmingReadyId === p.ID}
+                        onClick={() => handleConfirmReady(p)}
+                        title={encounterCompleted ? 'Xác nhận đã chuẩn bị đủ thuốc — tiền thuốc sẽ lên hóa đơn để thu ngân thu tiền trước khi cấp phát' : 'Bác sĩ chưa hoàn tất lượt khám này'}
+                        className="h-auto rounded-lg border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760] disabled:opacity-40"
+                      >
+                        {confirmingReadyId === p.ID ? 'Đang xác nhận…' : 'Xác nhận đủ thuốc'}
+                      </Button>
+                    )}
+                    {canUpdateStatus && !!p.ReadyAt && (
                       <Button
                         variant="outline"
                         disabled={!encounterCompleted}
                         onClick={() => handleDispense(p)}
-                        title={encounterCompleted ? undefined : 'Bác sĩ chưa hoàn tất lượt khám này'}
+                        title={encounterCompleted ? 'Bệnh nhân cần đã thanh toán đủ phần của mình trên hóa đơn' : 'Bác sĩ chưa hoàn tất lượt khám này'}
                         className="h-auto rounded-lg border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#274760] disabled:opacity-40"
                       >
-                        Đã cấp phát
+                        Cấp phát
                       </Button>
                     )}
                     {canUpdateStatus && (

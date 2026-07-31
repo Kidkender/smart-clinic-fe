@@ -148,7 +148,8 @@ export default function Appointments() {
 
   const handleCheckIn = async () => {
     if (!checkInTarget) return;
-    if (checkInHasInsurance && checkInCoveragePercent.trim()) {
+    const hasInsurance = checkInHasInsurance && checkInType !== 'service';
+    if (hasInsurance && checkInCoveragePercent.trim()) {
       const parsed = Number(checkInCoveragePercent);
       if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
         setError('Mức hưởng BHYT phải là số từ 0 đến 100.');
@@ -159,10 +160,10 @@ export default function Appointments() {
     try {
       await checkInAppointment(checkInTarget.ID, {
         type: checkInType,
-        hasInsurance: checkInHasInsurance,
-        coveragePercent: checkInHasInsurance && checkInCoveragePercent.trim() ? Number(checkInCoveragePercent) : null,
-        registeredFacilityCode: checkInHasInsurance && checkInFacilityCode.trim() ? checkInFacilityCode.trim() : null,
-        syncToPatientProfile: checkInHasInsurance && checkInSyncToProfile,
+        hasInsurance,
+        coveragePercent: hasInsurance && checkInCoveragePercent.trim() ? Number(checkInCoveragePercent) : null,
+        registeredFacilityCode: hasInsurance && checkInFacilityCode.trim() ? checkInFacilityCode.trim() : null,
+        syncToPatientProfile: hasInsurance && checkInSyncToProfile,
       });
       await fetchAppointments();
       setCheckInTarget(null);

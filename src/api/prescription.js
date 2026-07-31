@@ -20,6 +20,11 @@ export async function updatePrescriptionStatus(encounterId, prescriptionId, stat
   return data;
 }
 
+export async function confirmPrescriptionReady(encounterId, prescriptionId) {
+  const { data } = await client.post(`/encounters/${encounterId}/prescriptions/${prescriptionId}/confirm-ready`);
+  return data;
+}
+
 export async function getPrescriptionLabel(encounterId) {
   const { data } = await client.get(`/encounters/${encounterId}/prescriptions/label`);
   return data;

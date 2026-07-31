@@ -66,6 +66,7 @@ export interface Prescription {
   ID: number | string;
   Items?: PrescriptionItem[];
   Status: string;
+  ReadyAt?: string | null;
 }
 
 export interface Drug {

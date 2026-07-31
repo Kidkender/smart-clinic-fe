@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react';
+import { ErrorAlert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -21,6 +22,7 @@ interface InvoicePaymentFormProps {
   busy: boolean;
   paying: boolean;
   vnpayLoading: boolean;
+  error: string;
   onSubmit: (e: FormEvent) => void;
 }
 
@@ -34,20 +36,13 @@ export default function InvoicePaymentForm({
   busy,
   paying,
   vnpayLoading,
+  error,
   onSubmit,
 }: InvoicePaymentFormProps) {
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-4 flex flex-col gap-2.5 border-t border-[#e8edf2] pt-4">
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-2.5 rounded-2xl border border-[#e8edf2] p-4">
+      <h3 className="m-0 text-sm font-bold text-[#274760]">Thanh toán</h3>
       <div className="flex items-end gap-2.5">
-        <div className="w-[160px]">
-          <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Thu bệnh nhân</label>
-          <Input
-            type="number"
-            disabled
-            value={amount}
-            className="h-auto rounded-xl border-[#dde2e8] bg-[#f4f7fa] px-4 py-3 text-[15px] text-[#274760] disabled:opacity-100"
-          />
-        </div>
         <div className="flex-1">
           <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Phương thức</label>
           <Select value={method} onValueChange={value => onMethodChange(value as (typeof PAYMENT_METHODS)[number])}>
@@ -109,6 +104,8 @@ export default function InvoicePaymentForm({
           )}
         </div>
       )}
+
+      {error && <ErrorAlert icon={false}>{error}</ErrorAlert>}
     </form>
   );
 }

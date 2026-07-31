@@ -5,7 +5,7 @@ import { ErrorAlert } from '@/components/ui/alert';
 import { invoiceStatusBadgeClass } from '@/utils/badgeStyles';
 import { invoiceStatusLabel } from '@/utils/labels';
 import {
-  getPrescriptionById, updatePrescriptionStatus, getPrescriptionLabel, flagPrescriptionItem,
+  getPrescriptionById, updatePrescriptionStatus, confirmPrescriptionReady, getPrescriptionLabel, flagPrescriptionItem,
 } from '@/api/prescription';
 import { printPrescriptionLabel } from '@/utils/printLabel';
 import { resolveError } from '@/utils/errorMessages';
@@ -49,6 +49,7 @@ interface PrescriptionDetail {
   doctor_name: string;
   items: PrescriptionDetailItem[];
   has_shortage: boolean;
+  ready_at?: string | null;
   invoice_status?: 'unpaid' | 'partially_paid' | 'paid' | 'cancelled';
   payment_required: boolean;
 }
@@ -67,6 +68,7 @@ export default function PharmacyPrescriptionDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [acting, setActing] = useState(false);
+  const [confirmingReady, setConfirmingReady] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelError, setCancelError] = useState('');
@@ -93,8 +95,27 @@ export default function PharmacyPrescriptionDetail() {
     fetchDetail();
   }, [fetchDetail]);
 
+  const handleConfirmReady = async () => {
+    if (!encounterId || !prescriptionId || !detail || detail.has_shortage) return;
+    const ok = await confirm(`Xác nhận đã chuẩn bị đủ thuốc cho đơn của "${detail.patient_name}"? Hóa đơn sẽ được cập nhật tiền thuốc để thu ngân có thể thu tiền.`, {
+      title: 'Xác nhận đủ thuốc',
+      confirmLabel: 'Xác nhận',
+    });
+    if (!ok) return;
+    setConfirmingReady(true);
+    setError('');
+    try {
+      await confirmPrescriptionReady(encounterId, prescriptionId);
+      await fetchDetail();
+    } catch (err) {
+      setError(resolveError(err));
+    } finally {
+      setConfirmingReady(false);
+    }
+  };
+
   const handleDispense = async () => {
-    if (!encounterId || !prescriptionId || !detail || detail.has_shortage || detail.payment_required) return;
+    if (!encounterId || !prescriptionId || !detail || detail.has_shortage || !detail.ready_at || detail.payment_required) return;
     const ok = await confirm(`Xác nhận cấp phát đơn thuốc cho "${detail.patient_name}"?`, {
       title: 'Cấp phát đơn thuốc',
       confirmLabel: 'Cấp phát',
@@ -203,7 +224,7 @@ export default function PharmacyPrescriptionDetail() {
             {detail.patient_name} <span className="text-sm font-normal text-[#6c757d]">({detail.patient_mrn})</span>
           </h1>
           <p className="mt-1 mb-0 flex flex-wrap items-center gap-1.5 text-[14px] text-[#6c757d]">
-            Đơn #{detail.prescription_id} · {new Date(detail.created_at).toLocaleString('vi-VN')} · {STATUS_LABEL[detail.status] ?? detail.status}
+            Đơn #{detail.prescription_id} · {new Date(detail.created_at).toLocaleString('vi-VN')} · {isActive && detail.ready_at ? 'Đã xác nhận đủ thuốc — chờ thanh toán' : STATUS_LABEL[detail.status] ?? detail.status}
             {detail.invoice_status && (
               <span className={invoiceStatusBadgeClass(detail.invoice_status)}>
                 {invoiceStatusLabel(detail.invoice_status)}
@@ -227,9 +248,9 @@ export default function PharmacyPrescriptionDetail() {
           Có thuốc không đủ tồn kho. Liên hệ bác sĩ nếu cần thay đổi đơn thuốc trước khi cấp phát.</ErrorAlert>
       )}
 
-      {isActive && detail.payment_required && (
+      {isActive && !!detail.ready_at && detail.payment_required && (
         <ErrorAlert icon={false} className="mb-5"><Icon icon="fa6-solid:circle-dollar-to-slot" />
-          Bệnh nhân tự chi trả và chưa thanh toán đủ hóa đơn. Vui lòng hướng dẫn bệnh nhân ra quầy thu ngân trước khi cấp phát.</ErrorAlert>
+          Đã xác nhận đủ thuốc, tiền thuốc đã lên hóa đơn — nhưng bệnh nhân chưa thanh toán đủ phần của mình. Vui lòng hướng dẫn bệnh nhân ra quầy thu ngân trước khi cấp phát.</ErrorAlert>
       )}
 
       <Card className="rounded-2xl border-[#e8edf2] p-6">
@@ -328,21 +349,29 @@ export default function PharmacyPrescriptionDetail() {
 
         {isActive && (
           <div className="mt-5 flex flex-wrap gap-2 border-t border-[#f0f4f8] pt-5">
-            <Button
-              disabled={acting || detail.has_shortage || detail.payment_required}
-              onClick={handleDispense}
-              title={
-                detail.has_shortage
-                  ? 'Không thể cấp phát vì còn thuốc chưa đủ tồn kho — báo bác sĩ hoặc chờ nhập kho.'
-                  : detail.payment_required
-                    ? 'Không thể cấp phát vì bệnh nhân chưa thanh toán đủ hóa đơn.'
-                    : undefined
-              }
-              size="cta-sm"
-              className="disabled:opacity-40"
-            >
-              <Icon icon="fa6-solid:check" className="mr-1.5 text-[11px]" />Cấp phát
-            </Button>
+            {!detail.ready_at ? (
+              <Button
+                disabled={confirmingReady || detail.has_shortage}
+                onClick={handleConfirmReady}
+                title={detail.has_shortage ? 'Không thể xác nhận vì còn thuốc chưa đủ tồn kho — báo bác sĩ hoặc chờ nhập kho.' : undefined}
+                size="cta-sm"
+                className="disabled:opacity-40"
+              >
+                <Icon icon="fa6-solid:clipboard-check" className="mr-1.5 text-[11px]" />
+                {confirmingReady ? 'Đang xác nhận…' : 'Xác nhận đủ thuốc'}
+              </Button>
+            ) : (
+              <Button
+                disabled={acting || detail.payment_required}
+                onClick={handleDispense}
+                title={detail.payment_required ? 'Không thể cấp phát vì bệnh nhân chưa thanh toán đủ hóa đơn.' : undefined}
+                size="cta-sm"
+                className="disabled:opacity-40"
+              >
+                <Icon icon="fa6-solid:check" className="mr-1.5 text-[11px]" />
+                {acting ? 'Đang cấp phát…' : 'Cấp phát'}
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={handlePrint}
@@ -352,7 +381,7 @@ export default function PharmacyPrescriptionDetail() {
             </Button>
             <Button
               variant="outline"
-              disabled={acting}
+              disabled={acting || confirmingReady}
               onClick={() => { setCancelling(true); setCancelReason(''); setCancelError(''); }}
               className="h-auto rounded-lg border-[#dde2e8] px-4 py-2 text-xs font-semibold text-[#dc3545]"
             >

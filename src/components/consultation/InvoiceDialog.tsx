@@ -17,11 +17,13 @@ import {
 } from '@/api/billing';
 import { listPayers } from '@/api/payer';
 import { getEncounterById, updateEncounterInsurance } from '@/api/encounter';
+import { listPrescriptionsByEncounter } from '@/api/prescription';
 import useConfirm from '@/hooks/useConfirm';
 import { resolveError } from '@/utils/errorMessages';
 import { invoiceStatusLabel, paymentMethodLabel } from '@/utils/labels';
 import { invoiceStatusBadgeClass } from '@/utils/badgeStyles';
 import InvoiceSummary from './invoice/InvoiceSummary';
+import InvoiceHistory from './invoice/InvoiceHistory';
 import InvoicePaymentForm from './invoice/InvoicePaymentForm';
 import InvoiceAllocationsSection from './invoice/InvoiceAllocationsSection';
 import InvoiceInsuranceSection from './invoice/InvoiceInsuranceSection';
@@ -75,6 +77,8 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
   const [payers, setPayers] = useState<Payer[]>([]);
   const [allocationsBusy, setAllocationsBusy] = useState(false);
 
+  const [pendingPrescriptionCount, setPendingPrescriptionCount] = useState(0);
+
   const [encounter, setEncounter] = useState<Encounter | null>(null);
   const [showInsuranceForm, setShowInsuranceForm] = useState(false);
   const [hasInsuranceInput, setHasInsuranceInput] = useState(false);
@@ -103,9 +107,13 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
   };
 
   const refreshInvoice = async () => {
-    const res = await generateInvoice(encounterId);
+    const [res, prescriptionsRes] = await Promise.all([generateInvoice(encounterId), listPrescriptionsByEncounter(encounterId)]);
     setInvoice(res.data);
     seedAmount(res.data);
+    const pending = (prescriptionsRes.data ?? []).filter(
+      (p: { Status: string; ReadyAt?: string | null }) => p.Status === 'active' && !p.ReadyAt,
+    );
+    setPendingPrescriptionCount(pending.length);
     return res.data as Invoice;
   };
 
@@ -121,8 +129,8 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
     setRefundItemId('whole_invoice');
     setShowInsuranceForm(false);
     setLoading(true);
-    Promise.all([generateInvoice(encounterId), listPayers(), getEncounterById(encounterId)])
-      .then(([invoiceRes, payersRes, encounterRes]) => {
+    Promise.all([generateInvoice(encounterId), listPayers(), getEncounterById(encounterId), listPrescriptionsByEncounter(encounterId)])
+      .then(([invoiceRes, payersRes, encounterRes, prescriptionsRes]) => {
         setInvoice(invoiceRes.data);
         setPayers(payersRes.data ?? []);
         setEncounter(encounterRes.data);
@@ -130,6 +138,10 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
         setCoveragePercentInput(encounterRes.data.CoveragePercent != null ? String(encounterRes.data.CoveragePercent) : '');
         setRegisteredFacilityCodeInput(encounterRes.data.RegisteredFacilityCode ?? '');
         seedAmount(invoiceRes.data);
+        const pending = (prescriptionsRes.data ?? []).filter(
+          (p: { Status: string; ReadyAt?: string | null }) => p.Status === 'active' && !p.ReadyAt,
+        );
+        setPendingPrescriptionCount(pending.length);
       })
       .catch(err => setError(resolveError(err)))
       .finally(() => setLoading(false));
@@ -282,17 +294,29 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
     }
   };
 
-  const canPay = invoice && invoice.Status !== 'paid' && invoice.Status !== 'cancelled' && remaining > 0;
+  const blockedByPendingPrescription = pendingPrescriptionCount > 0;
+  const canPay = invoice && invoice.Status !== 'paid' && invoice.Status !== 'cancelled' && remaining > 0 && !blockedByPendingPrescription;
   const canRefund = !!invoice && paidTotal - refundedTotal > 0;
 
   return (
     <>
       {ConfirmDialog}
       <Dialog open={open} onOpenChange={o => { if (!o) closeDialog(); }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[1040px] rounded-[20px] p-8">
-        <DialogHeader>
+      <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-[1040px] rounded-[20px] p-0">
+      {/* Only the body scrolls (flex-1 + min-h-0 + overflow-y-auto below) —
+          the header stays outside that scrolling box entirely, so its
+          scrollbar starts under the header, never crossing the close
+          button, and never sits flush against the rounded top corner.
+          Padding lives on the header/body themselves (not on DialogContent
+          or this wrapper) so the close button — a sibling of this whole
+          wrapper, not a descendant — keeps the exact same offset it has on
+          every other (shorter) dialog in the app. */}
+      <div className="flex max-h-[90vh] flex-col">
+        <DialogHeader className="shrink-0 pl-8">
           <DialogTitle className="text-xl font-bold text-[#274760]">Hóa đơn viện phí</DialogTitle>
         </DialogHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
 
         {loading ? (
           <div className="py-8 text-center text-sm text-[#6c757d]">Đang tải…</div>
@@ -305,7 +329,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
               </span>
             </div>
 
-            <div className="mt-4 grid gap-x-8 lg:grid-cols-2">
+            <div className="mt-5 flex flex-col gap-5">
               <InvoiceSummary
                 invoice={invoice}
                 patientPaidTotal={patientPaidTotal}
@@ -314,69 +338,84 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
                 remaining={remaining}
               />
 
+              <InvoiceAllocationsSection
+                invoice={invoice}
+                payers={payers}
+                encounterId={encounterId}
+                refreshInvoice={refreshInvoice}
+                onBusyChange={setAllocationsBusy}
+              />
+
               <div>
-                {canPay && (
-                  <InvoicePaymentForm
-                    amount={amount}
-                    method={method}
-                    onMethodChange={value => { setMethod(value); setCashReceived(''); }}
-                    cashReceived={cashReceived}
-                    onCashReceivedChange={setCashReceived}
-                    changeDue={changeDue}
-                    busy={busy}
-                    paying={paying}
-                    vnpayLoading={vnpayLoading}
-                    onSubmit={handleSubmitPayment}
-                  />
+                <p className="m-0 mb-2.5 text-[11px] font-bold tracking-wide text-[#6c757d] uppercase">Hành động</p>
+
+                {blockedByPendingPrescription && invoice.Status !== 'paid' && invoice.Status !== 'cancelled' && remaining > 0 && (
+                  <ErrorAlert icon={false} className="mb-3">
+                    Còn {pendingPrescriptionCount} đơn thuốc chưa được nhà thuốc xác nhận đủ thuốc — chưa thể thu tiền hóa đơn này. Vui lòng chờ dược sĩ xác nhận (hoặc hủy đơn nếu bệnh nhân không lấy thuốc tại đây) trước khi thu tiền.
+                  </ErrorAlert>
                 )}
 
-                <InvoiceInsuranceSection
-                  invoice={invoice}
-                  encounter={encounter}
-                  showInsuranceForm={showInsuranceForm}
-                  onShowInsuranceForm={() => setShowInsuranceForm(true)}
-                  onCancel={() => setShowInsuranceForm(false)}
-                  onSave={handleSaveInsurance}
-                  hasInsuranceInput={hasInsuranceInput}
-                  onHasInsuranceInputChange={setHasInsuranceInput}
-                  coveragePercentInput={coveragePercentInput}
-                  onCoveragePercentInputChange={setCoveragePercentInput}
-                  registeredFacilityCodeInput={registeredFacilityCodeInput}
-                  onRegisteredFacilityCodeInputChange={setRegisteredFacilityCodeInput}
-                  busy={busy}
-                  savingInsurance={savingInsurance}
-                />
+                <div className={canPay ? 'grid items-start gap-4 lg:grid-cols-[1.3fr_1fr]' : 'flex flex-col gap-2.5'}>
+                  {canPay && (
+                    <InvoicePaymentForm
+                      amount={amount}
+                      method={method}
+                      onMethodChange={value => { setMethod(value); setCashReceived(''); }}
+                      cashReceived={cashReceived}
+                      onCashReceivedChange={setCashReceived}
+                      changeDue={changeDue}
+                      busy={busy}
+                      paying={paying}
+                      vnpayLoading={vnpayLoading}
+                      error={error}
+                      onSubmit={handleSubmitPayment}
+                    />
+                  )}
 
-                <InvoiceRefundSection
-                  invoice={invoice}
-                  canRefund={canRefund}
-                  showRefundForm={showRefundForm}
-                  onShowRefundForm={() => setShowRefundForm(true)}
-                  onCancel={() => setShowRefundForm(false)}
-                  onSubmit={handleRecordRefund}
-                  refundItemId={refundItemId}
-                  onRefundItemIdChange={setRefundItemId}
-                  refundAmount={refundAmount}
-                  onRefundAmountChange={setRefundAmount}
-                  refundReason={refundReason}
-                  onRefundReasonChange={setRefundReason}
-                  busy={busy}
-                  refunding={refunding}
-                />
+                  <div className="flex flex-col gap-2.5">
+                    <InvoiceInsuranceSection
+                      invoice={invoice}
+                      encounter={encounter}
+                      showInsuranceForm={showInsuranceForm}
+                      onShowInsuranceForm={() => setShowInsuranceForm(true)}
+                      onCancel={() => setShowInsuranceForm(false)}
+                      onSave={handleSaveInsurance}
+                      hasInsuranceInput={hasInsuranceInput}
+                      onHasInsuranceInputChange={setHasInsuranceInput}
+                      coveragePercentInput={coveragePercentInput}
+                      onCoveragePercentInputChange={setCoveragePercentInput}
+                      registeredFacilityCodeInput={registeredFacilityCodeInput}
+                      onRegisteredFacilityCodeInputChange={setRegisteredFacilityCodeInput}
+                      busy={busy}
+                      savingInsurance={savingInsurance}
+                    />
+
+                    <InvoiceRefundSection
+                      invoice={invoice}
+                      canRefund={canRefund}
+                      showRefundForm={showRefundForm}
+                      onShowRefundForm={() => setShowRefundForm(true)}
+                      onCancel={() => setShowRefundForm(false)}
+                      onSubmit={handleRecordRefund}
+                      refundItemId={refundItemId}
+                      onRefundItemIdChange={setRefundItemId}
+                      refundAmount={refundAmount}
+                      onRefundAmountChange={setRefundAmount}
+                      refundReason={refundReason}
+                      onRefundReasonChange={setRefundReason}
+                      busy={busy}
+                      refunding={refunding}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <InvoiceAllocationsSection
-              invoice={invoice}
-              payers={payers}
-              encounterId={encounterId}
-              refreshInvoice={refreshInvoice}
-              onBusyChange={setAllocationsBusy}
-            />
+              <InvoiceHistory invoice={invoice} />
+            </div>
           </>
         ) : null}
 
-        {error && <ErrorAlert icon={false} className="mt-4">{error}</ErrorAlert>}
+        {error && !canPay && <ErrorAlert icon={false} className="mt-4">{error}</ErrorAlert>}
 
         <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
           <Button
@@ -389,6 +428,8 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
             <Icon icon="fa6-solid:xmark" className="mr-1.5 text-xs" />Đóng
           </Button>
         </DialogFooter>
+        </div>
+      </div>
       </DialogContent>
       </Dialog>
     </>

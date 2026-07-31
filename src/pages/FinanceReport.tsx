@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { getRevenueReport } from '@/api/reports';
 import { resolveError } from '@/utils/errorMessages';
-import { invoiceItemCategoryLabel } from '@/utils/labels';
+import { invoiceItemCategoryLabel, payerTypeLabel } from '@/utils/labels';
 import { Card } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
 import {
@@ -25,6 +25,13 @@ interface RevenueByCategory {
   amount: number;
 }
 
+interface PayerOutstanding {
+  payer_id: number;
+  payer_name: string;
+  payer_type: string;
+  amount: number;
+}
+
 interface RevenueReport {
   total_cash_in: number;
   total_cash_out: number;
@@ -32,6 +39,7 @@ interface RevenueReport {
   outstanding_total: number;
   by_period: RevenuePeriod[];
   by_category: RevenueByCategory[];
+  payer_outstanding: PayerOutstanding[];
 }
 
 function toIsoDate(date: Date): string {
@@ -171,6 +179,28 @@ export default function FinanceReport() {
               )}
             </Card>
           </div>
+
+          <Card className="mt-5 rounded-2xl border-[#e8edf2] p-6">
+            <h2 className="m-0 mb-1 text-[17px] font-bold text-[#274760]">Công nợ theo bảo hiểm</h2>
+            <p className="m-0 mb-4 text-xs text-[#6c757d]">
+              Các khoản BHYT/bảo hiểm tư nhân đã duyệt (hoặc đang chờ duyệt) nhưng chưa ghi nhận thanh toán — không phụ thuộc khoảng thời gian lọc ở trên.
+            </p>
+            {report.payer_outstanding.length === 0 ? (
+              <p className="text-sm text-[#6c757d]">Không có khoản công nợ bảo hiểm nào chưa thu.</p>
+            ) : (
+              <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+                {report.payer_outstanding.map(row => (
+                  <li key={row.payer_id} className="flex items-center justify-between gap-2 border-b border-[#f0f4f8] pb-2.5">
+                    <div>
+                      <span className="text-sm font-medium text-[#274760]">{row.payer_name}</span>
+                      <span className="ml-2 text-xs text-[#6c757d]">{payerTypeLabel(row.payer_type)}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-[#ffc107]">{money(row.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
         </>
       )}
     </>

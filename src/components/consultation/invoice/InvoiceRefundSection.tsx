@@ -48,22 +48,23 @@ export default function InvoiceRefundSection({
 
   if (!showRefundForm) {
     return (
-      <div className="mt-4 border-t border-[#e8edf2] pt-4">
+      <div className="flex items-center justify-between gap-2 rounded-2xl border border-[#e8edf2] p-3.5">
+        <div className="text-sm font-semibold text-[#274760]">Hoàn tiền</div>
         <Button
           type="button"
           variant="outline"
           disabled={busy}
           onClick={onShowRefundForm}
-          className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.5 text-sm font-semibold text-[#dc3545]"
+          className="h-auto shrink-0 rounded-xl border-[#dde2e8] px-3 py-1.5 text-xs font-semibold text-[#dc3545]"
         >
-          <Icon icon="fa6-solid:rotate-left" className="mr-1.5 text-xs" />Hoàn tiền
+          <Icon icon="fa6-solid:rotate-left" className="mr-1.5 text-xs" />Tạo yêu cầu
         </Button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="mt-4 flex flex-col gap-2.5 border-t border-[#e8edf2] pt-4">
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-2.5 rounded-2xl border border-[#e8edf2] p-3.5">
       <div>
         <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Áp dụng cho</label>
         <Select value={refundItemId} onValueChange={onRefundItemIdChange}>

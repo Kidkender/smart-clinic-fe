@@ -1,4 +1,4 @@
-import { invoiceItemCategoryLabel, paymentMethodLabel } from '@/utils/labels';
+import { invoiceItemCategoryLabel } from '@/utils/labels';
 import type { Invoice } from './types';
 
 interface InvoiceSummaryProps {
@@ -13,12 +13,20 @@ export default function InvoiceSummary({ invoice, patientPaidTotal, refundedTota
   const coverage = invoice.CoverageEstimate;
   const items = invoice.Items ?? [];
   const coveredItemCount = items.filter(i => i.CoveredByInsurance).length;
+  // CoverageEstimate is a live re-estimate from encounter.HasInsurance/CoveragePercent
+  // and can be null even when BHYT has already been deducted via an actual
+  // government allocation (e.g. entered through the manual split flow) — the
+  // allocation row is the source of truth for whether/how much BHYT paid.
+  const bhytAllocation = (invoice.Allocations ?? []).find(a => a.Payer?.Type === 'government');
+  const bhytAmount = bhytAllocation?.AllocatedAmount ?? coverage?.covered_amount ?? 0;
+  const showRemaining = remaining > 0 && invoice.Status !== 'cancelled' && invoice.Status !== 'paid';
 
   return (
     <>
-      <div className="mt-4 flex flex-col gap-2">
-        {(invoice.Items ?? []).map(item => (
-          <div key={item.ID} className="flex items-center justify-between gap-2 rounded-xl border border-[#e8edf2] px-3.5 py-2.5">
+      <p className="m-0 mb-2.5 text-[11px] font-bold tracking-wide text-[#6c757d] uppercase">Dịch vụ &amp; thuốc đã dùng</p>
+      <div className="overflow-hidden rounded-2xl border border-[#e8edf2]">
+        {items.map(item => (
+          <div key={item.ID} className="flex items-center justify-between gap-2 border-b border-[#e8edf2] px-3.5 py-2.5 last:border-b-0">
             <div>
               <div className="flex items-center gap-1.5 text-sm font-medium text-[#274760]">
                 {item.Description}
@@ -37,7 +45,8 @@ export default function InvoiceSummary({ invoice, patientPaidTotal, refundedTota
         ))}
       </div>
 
-      <div className="mt-4 flex flex-col gap-1.5 border-t border-[#e8edf2] pt-3.5">
+      <p className="m-0 mt-4 mb-2.5 text-[11px] font-bold tracking-wide text-[#6c757d] uppercase">Tổng kết</p>
+      <div className="flex flex-col gap-2 rounded-2xl border border-[#e8edf2] bg-[#f4f7fa] px-4 py-3.5">
         {invoice.TaxAmount > 0 && (
           <>
             <div className="flex items-center justify-between text-sm text-[#6c757d]">
@@ -50,27 +59,29 @@ export default function InvoiceSummary({ invoice, patientPaidTotal, refundedTota
             </div>
           </>
         )}
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-bold text-[#274760]">Tổng viện phí</span>
-          <span className="text-lg font-bold text-[#274760]">{invoice.TotalAmount.toLocaleString('vi-VN')} đ</span>
+        <div className="flex items-center justify-between text-sm font-bold text-[#274760]">
+          <span>Tổng viện phí</span>
+          <span>{invoice.TotalAmount.toLocaleString('vi-VN')} đ</span>
         </div>
-        {coverage && (
+        {bhytAmount > 0 && (
           <>
             <div className="flex items-center justify-between text-sm text-[#28a745]">
-              <span>BHYT tạm chi (ước tính)</span>
-              <span>-{coverage.covered_amount.toLocaleString('vi-VN')} đ</span>
+              <span>BHYT đã trừ{bhytAllocation ? '' : ' (ước tính)'}</span>
+              <span>-{bhytAmount.toLocaleString('vi-VN')} đ</span>
             </div>
-            {coverage.eligible_amount === 0 ? (
-              <p className="m-0 text-xs italic text-[#6c757d]">
-                Không có dòng dịch vụ/thuốc nào trong danh mục BHYT trên hóa đơn này nên BHYT chưa chi trả gì.
-              </p>
-            ) : (
-              <p className="m-0 text-xs italic text-[#6c757d]">
-                BHYT áp dụng cho {coveredItemCount}/{items.length} dòng — số tiền chốt cuối theo bảng Phân bổ chi trả bên dưới.
-              </p>
+            {coverage && (
+              coverage.eligible_amount === 0 ? (
+                <p className="m-0 text-xs italic text-[#6c757d]">
+                  Không có dòng dịch vụ/thuốc nào trong danh mục BHYT trên hóa đơn này nên BHYT chưa chi trả gì.
+                </p>
+              ) : (
+                <p className="m-0 text-xs italic text-[#6c757d]">
+                  BHYT áp dụng cho {coveredItemCount}/{items.length} dòng — số tiền chốt cuối theo bảng Phân bổ chi trả bên dưới.
+                </p>
+              )
             )}
             <div className="flex items-center justify-between text-sm font-semibold text-[#274760]">
-              <span>Bệnh nhân phải trả (ước tính)</span>
+              <span>Bệnh nhân phải trả{coverage && !bhytAllocation ? ' (ước tính)' : ''}</span>
               <span>{payableTotal.toLocaleString('vi-VN')} đ</span>
             </div>
           </>
@@ -87,45 +98,16 @@ export default function InvoiceSummary({ invoice, patientPaidTotal, refundedTota
             <span>-{refundedTotal.toLocaleString('vi-VN')} đ</span>
           </div>
         )}
-        {remaining > 0 && invoice.Status !== 'cancelled' && invoice.Status !== 'paid' && (
-          <div className="flex items-center justify-between text-sm font-semibold text-[#274760]">
-            <span>Còn phải thu từ bệnh nhân</span>
-            <span>{remaining.toLocaleString('vi-VN')} đ</span>
-          </div>
+        {showRemaining && (
+          <>
+            <div className="border-t border-dashed border-[#dde2e8]" />
+            <div className="flex items-center justify-between">
+              <span className="text-[15px] font-extrabold text-[#274760]">Còn phải thu từ bệnh nhân</span>
+              <span className="text-[15px] font-extrabold text-[#dc3545]">{remaining.toLocaleString('vi-VN')} đ</span>
+            </div>
+          </>
         )}
       </div>
-
-      {(invoice.Payments?.length ?? 0) > 0 && (
-        <div className="mt-4 border-t border-[#e8edf2] pt-3.5">
-          <h3 className="mb-2 text-sm font-bold text-[#274760]">Lịch sử thanh toán</h3>
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-            {invoice.Payments!.map(p => (
-              <li key={p.ID} className="flex items-center justify-between text-xs text-[#6c757d]">
-                <span>{paymentMethodLabel(p.Method)} · {new Date(p.PaidAt).toLocaleString('vi-VN')}</span>
-                <span className="font-semibold text-[#274760]">{p.Amount.toLocaleString('vi-VN')} đ</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {(invoice.Refunds?.length ?? 0) > 0 && (
-        <div className="mt-3 border-t border-[#e8edf2] pt-3.5">
-          <h3 className="mb-2 text-sm font-bold text-[#274760]">Lịch sử hoàn tiền</h3>
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-            {invoice.Refunds!.map(r => (
-              <li key={r.ID} className="flex items-center justify-between text-xs text-[#6c757d]">
-                <span>
-                  {r.Reason}
-                  {r.InvoiceItem && <> · <span className="italic">{r.InvoiceItem.Description}</span></>}
-                  {' '}· {new Date(r.RefundedAt).toLocaleString('vi-VN')}
-                </span>
-                <span className="font-semibold text-[#dc3545]">-{r.Amount.toLocaleString('vi-VN')} đ</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </>
   );
 }

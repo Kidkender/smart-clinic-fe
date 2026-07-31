@@ -77,7 +77,9 @@ const ERROR_MESSAGES = {
   'error.prescription.invalid_status': 'Không thể chuyển sang trạng thái này.',
   'error.prescription.cancel_reason_required': 'Vui lòng nhập lý do hủy đơn thuốc.',
   'error.prescription.dispense_requires_pharmacy': 'Chỉ dược sĩ hoặc quản trị viên mới được cấp phát thuốc.',
-  'error.prescription.payment_required_before_dispense': 'Bệnh nhân tự chi trả cần thanh toán đủ hóa đơn trước khi cấp phát thuốc.',
+  'error.prescription.payment_required_before_dispense': 'Bệnh nhân cần thanh toán đủ phần của mình trên hóa đơn trước khi cấp phát thuốc.',
+  'error.prescription.not_ready': 'Cần bấm "Xác nhận đủ thuốc" trước khi cấp phát.',
+  'error.invoice.prescription_pending_confirmation': 'Còn đơn thuốc chưa được nhà thuốc xác nhận đủ thuốc — chưa thể thu tiền hóa đơn này.',
 
   'error.ward.not_found': 'Không tìm thấy khu điều trị.',
   'error.ward.already_exists': 'Khu điều trị này đã tồn tại trong khoa.',
