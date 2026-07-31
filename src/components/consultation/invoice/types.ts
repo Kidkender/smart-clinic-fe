@@ -37,14 +37,41 @@ export interface CoverageEstimate {
   patient_amount: number;
 }
 
+export type AllocationStatus = 'pending' | 'approved' | 'settled' | 'rejected';
+export type ClaimStatus = 'pending' | 'approved' | 'rejected';
+
+export interface InsuranceClaim {
+  ID: number;
+  AllocationID: number;
+  PolicyNumber: string;
+  ReferenceNumber: string;
+  Status: ClaimStatus;
+  SubmittedAmount: number;
+  ApprovedAmount: number | null;
+  Note: string;
+  SubmittedAt: string;
+  RespondedAt: string | null;
+}
+
+export interface InvoicePayerAllocation {
+  ID: number;
+  InvoiceID: number;
+  PayerID: number | null;
+  Payer: Payer | null;
+  Sequence: number;
+  AllocatedAmount: number;
+  Status: AllocationStatus;
+  Note: string;
+  Claim?: InsuranceClaim | null;
+}
+
 export interface Invoice {
   ID: number | string;
   Status: 'unpaid' | 'partially_paid' | 'paid' | 'cancelled';
   SubtotalAmount: number;
   TaxAmount: number;
   TotalAmount: number;
-  PayerID: number | string | null;
-  Payer: Payer | null;
+  Allocations: InvoicePayerAllocation[] | null;
   Items: InvoiceItem[] | null;
   Payments: Payment[] | null;
   Refunds: Refund[] | null;

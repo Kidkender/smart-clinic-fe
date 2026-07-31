@@ -13,7 +13,6 @@ import {
   generateInvoice,
   recordPayment,
   recordRefund,
-  assignPayer,
   initiateGatewayPayment,
 } from '@/api/billing';
 import { listPayers } from '@/api/payer';
@@ -24,7 +23,7 @@ import { invoiceStatusLabel, paymentMethodLabel } from '@/utils/labels';
 import { invoiceStatusBadgeClass } from '@/utils/badgeStyles';
 import InvoiceSummary from './invoice/InvoiceSummary';
 import InvoicePaymentForm from './invoice/InvoicePaymentForm';
-import InvoicePayerSection from './invoice/InvoicePayerSection';
+import InvoiceAllocationsSection from './invoice/InvoiceAllocationsSection';
 import InvoiceInsuranceSection from './invoice/InvoiceInsuranceSection';
 import InvoiceRefundSection from './invoice/InvoiceRefundSection';
 import { PAYMENT_METHODS, type Encounter, type Invoice, type Payer, type Payment, type Refund } from './invoice/types';
@@ -63,8 +62,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
   const [refunding, setRefunding] = useState(false);
 
   const [payers, setPayers] = useState<Payer[]>([]);
-  const [assigningPayer, setAssigningPayer] = useState(false);
-  const [showPayerForm, setShowPayerForm] = useState(false);
+  const [allocationsBusy, setAllocationsBusy] = useState(false);
 
   const [encounter, setEncounter] = useState<Encounter | null>(null);
   const [showInsuranceForm, setShowInsuranceForm] = useState(false);
@@ -109,7 +107,6 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
     setRefundAmount('');
     setRefundReason('');
     setRefundItemId('whole_invoice');
-    setShowPayerForm(false);
     setShowInsuranceForm(false);
     setLoading(true);
     Promise.all([generateInvoice(encounterId), listPayers(), getEncounterById(encounterId)])
@@ -150,7 +147,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, pollForSettlement, encounterId]);
 
-  const busy = paying || vnpayLoading || refunding || assigningPayer || savingInsurance;
+  const busy = paying || vnpayLoading || refunding || allocationsBusy || savingInsurance;
 
   const closeDialog = () => {
     if (busy) return;
@@ -245,25 +242,6 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
     }
   };
 
-  const handleAssignPayer = async (value: string) => {
-    if (!invoice) return;
-    const payerName = value === 'none' ? 'Bệnh nhân tự thanh toán' : (payers.find(p => String(p.ID) === value)?.Name ?? value);
-    if (!(await confirm(`Xác nhận đổi người/đơn vị chi trả thành "${payerName}"?`, { confirmLabel: 'Xác nhận', danger: false }))) {
-      return;
-    }
-    setError('');
-    setAssigningPayer(true);
-    try {
-      await assignPayer(invoice.ID, value === 'none' ? null : Number(value));
-      await refreshInvoice();
-      setShowPayerForm(false);
-    } catch (err) {
-      setError(resolveError(err));
-    } finally {
-      setAssigningPayer(false);
-    }
-  };
-
   const handleSaveInsurance = async () => {
     let coveragePercent: number | null = null;
     if (coveragePercentInput.trim()) {
@@ -299,7 +277,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
     <>
       {ConfirmDialog}
       <Dialog open={open} onOpenChange={o => { if (!o) closeDialog(); }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[900px] rounded-[20px] p-8">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[1040px] rounded-[20px] p-8">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-[#274760]">Hóa đơn viện phí</DialogTitle>
         </DialogHeader>
@@ -340,15 +318,6 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
                   />
                 )}
 
-                <InvoicePayerSection
-                  invoice={invoice}
-                  payers={payers}
-                  showPayerForm={showPayerForm}
-                  onShowPayerForm={() => setShowPayerForm(true)}
-                  onAssignPayer={handleAssignPayer}
-                  busy={busy}
-                />
-
                 <InvoiceInsuranceSection
                   invoice={invoice}
                   encounter={encounter}
@@ -384,6 +353,13 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
                 />
               </div>
             </div>
+
+            <InvoiceAllocationsSection
+              invoice={invoice}
+              payers={payers}
+              refreshInvoice={refreshInvoice}
+              onBusyChange={setAllocationsBusy}
+            />
           </>
         ) : null}
 

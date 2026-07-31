@@ -20,8 +20,33 @@ export async function recordRefund(invoiceId, payload) {
   return data;
 }
 
-export async function assignPayer(invoiceId, payerId) {
-  const { data } = await client.put(`/invoices/${invoiceId}/payer`, { payer_id: payerId });
+export async function splitInvoice(invoiceId, allocations) {
+  const { data } = await client.post(`/invoices/${invoiceId}/allocations`, { allocations });
+  return data;
+}
+
+export async function listAllocations(invoiceId) {
+  const { data } = await client.get(`/invoices/${invoiceId}/allocations`);
+  return data;
+}
+
+export async function updateAllocationStatus(invoiceId, allocationId, payload) {
+  const { data } = await client.patch(`/invoices/${invoiceId}/allocations/${allocationId}`, payload);
+  return data;
+}
+
+export async function recordAllocationPayment(invoiceId, allocationId, payload) {
+  const { data } = await client.post(`/invoices/${invoiceId}/allocations/${allocationId}/payments`, payload);
+  return data;
+}
+
+export async function submitClaim(invoiceId, allocationId, payload) {
+  const { data } = await client.post(`/invoices/${invoiceId}/allocations/${allocationId}/claim`, payload);
+  return data;
+}
+
+export async function recordClaimResponse(invoiceId, allocationId, payload) {
+  const { data } = await client.patch(`/invoices/${invoiceId}/allocations/${allocationId}/claim`, payload);
   return data;
 }
 

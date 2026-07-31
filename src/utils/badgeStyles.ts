@@ -76,6 +76,27 @@ export function admissionStatusBadgeClass(status: string): string {
   return TONE_CLASS[ADMISSION_STATUS_TONE[status] ?? ADMISSION_STATUS_TONE.discharged];
 }
 
+const ALLOCATION_STATUS_TONE: Record<string, BadgeTone> = {
+  pending: 'warning',
+  approved: 'info',
+  settled: 'success',
+  rejected: 'danger',
+};
+
+export function allocationStatusBadgeClass(status: string): string {
+  return TONE_CLASS[ALLOCATION_STATUS_TONE[status] ?? 'neutral'];
+}
+
+const CLAIM_STATUS_TONE: Record<string, BadgeTone> = {
+  pending: 'warning',
+  approved: 'success',
+  rejected: 'danger',
+};
+
+export function claimStatusBadgeClass(status: string): string {
+  return TONE_CLASS[CLAIM_STATUS_TONE[status] ?? 'neutral'];
+}
+
 const PORTAL_APPOINTMENT_STATUS_CLASS: Record<string, string> = {
   booked: 'rounded-full bg-[#0d9488]/10 px-2.5 py-1 text-xs font-semibold text-[#0d9488] hover:bg-[#0d9488]/10',
   checked_in: 'rounded-full bg-[#198754]/10 px-2.5 py-1 text-xs font-semibold text-[#198754] hover:bg-[#198754]/10',

@@ -165,6 +165,20 @@ const INVOICE_STATUS = {
 const PAYER_TYPE = {
   individual: 'Cá nhân bảo lãnh',
   insurance_company: 'Bảo hiểm bảo lãnh',
+  government: 'BHYT',
+};
+
+const ALLOCATION_STATUS = {
+  pending: 'Chờ xử lý',
+  approved: 'Đã duyệt',
+  settled: 'Đã thanh toán',
+  rejected: 'Từ chối',
+};
+
+const CLAIM_STATUS = {
+  pending: 'Chờ duyệt',
+  approved: 'Đã duyệt',
+  rejected: 'Từ chối',
 };
 
 const INVOICE_ITEM_CATEGORY = {
@@ -282,6 +296,8 @@ export const invoiceItemCategoryLabel = value => translate(INVOICE_ITEM_CATEGORY
 export const paymentMethodLabel = value => translate(PAYMENT_METHOD, value);
 export const payerTypeLabel = value => translate(PAYER_TYPE, value);
 export const PAYER_TYPES = Object.keys(PAYER_TYPE);
+export const allocationStatusLabel = value => translate(ALLOCATION_STATUS, value);
+export const claimStatusLabel = value => translate(CLAIM_STATUS, value);
 export const attachmentCategoryLabel = value => translate(ATTACHMENT_CATEGORY, value);
 export const ATTACHMENT_CATEGORIES = Object.keys(ATTACHMENT_CATEGORY);
 export const stockTransactionTypeLabel = value => translate(STOCK_TRANSACTION_TYPE, value);
