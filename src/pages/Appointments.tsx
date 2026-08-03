@@ -4,6 +4,9 @@ import { ErrorAlert } from '@/components/ui/alert';
 import { searchAppointments, cancelAppointment, markNoShow, checkInAppointment } from '@/api/appointment';
 import { getDepartments } from '@/api/department';
 import { listDoctors } from '@/api/doctor';
+import { listPayers } from '@/api/payer';
+import { addInsurancePolicy } from '@/api/patient';
+import { checkEligibility } from '@/api/encounter';
 import { resolveError } from '@/utils/errorMessages';
 import { useAuth } from '@/context/AuthContext';
 import useConfirm from '@/hooks/useConfirm';
@@ -29,6 +32,18 @@ export default function Appointments() {
   const [confirm, ConfirmDialog] = useConfirm();
   const [checkInTarget, setCheckInTarget] = useState<Appointment | null>(null);
   const [checkInType, setCheckInType] = useState('follow_up');
+  const [checkInHasInsurance, setCheckInHasInsurance] = useState(false);
+  const [checkInCoveragePercent, setCheckInCoveragePercent] = useState('');
+  const [checkInFacilityCode, setCheckInFacilityCode] = useState('');
+  const [checkInSyncToProfile, setCheckInSyncToProfile] = useState(false);
+  const [checkInHasPrivateInsurance, setCheckInHasPrivateInsurance] = useState(false);
+  const [checkInPrivatePayerId, setCheckInPrivatePayerId] = useState('');
+  const [checkInPrivatePolicyNumber, setCheckInPrivatePolicyNumber] = useState('');
+  const [checkInPrivateCardNumber, setCheckInPrivateCardNumber] = useState('');
+  const [checkInPrivateValidFrom, setCheckInPrivateValidFrom] = useState('');
+  const [checkInPrivateValidTo, setCheckInPrivateValidTo] = useState('');
+  const [checkInPrivateCoveragePercentEstimate, setCheckInPrivateCoveragePercentEstimate] = useState('');
+  const [payers, setPayers] = useState<{ ID: number | string; Name: string; Type: string }[]>([]);
   const [checkingIn, setCheckingIn] = useState(false);
 
   const [search, setSearch] = useState('');
@@ -113,6 +128,11 @@ export default function Appointments() {
     listDoctors({ page: 1, limit: 200 }).then(r => setDoctorOptions(r.data ?? [])).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!canManage) return;
+    listPayers().then(r => setPayers(r.data ?? [])).catch(() => setPayers([]));
+  }, [canManage]);
+
   const handleCancel = async (appt: Appointment) => {
     if (!(await confirm('Hủy lịch hẹn này?', { confirmLabel: 'Hủy lịch' }))) return;
     try {
@@ -136,13 +156,78 @@ export default function Appointments() {
   const openCheckIn = (appt: Appointment) => {
     setCheckInTarget(appt);
     setCheckInType('follow_up');
+    setCheckInHasInsurance(false);
+    setCheckInCoveragePercent('');
+    setCheckInFacilityCode(appt.Patient?.RegisteredFacilityCode ?? '');
+    setCheckInSyncToProfile(false);
+    setCheckInHasPrivateInsurance(false);
+    setCheckInPrivatePayerId('');
+    setCheckInPrivatePolicyNumber('');
+    setCheckInPrivateCardNumber('');
+    setCheckInPrivateValidFrom('');
+    setCheckInPrivateValidTo('');
+    setCheckInPrivateCoveragePercentEstimate('');
   };
 
   const handleCheckIn = async () => {
     if (!checkInTarget) return;
+    const hasInsurance = checkInHasInsurance && checkInType !== 'service';
+    if (hasInsurance && checkInCoveragePercent.trim()) {
+      const parsed = Number(checkInCoveragePercent);
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+        setError('Mức hưởng BHYT phải là số từ 0 đến 100.');
+        return;
+      }
+    }
+    if (checkInHasPrivateInsurance) {
+      if (!checkInPrivatePayerId) {
+        setError('Vui lòng chọn công ty bảo hiểm tư nhân.');
+        return;
+      }
+      if (!checkInPrivatePolicyNumber.trim()) {
+        setError('Vui lòng nhập số hợp đồng/thẻ bảo hiểm tư nhân.');
+        return;
+      }
+      if (checkInPrivateValidFrom && checkInPrivateValidTo && checkInPrivateValidFrom > checkInPrivateValidTo) {
+        setError('Ngày hiệu lực từ phải trước ngày hiệu lực đến.');
+        return;
+      }
+      if (checkInPrivateCoveragePercentEstimate.trim()) {
+        const parsed = Number(checkInPrivateCoveragePercentEstimate);
+        if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+          setError('Mức chi trả ước tính phải là số từ 0 đến 100.');
+          return;
+        }
+      }
+    }
     setCheckingIn(true);
     try {
-      await checkInAppointment(checkInTarget.ID, checkInType);
+      const encounterRes = await checkInAppointment(checkInTarget.ID, {
+        type: checkInType,
+        hasInsurance,
+        coveragePercent: hasInsurance && checkInCoveragePercent.trim() ? Number(checkInCoveragePercent) : null,
+        registeredFacilityCode: hasInsurance && checkInFacilityCode.trim() ? checkInFacilityCode.trim() : null,
+        syncToPatientProfile: hasInsurance && checkInSyncToProfile,
+      });
+
+      if (checkInHasPrivateInsurance) {
+        const policyRes = await addInsurancePolicy(Number(checkInTarget.PatientID), {
+          payer_id: Number(checkInPrivatePayerId),
+          policy_number: checkInPrivatePolicyNumber.trim(),
+          card_number: checkInPrivateCardNumber.trim(),
+          valid_from: checkInPrivateValidFrom || null,
+          valid_to: checkInPrivateValidTo || null,
+        });
+        const today = new Date().toISOString().slice(0, 10);
+        const isExpired = !!checkInPrivateValidTo && checkInPrivateValidTo < today;
+        await checkEligibility(encounterRes.data.ID, {
+          policy_id: policyRes.data.ID,
+          result: isExpired ? 'ineligible' : 'eligible',
+          coverage_percent_estimate: checkInPrivateCoveragePercentEstimate.trim() ? Number(checkInPrivateCoveragePercentEstimate) : null,
+          note: 'Khai báo lúc check-in',
+        });
+      }
+
       await fetchAppointments();
       setCheckInTarget(null);
     } catch (err) {
@@ -221,6 +306,29 @@ export default function Appointments() {
         target={checkInTarget}
         checkInType={checkInType}
         onCheckInTypeChange={setCheckInType}
+        hasInsurance={checkInHasInsurance}
+        onHasInsuranceChange={setCheckInHasInsurance}
+        coveragePercent={checkInCoveragePercent}
+        onCoveragePercentChange={setCheckInCoveragePercent}
+        registeredFacilityCode={checkInFacilityCode}
+        onRegisteredFacilityCodeChange={setCheckInFacilityCode}
+        syncToPatientProfile={checkInSyncToProfile}
+        onSyncToPatientProfileChange={setCheckInSyncToProfile}
+        hasPrivateInsurance={checkInHasPrivateInsurance}
+        onHasPrivateInsuranceChange={setCheckInHasPrivateInsurance}
+        privatePayerId={checkInPrivatePayerId}
+        onPrivatePayerIdChange={setCheckInPrivatePayerId}
+        privatePolicyNumber={checkInPrivatePolicyNumber}
+        onPrivatePolicyNumberChange={setCheckInPrivatePolicyNumber}
+        privateCardNumber={checkInPrivateCardNumber}
+        onPrivateCardNumberChange={setCheckInPrivateCardNumber}
+        privateValidFrom={checkInPrivateValidFrom}
+        onPrivateValidFromChange={setCheckInPrivateValidFrom}
+        privateValidTo={checkInPrivateValidTo}
+        onPrivateValidToChange={setCheckInPrivateValidTo}
+        privateCoveragePercentEstimate={checkInPrivateCoveragePercentEstimate}
+        onPrivateCoveragePercentEstimateChange={setCheckInPrivateCoveragePercentEstimate}
+        payers={payers}
         checkingIn={checkingIn}
         onClose={() => setCheckInTarget(null)}
         onConfirm={handleCheckIn}

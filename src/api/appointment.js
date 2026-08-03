@@ -20,7 +20,14 @@ export async function markNoShow(id) {
   return data;
 }
 
-export async function checkInAppointment(id, type) {
-  const { data } = await client.post(`/appointments/${id}/check-in`, type ? { type } : undefined);
+export async function checkInAppointment(id, { type, hasInsurance, coveragePercent, registeredFacilityCode, syncToPatientProfile } = {}) {
+  const payload = {
+    ...(type ? { type } : {}),
+    has_insurance: !!hasInsurance,
+    coverage_percent: coveragePercent ?? null,
+    registered_facility_code: registeredFacilityCode ?? null,
+    sync_to_patient_profile: !!syncToPatientProfile,
+  };
+  const { data } = await client.post(`/appointments/${id}/check-in`, payload);
   return data;
 }

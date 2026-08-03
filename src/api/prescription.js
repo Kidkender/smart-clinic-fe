@@ -20,6 +20,11 @@ export async function updatePrescriptionStatus(encounterId, prescriptionId, stat
   return data;
 }
 
+export async function confirmPrescriptionReady(encounterId, prescriptionId) {
+  const { data } = await client.post(`/encounters/${encounterId}/prescriptions/${prescriptionId}/confirm-ready`);
+  return data;
+}
+
 export async function getPrescriptionLabel(encounterId) {
   const { data } = await client.get(`/encounters/${encounterId}/prescriptions/label`);
   return data;
@@ -35,6 +40,16 @@ export async function returnPrescriptionItem(encounterId, prescriptionId, itemId
 
 export async function listPrescriptionWorklist() {
   const { data } = await client.get('/pharmacy/worklist');
+  return data;
+}
+
+export async function getDispenseQueue() {
+  const { data } = await client.get('/pharmacy/dispense-queue');
+  return data;
+}
+
+export async function callNextDispense() {
+  const { data } = await client.post('/pharmacy/dispense-queue/call-next');
   return data;
 }
 

@@ -56,6 +56,17 @@ export function appointmentStatusBadgeClass(status: string): string {
   return TONE_CLASS[APPOINTMENT_STATUS_TONE[status] ?? APPOINTMENT_STATUS_TONE.booked];
 }
 
+const INVOICE_STATUS_TONE: Record<string, BadgeTone> = {
+  unpaid: 'warning',
+  partially_paid: 'info',
+  paid: 'success',
+  cancelled: 'neutral',
+};
+
+export function invoiceStatusBadgeClass(status: string): string {
+  return TONE_CLASS[INVOICE_STATUS_TONE[status] ?? 'neutral'];
+}
+
 const ADMISSION_STATUS_TONE: Record<string, BadgeTone> = {
   active: 'success',
   discharged: 'neutral',
@@ -63,6 +74,27 @@ const ADMISSION_STATUS_TONE: Record<string, BadgeTone> = {
 
 export function admissionStatusBadgeClass(status: string): string {
   return TONE_CLASS[ADMISSION_STATUS_TONE[status] ?? ADMISSION_STATUS_TONE.discharged];
+}
+
+const ALLOCATION_STATUS_TONE: Record<string, BadgeTone> = {
+  pending: 'warning',
+  approved: 'info',
+  settled: 'success',
+  rejected: 'danger',
+};
+
+export function allocationStatusBadgeClass(status: string): string {
+  return TONE_CLASS[ALLOCATION_STATUS_TONE[status] ?? 'neutral'];
+}
+
+const CLAIM_STATUS_TONE: Record<string, BadgeTone> = {
+  pending: 'warning',
+  approved: 'success',
+  rejected: 'danger',
+};
+
+export function claimStatusBadgeClass(status: string): string {
+  return TONE_CLASS[CLAIM_STATUS_TONE[status] ?? 'neutral'];
 }
 
 const PORTAL_APPOINTMENT_STATUS_CLASS: Record<string, string> = {

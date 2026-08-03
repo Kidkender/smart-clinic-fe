@@ -17,7 +17,7 @@ export interface Appointment {
   ID: number | string;
   PatientID: number | string;
   DepartmentID: number | string;
-  Patient?: { Fullname?: string };
+  Patient?: { Fullname?: string; InsuranceNumber?: string; RegisteredFacilityCode?: string };
   Department?: { Name?: string };
   Doctor?: { Fullname?: string };
   ScheduledAt: string;

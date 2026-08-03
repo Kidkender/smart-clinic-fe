@@ -22,6 +22,7 @@ interface WorklistPrescription {
   patient_name: string;
   patient_mrn: string;
   created_at: string;
+  ready_at?: string | null;
   items: WorklistDrugItem[];
 }
 
@@ -85,13 +86,15 @@ export default function PharmacyWorklist() {
                     Đơn #{p.prescription_id} · {new Date(p.created_at).toLocaleString('vi-VN')} · {p.items.length} thuốc
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-2 text-xs font-semibold text-[#274760]"
-                >
-                  Chi tiết
-                  <Icon icon="fa6-solid:chevron-right" className="ml-1.5 text-[11px]" />
-                </Button>
+                <div className="flex items-center gap-2.5">
+                  <Button
+                    variant="outline"
+                    className="h-auto rounded-xl border-[#dde2e8] px-4 py-2 text-xs font-semibold text-[#274760]"
+                  >
+                    Chi tiết
+                    <Icon icon="fa6-solid:chevron-right" className="ml-1.5 text-[11px]" />
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}

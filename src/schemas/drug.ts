@@ -8,6 +8,7 @@ export const drugSchema = z.object({
   manufacturer: z.string(),
   price: z.number({ message: 'Giá phải là số.' }).min(0, 'Giá không được âm.'),
   min_stock_level: z.number({ message: 'Định mức tối thiểu phải là số.' }).int('Định mức phải là số nguyên.').min(0, 'Định mức không được âm.'),
+  covered_by_insurance: z.boolean(),
 });
 
 export type DrugFormValues = z.infer<typeof drugSchema>;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ErrorAlert } from '@/components/ui/alert';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,7 +18,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [statusDialog, setStatusDialog] = useState<'pending' | 'locked' | null>(null);
-  const { login } = useAuth();
+  const { login, isLoggedIn } = useAuth();
   const navigate = useNavigate();
   const {
     register, handleSubmit, formState: { errors },
@@ -26,6 +26,10 @@ export default function Login() {
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
+
+  if (isLoggedIn) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleFormSubmit = handleSubmit(async values => {
     setError('');

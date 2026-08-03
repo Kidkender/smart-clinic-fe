@@ -133,12 +133,14 @@ export default function StockInDialog({ open, drug, onClose, onSaved }: StockInD
             </div>
           </div>
 
-          <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Nhà cung cấp</label>
+          <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Nhà cung cấp *</label>
           <Input
             {...register('supplier')}
             placeholder="VD: Công ty Dược phẩm ABC"
+            aria-invalid={!!errors.supplier}
             className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
           />
+          <FieldError message={errors.supplier?.message} />
 
           <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Ghi chú</label>
           <Input

@@ -42,6 +42,7 @@ export interface Order {
   Price?: number;
   Status: string;
   ResultSummary?: string;
+  CoveredByInsurance?: boolean;
 }
 
 export interface PrescriptionItemFlag {
@@ -65,6 +66,7 @@ export interface Prescription {
   ID: number | string;
   Items?: PrescriptionItem[];
   Status: string;
+  ReadyAt?: string | null;
 }
 
 export interface Drug {
