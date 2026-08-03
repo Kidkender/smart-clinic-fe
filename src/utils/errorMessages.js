@@ -16,6 +16,8 @@ const ERROR_MESSAGES = {
   'error.department.already_exists': 'Khoa/phòng này đã tồn tại.',
 
   'error.patient.not_found': 'Không tìm thấy bệnh nhân.',
+  'error.patient.email_already_exists': 'Email này đã được đăng ký cho bệnh nhân khác.',
+  'error.patient.has_active_encounters': 'Bệnh nhân đang có lượt khám chưa hoàn tất (đang chờ/đang khám), không thể xóa. Hãy hoàn tất hoặc hủy các lượt khám đó trước.',
   'error.patient.invalid_date_of_birth': 'Ngày sinh không được ở tương lai.',
   'error.patient_contact.not_found': 'Không tìm thấy người liên hệ.',
   'error.patient_attachment.not_found': 'Không tìm thấy tệp đính kèm.',
