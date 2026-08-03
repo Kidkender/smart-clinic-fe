@@ -23,6 +23,13 @@ interface Payer {
   Type: string;
 }
 
+interface Room {
+  ID: number | string;
+  Name: string;
+  Type: string;
+  Status: string;
+}
+
 const CHECKIN_TYPES = [
   { value: 'new', label: 'Khám mới' },
   { value: 'follow_up', label: 'Tái khám' },
@@ -33,6 +40,9 @@ export default function CheckInDialog({
   target,
   checkInType,
   onCheckInTypeChange,
+  roomId,
+  onRoomIdChange,
+  rooms,
   hasInsurance,
   onHasInsuranceChange,
   coveragePercent,
@@ -63,6 +73,9 @@ export default function CheckInDialog({
   target: Appointment | null;
   checkInType: string;
   onCheckInTypeChange: (value: string) => void;
+  roomId: string;
+  onRoomIdChange: (value: string) => void;
+  rooms: Room[];
   hasInsurance: boolean;
   onHasInsuranceChange: (value: boolean) => void;
   coveragePercent: string;
@@ -107,6 +120,19 @@ export default function CheckInDialog({
             </SelectTrigger>
             <SelectContent>
               {CHECKIN_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
+          <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Phòng khám (không bắt buộc)</label>
+          <Select value={roomId || 'none'} onValueChange={v => onRoomIdChange(v === 'none' ? '' : v)}>
+            <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+              <SelectValue placeholder="Chưa chỉ định phòng" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Chưa chỉ định phòng</SelectItem>
+              {rooms.filter(r => r.Type === 'consultation' && r.Status === 'active').map(r => (
+                <SelectItem key={r.ID} value={String(r.ID)}>{r.Name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
 

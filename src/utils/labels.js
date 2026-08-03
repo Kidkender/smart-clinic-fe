@@ -31,6 +31,11 @@ const BED_STATUS = {
   cleaning: 'Đang vệ sinh',
 };
 
+const ROOM_TYPE = {
+  consultation: 'Phòng khám',
+  treatment: 'Phòng điều trị',
+};
+
 const ADMISSION_TYPE = {
   bhyt: 'BHYT',
   service: 'Dịch vụ',
@@ -58,6 +63,14 @@ const ORDER_TYPE = {
   mri: 'Chụp MRI',
   ultrasound: 'Siêu âm',
   endoscopy: 'Nội soi',
+  surgery: 'Phẫu thuật',
+};
+
+const SURGERY_CLASSIFICATION = {
+  dac_biet: 'Đặc biệt',
+  loai_1: 'Loại I',
+  loai_2: 'Loại II',
+  loai_3: 'Loại III',
 };
 
 const LAB_TEST_CATEGORY = {
@@ -274,6 +287,8 @@ export const encounterTypeLabel = value => translate(ENCOUNTER_TYPE, value);
 export const prescriptionStatusLabel = value => translate(PRESCRIPTION_STATUS, value);
 export const orderStatusLabel = value => translate(ORDER_STATUS, value);
 export const orderTypeLabel = value => translate(ORDER_TYPE, value);
+export const surgeryClassificationLabel = value => translate(SURGERY_CLASSIFICATION, value);
+export const SURGERY_CLASSIFICATIONS = Object.keys(SURGERY_CLASSIFICATION);
 export const labTestCategoryLabel = value => translate(LAB_TEST_CATEGORY, value);
 export const labSpecimenStatusLabel = value => translate(LAB_SPECIMEN_STATUS, value);
 export const labResultFlagLabel = value => translate(LAB_RESULT_FLAG, value);
@@ -285,6 +300,8 @@ export const imagingStudyStatusLabel = value => translate(IMAGING_STUDY_STATUS, 
 export const imagingReportStatusLabel = value => translate(IMAGING_REPORT_STATUS, value);
 export const interactionSeverityLabel = value => translate(INTERACTION_SEVERITY, value);
 export const bedStatusLabel = value => translate(BED_STATUS, value);
+export const roomTypeLabel = value => translate(ROOM_TYPE, value);
+export const ROOM_TYPES = Object.keys(ROOM_TYPE);
 export const admissionTypeLabel = value => translate(ADMISSION_TYPE, value);
 export const genderLabel = value => translate(GENDER, value);
 export const roleLabel = value => translate(ROLE, value);

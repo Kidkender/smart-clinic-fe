@@ -18,6 +18,8 @@ import Consultation from './pages/Consultation';
 import Admissions from './pages/Admissions';
 import AdmissionDetail from './pages/AdmissionDetail';
 import Wards from './pages/Wards';
+import OperatingRooms from './pages/OperatingRooms';
+import SurgerySchedule from './pages/SurgerySchedule';
 import Payers from './pages/Payers';
 import FeeSettings from './pages/FeeSettings';
 import FinanceReport from './pages/FinanceReport';
@@ -26,6 +28,7 @@ import PharmacyWardIssues from './pages/PharmacyWardIssues';
 import PharmacyWorklist from './pages/PharmacyWorklist';
 import PharmacyPrescriptionDetail from './pages/PharmacyPrescriptionDetail';
 import Departments from './pages/Departments';
+import Rooms from './pages/Rooms';
 import Inventory from './pages/Inventory';
 import StockTransactions from './pages/StockTransactions';
 import StockAudits from './pages/StockAudits';
@@ -113,6 +116,22 @@ function App() {
           }
         />
         <Route
+          path="operating-rooms"
+          element={
+            <RequireAuth roles={['admin']}>
+              <OperatingRooms />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="surgeries"
+          element={
+            <RequireAuth roles={['admin', 'doctor', 'nurse']}>
+              <SurgerySchedule />
+            </RequireAuth>
+          }
+        />
+        <Route
           path="fee-settings"
           element={
             <RequireAuth roles={['admin']}>
@@ -165,6 +184,14 @@ function App() {
           element={
             <RequireAuth roles={['admin']}>
               <Departments />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="rooms"
+          element={
+            <RequireAuth roles={['admin']}>
+              <Rooms />
             </RequireAuth>
           }
         />

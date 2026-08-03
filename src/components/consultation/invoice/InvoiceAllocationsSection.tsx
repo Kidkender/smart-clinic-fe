@@ -39,6 +39,7 @@ interface EligibilityCheck {
   ID: number;
   Result: 'eligible' | 'ineligible' | 'unknown';
   Policy: { PayerID: number } | null;
+  CoveragePercentEstimate: number | null;
 }
 
 interface SplitRow {
@@ -109,21 +110,43 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
   const selectablePayers = payers.filter(p => p.Type !== 'government');
 
   // Most recent check wins (API already orders by checked_at desc) — this is
-  // what check-in declared as eligible, used only to pre-fill the first
-  // split row so billing doesn't re-ask for a payer reception already
-  // validated. Staff can still change/remove it; nothing here is binding.
+  // what check-in declared as eligible, used to pre-fill the first split row
+  // so billing doesn't re-ask for a payer reception already validated.
   const declaredEligiblePayer = eligibilityChecks
     .find(c => c.Result === 'eligible' && c.Policy)
     ?.Policy?.PayerID;
 
-  const splitTotal = splitRows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+  // Payer → declared % coverage, for every payer with an "eligible" check
+  // that also has an estimate. First match per payer wins (checks are
+  // ordered most-recent-first), so re-declaring eligibility at check-in is
+  // the only way to change the computed amount below — the billing screen
+  // itself never lets anyone type a private-insurer amount by hand, so a
+  // cashier fat-finger can't silently under/over-allocate.
+  const eligiblePercentByPayer = eligibilityChecks.reduce<Record<string, number>>((acc, c) => {
+    const payerId = c.Policy?.PayerID;
+    if (c.Result === 'eligible' && payerId != null && c.CoveragePercentEstimate != null && !(String(payerId) in acc)) {
+      acc[String(payerId)] = c.CoveragePercentEstimate;
+    }
+    return acc;
+  }, {});
+
+  const basisAmount = invoice.TotalAmount - (bhytAllocation?.AllocatedAmount ?? 0);
+  const isAutoRow = (payerId: string) => payerId in eligiblePercentByPayer;
+  const computeAutoAmount = (payerId: string) => Math.round(basisAmount * (eligiblePercentByPayer[payerId] / 100));
+  const effectiveAmount = (row: SplitRow) => (isAutoRow(row.payerId) ? computeAutoAmount(row.payerId) : Number(row.amount));
+
+  const splitTotal = splitRows.reduce((sum, row) => sum + (effectiveAmount(row) || 0), 0);
   const patientRemainder = Math.max(invoice.TotalAmount - (bhytAllocation?.AllocatedAmount ?? 0) - splitTotal, 0);
 
   const openSplitDialog = () => {
     if (thirdPartyAllocations.length > 0) {
-      setSplitRows(thirdPartyAllocations.map(a => ({ payerId: String(a.PayerID), amount: String(a.AllocatedAmount) })));
+      setSplitRows(thirdPartyAllocations.map(a => ({
+        payerId: String(a.PayerID),
+        amount: isAutoRow(String(a.PayerID)) ? String(computeAutoAmount(String(a.PayerID))) : String(a.AllocatedAmount),
+      })));
     } else if (declaredEligiblePayer != null && selectablePayers.some(p => String(p.ID) === String(declaredEligiblePayer))) {
-      setSplitRows([{ payerId: String(declaredEligiblePayer), amount: '' }]);
+      const payerId = String(declaredEligiblePayer);
+      setSplitRows([{ payerId, amount: isAutoRow(payerId) ? String(computeAutoAmount(payerId)) : '' }]);
     } else {
       setSplitRows([emptySplitRow()]);
     }
@@ -138,17 +161,22 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
 
   const handleAddSplitRow = () => setSplitRows(rows => [...rows, emptySplitRow()]);
   const handleRemoveSplitRow = (index: number) => setSplitRows(rows => rows.filter((_, i) => i !== index));
-  const handleSplitRowChange = (index: number, field: keyof SplitRow, value: string) => {
-    setSplitRows(rows => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+  const handlePayerChange = (index: number, payerId: string) => {
+    setSplitRows(rows => rows.map((row, i) => (i === index
+      ? { payerId, amount: isAutoRow(payerId) ? String(computeAutoAmount(payerId)) : row.amount }
+      : row)));
+  };
+  const handleAmountChange = (index: number, amount: string) => {
+    setSplitRows(rows => rows.map((row, i) => (i === index ? { ...row, amount } : row)));
   };
 
   const handleSubmitSplit = async (e: FormEvent) => {
     e.preventDefault();
-    if (splitRows.some(row => !row.payerId || !row.amount)) {
-      setError('Vui lòng chọn payer và nhập số tiền cho tất cả các dòng.');
+    if (splitRows.some(row => !row.payerId || (!isAutoRow(row.payerId) && !row.amount))) {
+      setError('Vui lòng chọn bên chi trả và nhập số tiền cho tất cả các dòng.');
       return;
     }
-    if (splitRows.some(row => !Number.isFinite(Number(row.amount)) || Number(row.amount) <= 0)) {
+    if (splitRows.some(row => !Number.isFinite(effectiveAmount(row)) || effectiveAmount(row) <= 0)) {
       setError('Số tiền phân bổ phải là số dương.');
       return;
     }
@@ -162,7 +190,7 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
       await splitInvoice(invoice.ID, splitRows.map((row, index) => ({
         payer_id: Number(row.payerId),
         sequence: index + 1,
-        allocated_amount: Number(row.amount),
+        allocated_amount: effectiveAmount(row),
         note: '',
       })));
       await refreshInvoice();
@@ -291,7 +319,7 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Payer</TableHead>
+              <TableHead>Bên chi trả</TableHead>
               <TableHead>Loại</TableHead>
               <TableHead>Số tiền</TableHead>
               <TableHead>Trạng thái</TableHead>
@@ -374,47 +402,62 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
           </DialogHeader>
           {thirdPartyAllocations.length === 0 && declaredEligiblePayer != null && (
             <p className="m-0 -mt-2 text-xs text-[#6c757d]">
-              Đã tự điền công ty bảo hiểm bệnh nhân khai báo lúc check-in — nhập số tiền và chỉnh lại nếu cần.
+              {isAutoRow(String(declaredEligiblePayer))
+                ? 'Đã tự điền công ty bảo hiểm và số tiền theo % đã khai lúc check-in — muốn sửa số tiền, khai lại tỷ lệ ở bước check-in/eligibility trước khi phân bổ.'
+                : 'Đã tự điền công ty bảo hiểm bệnh nhân khai báo lúc check-in — nhập số tiền và chỉnh lại nếu cần.'}
             </p>
           )}
           <form onSubmit={handleSubmitSplit} noValidate className="flex flex-col gap-2.5">
             {splitRows.map((row, index) => (
-              <div key={index} className="flex items-end gap-2.5">
-                <div className="flex-1">
-                  <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Payer</label>
-                  <Select value={row.payerId} onValueChange={value => handleSplitRowChange(index, 'payerId', value)}>
-                    <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
-                      <SelectValue placeholder="Chọn payer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectablePayers.map(p => (
-                        <SelectItem key={p.ID} value={String(p.ID)}>
-                          {p.Name} · {payerTypeLabel(p.Type)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div key={index} className="flex flex-col gap-1.5">
+                <div className="flex items-start gap-2.5">
+                  <div className="flex-1">
+                    <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Bên chi trả</label>
+                    <Select value={row.payerId} onValueChange={value => handlePayerChange(index, value)}>
+                      <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                        <SelectValue placeholder="Chọn bên chi trả" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectablePayers.map(p => (
+                          <SelectItem key={p.ID} value={String(p.ID)}>
+                            {p.Name} · {payerTypeLabel(p.Type)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-[160px]">
+                    <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Số tiền</label>
+                    {isAutoRow(row.payerId) ? (
+                      <div className="flex h-auto items-center rounded-xl border border-[#dde2e8] bg-[#f4f7fa] px-4 py-3 text-[15px] text-[#274760]">
+                        {computeAutoAmount(row.payerId).toLocaleString('vi-VN')} đ
+                      </div>
+                    ) : (
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1000"
+                        value={row.amount}
+                        onChange={e => handleAmountChange(index, e.target.value)}
+                        className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                      />
+                    )}
+                  </div>
+                  {splitRows.length > 1 && (
+                    <div className="pt-[26px]">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleRemoveSplitRow(index)}
+                      >
+                        <Icon icon="fa6-solid:xmark" className="text-xs" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <div className="w-[160px]">
-                  <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Số tiền</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="1000"
-                    value={row.amount}
-                    onChange={e => handleSplitRowChange(index, 'amount', e.target.value)}
-                    className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-                  />
-                </div>
-                {splitRows.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => handleRemoveSplitRow(index)}
-                  >
-                    <Icon icon="fa6-solid:xmark" className="text-xs" />
-                  </Button>
+                {isAutoRow(row.payerId) && (
+                  <p className="m-0 text-[11px] text-[#6c757d]">Tự động ({eligiblePercentByPayer[row.payerId]}% theo check-in)</p>
                 )}
               </div>
             ))}

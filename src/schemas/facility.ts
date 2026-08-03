@@ -26,3 +26,16 @@ export const bedSchema = z.object({
 });
 
 export type BedFormValues = z.infer<typeof bedSchema>;
+
+export const roomSchema = z.object({
+  department_id: z.string().min(1, 'Vui lòng chọn khoa/phòng.'),
+  name: z.string().superRefine((value, ctx) => {
+    const message = validateFacilityName(value);
+    if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+  }),
+  code: z.string().min(1, 'Vui lòng nhập mã phòng.'),
+  type: z.enum(['consultation', 'treatment'], { message: 'Vui lòng chọn loại phòng.' }),
+  status: z.enum(['active', 'inactive']),
+});
+
+export type RoomFormValues = z.infer<typeof roomSchema>;

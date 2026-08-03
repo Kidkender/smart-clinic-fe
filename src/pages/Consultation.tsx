@@ -17,11 +17,24 @@ import VitalsSection from '@/components/consultation/VitalsSection';
 import DiagnosesSection from '@/components/consultation/DiagnosesSection';
 import ClinicalNotesSection from '@/components/consultation/ClinicalNotesSection';
 import OrdersSection from '@/components/consultation/OrdersSection';
+import SurgeryOrderSection from '@/components/consultation/SurgeryOrderSection';
 import PrescriptionsSection from '@/components/consultation/PrescriptionsSection';
+import { listSurgeries } from '@/api/surgery';
 import RecordUsageDialog from '@/components/medical-supplies/RecordUsageDialog';
 import InvoiceDialog from '@/components/consultation/InvoiceDialog';
 import { SectionBadge, ErrorBox, includesRole } from '@/components/consultation/shared';
 import type { Encounter, VitalSign, Diagnosis, Order, Prescription } from '@/components/consultation/types';
+
+interface SurgeryOrder {
+  id: number | string;
+  name: string;
+  classification: string;
+  price: number;
+  pre_op_diagnosis: string;
+  status: string;
+  scheduled_at: string | null;
+  operating_room_name: string;
+}
 
 export default function Consultation() {
   const { id } = useParams<{ id: string }>();
@@ -64,6 +77,7 @@ export default function Consultation() {
   const [vitals, setVitals] = useState<VitalSign[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [surgeryOrders, setSurgeryOrders] = useState<SurgeryOrder[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -72,14 +86,16 @@ export default function Consultation() {
     setLoading(true);
     setError('');
     try {
-      const [enc, o, p] = await Promise.all([
+      const [enc, o, p, sg] = await Promise.all([
         getEncounterById(encounterId),
         listOrdersByEncounter(encounterId),
         listPrescriptionsByEncounter(encounterId),
+        listSurgeries({ encounter_id: encounterId, limit: 50 }),
       ]);
       setEncounter(enc.data);
-      setOrders(o.data ?? []);
+      setOrders((o.data ?? []).filter((order: Order) => order.Type !== 'surgery'));
       setPrescriptions(p.data ?? []);
+      setSurgeryOrders(sg.data?.items ?? []);
 
       if (canViewClinicalData) {
         const [v, d] = await Promise.all([listVitalSigns(encounterId), listDiagnoses(encounterId)]);
@@ -198,6 +214,7 @@ export default function Consultation() {
 
       <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(460px,1fr))] gap-5">
         <OrdersSection encounterId={encounterId} orders={orders} canCreate={canOrder && !isCompleted} canUpdateStatus={canUpdateOrderStatus} role={role} onChanged={loadAll} />
+        <SurgeryOrderSection encounterId={encounterId} diagnoses={diagnoses} surgeryOrders={surgeryOrders} canCreate={canOrder && !isCompleted} onChanged={loadAll} />
         <PrescriptionsSection
           encounterId={encounterId}
           prescriptions={prescriptions}

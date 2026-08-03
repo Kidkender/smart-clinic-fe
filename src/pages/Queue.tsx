@@ -6,6 +6,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { checkIn, getTodayQueue, callNext, updateEncounterStatus, checkEligibility } from '@/api/encounter';
 import { getDepartments } from '@/api/department';
+import { listRooms } from '@/api/room';
 import { searchPatients, addInsurancePolicy } from '@/api/patient';
 import { listPayers } from '@/api/payer';
 import { resolveError } from '@/utils/errorMessages';
@@ -57,9 +58,17 @@ interface Encounter {
   Patient?: { Fullname?: string; Phone?: string; MRN?: string };
   DepartmentID: number | string;
   Department?: { Name?: string };
+  Room?: { Name?: string } | null;
   Type: string;
   CheckedInAt?: string;
   Status: 'waiting' | 'in_progress' | 'completed' | 'cancelled';
+}
+
+interface Room {
+  ID: number | string;
+  Name: string;
+  Type: string;
+  Status: string;
 }
 
 interface PatientResult {
@@ -85,6 +94,7 @@ const TYPES = [
 const EMPTY_CHECKIN_FORM: CheckInFormValues = {
   patient_id: '',
   type: 'new',
+  room_id: '',
   has_insurance: false,
   coverage_percent: '',
   registered_facility_code: '',
@@ -129,6 +139,7 @@ export default function Queue() {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [payers, setPayers] = useState<Payer[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [confirm, ConfirmDialog] = useConfirm();
   const {
     control, handleSubmit, reset, setValue, watch, register, formState: { errors },
@@ -177,6 +188,18 @@ export default function Queue() {
       .then(r => setPayers(r.data ?? []))
       .catch(() => setPayers([]));
   }, [canCheckInWalkIn]);
+
+  useEffect(() => {
+    if (!canCheckInWalkIn || !departmentId) {
+      setRooms([]);
+      return;
+    }
+    listRooms(departmentId)
+      .then(r => setRooms(r.data ?? []))
+      .catch(() => setRooms([]));
+  }, [canCheckInWalkIn, departmentId]);
+
+  const availableConsultationRooms = rooms.filter(r => r.Type === 'consultation' && r.Status === 'active');
 
   useEffect(() => {
     fetchQueue(departmentId);
@@ -237,6 +260,11 @@ export default function Queue() {
         setFormError('Ngày hiệu lực từ phải trước ngày hiệu lực đến.');
         return;
       }
+      const today = new Date().toISOString().slice(0, 10);
+      if (values.private_valid_to && values.private_valid_to < today) {
+        setFormError('Hợp đồng bảo hiểm tư nhân đã hết hạn (Hiệu lực đến đã qua ngày hôm nay). Vui lòng bỏ chọn bảo hiểm tư nhân hoặc cập nhật lại ngày hiệu lực.');
+        return;
+      }
       if (values.private_coverage_percent_estimate.trim()) {
         const parsed = Number(values.private_coverage_percent_estimate);
         if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
@@ -250,6 +278,7 @@ export default function Queue() {
       const encounterRes = await checkIn({
         patient_id: Number(values.patient_id),
         department_id: Number(departmentId),
+        room_id: values.room_id ? Number(values.room_id) : null,
         type: values.type,
         has_insurance: hasInsuranceValue,
         coverage_percent: hasInsuranceValue && values.coverage_percent.trim() ? Number(values.coverage_percent) : null,
@@ -265,11 +294,9 @@ export default function Queue() {
           valid_from: values.private_valid_from || null,
           valid_to: values.private_valid_to || null,
         });
-        const today = new Date().toISOString().slice(0, 10);
-        const isExpired = !!values.private_valid_to && values.private_valid_to < today;
         await checkEligibility(encounterRes.data.ID, {
           policy_id: policyRes.data.ID,
-          result: isExpired ? 'ineligible' : 'eligible',
+          result: 'eligible',
           coverage_percent_estimate: values.private_coverage_percent_estimate.trim() ? Number(values.private_coverage_percent_estimate) : null,
           note: 'Khai báo lúc check-in',
         });
@@ -451,6 +478,7 @@ export default function Queue() {
                   <SortableTableHead label="Khoa/phòng" column="department" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 )}
                 <SortableTableHead label="Loại" column="type" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Phòng</TableHead>
                 <SortableTableHead label="Check-in" column="checkin" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <SortableTableHead label="Trạng thái" column="status" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3"></TableHead>
@@ -465,6 +493,7 @@ export default function Queue() {
                     <TableCell className="px-4 py-3 text-sm text-[#274760]">{q.Department?.Name ?? `#${q.DepartmentID}`}</TableCell>
                   )}
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">{encounterTypeLabel(q.Type)}</TableCell>
+                  <TableCell className="px-4 py-3 text-sm text-[#274760]">{q.Room?.Name ?? '—'}</TableCell>
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">
                     {q.CheckedInAt ? new Date(q.CheckedInAt).toLocaleTimeString('vi-VN') : '—'}
                   </TableCell>
@@ -590,6 +619,28 @@ export default function Queue() {
                 </Select>
               )}
             />
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Phòng khám (không bắt buộc)</label>
+            <Controller
+              control={control}
+              name="room_id"
+              render={({ field }) => (
+                <Select value={field.value || 'none'} onValueChange={v => field.onChange(v === 'none' ? '' : v)}>
+                  <SelectTrigger className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                    <SelectValue placeholder="Chưa chỉ định phòng" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Chưa chỉ định phòng</SelectItem>
+                    {availableConsultationRooms.map(r => (
+                      <SelectItem key={r.ID} value={String(r.ID)}>{r.Name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {availableConsultationRooms.length === 0 && (
+              <p className="m-0 mt-1.5 text-xs text-[#6c757d]">Khoa này chưa có phòng khám nào đang hoạt động.</p>
+            )}
 
             <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
               <div>
