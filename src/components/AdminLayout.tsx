@@ -23,7 +23,7 @@ const NAV: NavItem[] = [
   { to: '/imaging-worklist', label: 'Hàng đợi CĐHA', icon: 'fa6-solid:x-ray', roles: ['admin', 'radiology_tech', 'doctor'] },
   { to: '/pharmacy/worklist', label: 'Cấp thuốc', icon: 'fa6-solid:prescription-bottle-medical', roles: ['admin', 'pharmacist'] },
   { to: '/departments', label: 'Khoa', icon: 'fa6-solid:sitemap', roles: ['admin'] },
-  { to: '/rooms', label: 'Phòng khám & Điều trị', icon: 'fa6-solid:door-open', roles: ['admin'] },
+  { to: '/rooms', label: 'Phòng khám/ĐT', icon: 'fa6-solid:door-open', roles: ['admin'] },
   { to: '/lab-tests', label: 'Danh mục xét nghiệm', icon: 'fa6-solid:vial', roles: ['admin', 'lab_tech'] },
   { to: '/imaging-procedures', label: 'Danh mục CĐHA', icon: 'fa6-solid:radiation', roles: ['admin', 'radiology_tech'] },
   { to: '/wards', label: 'Khu điều trị & Giường', icon: 'fa6-solid:hospital-user', roles: ['admin'] },
