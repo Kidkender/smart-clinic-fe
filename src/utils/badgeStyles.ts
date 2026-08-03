@@ -107,3 +107,25 @@ const PORTAL_APPOINTMENT_STATUS_CLASS: Record<string, string> = {
 export function portalAppointmentStatusBadgeClass(status: string): string {
   return PORTAL_APPOINTMENT_STATUS_CLASS[status] ?? PORTAL_APPOINTMENT_STATUS_CLASS.booked;
 }
+
+const OPERATING_ROOM_STATUS_TONE: Record<string, BadgeTone> = {
+  available: 'success',
+  in_use: 'warning',
+  cleaning: 'info',
+  maintenance: 'danger',
+};
+
+export function operatingRoomStatusBadgeClass(status: string): string {
+  return TONE_CLASS[OPERATING_ROOM_STATUS_TONE[status] ?? 'neutral'];
+}
+
+const SURGERY_STATUS_TONE: Record<string, BadgeTone> = {
+  scheduled: 'info',
+  in_progress: 'warning',
+  completed: 'success',
+  cancelled: 'danger',
+};
+
+export function surgeryStatusBadgeClass(status: string): string {
+  return TONE_CLASS[SURGERY_STATUS_TONE[status] ?? 'neutral'];
+}

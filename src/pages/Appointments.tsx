@@ -3,6 +3,7 @@ import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { searchAppointments, cancelAppointment, markNoShow, checkInAppointment } from '@/api/appointment';
 import { getDepartments } from '@/api/department';
+import { listRooms } from '@/api/room';
 import { listDoctors } from '@/api/doctor';
 import { listPayers } from '@/api/payer';
 import { addInsurancePolicy } from '@/api/patient';
@@ -43,6 +44,8 @@ export default function Appointments() {
   const [checkInPrivateValidFrom, setCheckInPrivateValidFrom] = useState('');
   const [checkInPrivateValidTo, setCheckInPrivateValidTo] = useState('');
   const [checkInPrivateCoveragePercentEstimate, setCheckInPrivateCoveragePercentEstimate] = useState('');
+  const [checkInRoomId, setCheckInRoomId] = useState('');
+  const [checkInRooms, setCheckInRooms] = useState<{ ID: number | string; Name: string; Type: string; Status: string }[]>([]);
   const [payers, setPayers] = useState<{ ID: number | string; Name: string; Type: string }[]>([]);
   const [checkingIn, setCheckingIn] = useState(false);
 
@@ -167,6 +170,11 @@ export default function Appointments() {
     setCheckInPrivateValidFrom('');
     setCheckInPrivateValidTo('');
     setCheckInPrivateCoveragePercentEstimate('');
+    setCheckInRoomId('');
+    setCheckInRooms([]);
+    listRooms(appt.DepartmentID)
+      .then(r => setCheckInRooms(r.data ?? []))
+      .catch(() => setCheckInRooms([]));
   };
 
   const handleCheckIn = async () => {
@@ -192,6 +200,11 @@ export default function Appointments() {
         setError('Ngày hiệu lực từ phải trước ngày hiệu lực đến.');
         return;
       }
+      const today = new Date().toISOString().slice(0, 10);
+      if (checkInPrivateValidTo && checkInPrivateValidTo < today) {
+        setError('Hợp đồng bảo hiểm tư nhân đã hết hạn (Hiệu lực đến đã qua ngày hôm nay). Vui lòng bỏ chọn bảo hiểm tư nhân hoặc cập nhật lại ngày hiệu lực.');
+        return;
+      }
       if (checkInPrivateCoveragePercentEstimate.trim()) {
         const parsed = Number(checkInPrivateCoveragePercentEstimate);
         if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
@@ -204,6 +217,7 @@ export default function Appointments() {
     try {
       const encounterRes = await checkInAppointment(checkInTarget.ID, {
         type: checkInType,
+        roomId: checkInRoomId ? Number(checkInRoomId) : null,
         hasInsurance,
         coveragePercent: hasInsurance && checkInCoveragePercent.trim() ? Number(checkInCoveragePercent) : null,
         registeredFacilityCode: hasInsurance && checkInFacilityCode.trim() ? checkInFacilityCode.trim() : null,
@@ -218,11 +232,9 @@ export default function Appointments() {
           valid_from: checkInPrivateValidFrom || null,
           valid_to: checkInPrivateValidTo || null,
         });
-        const today = new Date().toISOString().slice(0, 10);
-        const isExpired = !!checkInPrivateValidTo && checkInPrivateValidTo < today;
         await checkEligibility(encounterRes.data.ID, {
           policy_id: policyRes.data.ID,
-          result: isExpired ? 'ineligible' : 'eligible',
+          result: 'eligible',
           coverage_percent_estimate: checkInPrivateCoveragePercentEstimate.trim() ? Number(checkInPrivateCoveragePercentEstimate) : null,
           note: 'Khai báo lúc check-in',
         });
@@ -306,6 +318,9 @@ export default function Appointments() {
         target={checkInTarget}
         checkInType={checkInType}
         onCheckInTypeChange={setCheckInType}
+        roomId={checkInRoomId}
+        onRoomIdChange={setCheckInRoomId}
+        rooms={checkInRooms}
         hasInsurance={checkInHasInsurance}
         onHasInsuranceChange={setCheckInHasInsurance}
         coveragePercent={checkInCoveragePercent}

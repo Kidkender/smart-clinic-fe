@@ -20,9 +20,10 @@ export async function markNoShow(id) {
   return data;
 }
 
-export async function checkInAppointment(id, { type, hasInsurance, coveragePercent, registeredFacilityCode, syncToPatientProfile } = {}) {
+export async function checkInAppointment(id, { type, roomId, hasInsurance, coveragePercent, registeredFacilityCode, syncToPatientProfile } = {}) {
   const payload = {
     ...(type ? { type } : {}),
+    room_id: roomId ?? null,
     has_insurance: !!hasInsurance,
     coverage_percent: coveragePercent ?? null,
     registered_facility_code: registeredFacilityCode ?? null,

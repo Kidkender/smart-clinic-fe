@@ -19,6 +19,14 @@ export default function InvoiceSummary({ invoice, patientPaidTotal, refundedTota
   // allocation row is the source of truth for whether/how much BHYT paid.
   const bhytAllocation = (invoice.Allocations ?? []).find(a => a.Payer?.Type === 'government');
   const bhytAmount = bhytAllocation?.AllocatedAmount ?? coverage?.covered_amount ?? 0;
+  // Private insurers (Bảo Việt, PVI, ...) show up as their own allocation
+  // rows — distinct from BHYT (government) and the patient's own row
+  // (PayerID null). Both deductions must be visible here, not just in the
+  // allocation table below, or the jump from "Tổng viện phí" to "Bệnh nhân
+  // phải trả" looks unexplained.
+  const insuranceCompanyAllocations = (invoice.Allocations ?? []).filter(a => a.Payer?.Type === 'insurance_company');
+  const insuranceCompanyAmount = insuranceCompanyAllocations.reduce((sum, a) => sum + a.AllocatedAmount, 0);
+  const showDeductions = bhytAmount > 0 || insuranceCompanyAmount > 0;
   const showRemaining = remaining > 0 && invoice.Status !== 'cancelled' && invoice.Status !== 'paid';
 
   return (
@@ -63,12 +71,14 @@ export default function InvoiceSummary({ invoice, patientPaidTotal, refundedTota
           <span>Tổng viện phí</span>
           <span>{invoice.TotalAmount.toLocaleString('vi-VN')} đ</span>
         </div>
-        {bhytAmount > 0 && (
+        {showDeductions && (
           <>
-            <div className="flex items-center justify-between text-sm text-[#28a745]">
-              <span>BHYT đã trừ{bhytAllocation ? '' : ' (ước tính)'}</span>
-              <span>-{bhytAmount.toLocaleString('vi-VN')} đ</span>
-            </div>
+            {bhytAmount > 0 && (
+              <div className="flex items-center justify-between text-sm text-[#28a745]">
+                <span>BHYT đã trừ{bhytAllocation ? '' : ' (ước tính)'}</span>
+                <span>-{bhytAmount.toLocaleString('vi-VN')} đ</span>
+              </div>
+            )}
             {coverage && (
               coverage.eligible_amount === 0 ? (
                 <p className="m-0 text-xs italic text-[#6c757d]">
@@ -80,6 +90,12 @@ export default function InvoiceSummary({ invoice, patientPaidTotal, refundedTota
                 </p>
               )
             )}
+            {insuranceCompanyAllocations.map(a => (
+              <div key={a.ID} className="flex items-center justify-between text-sm text-[#307bc4]">
+                <span>{a.Payer?.Name ?? 'Bảo hiểm bảo lãnh'} đã trừ</span>
+                <span>-{a.AllocatedAmount.toLocaleString('vi-VN')} đ</span>
+              </div>
+            ))}
             <div className="flex items-center justify-between text-sm font-semibold text-[#274760]">
               <span>Bệnh nhân phải trả{coverage && !bhytAllocation ? ' (ước tính)' : ''}</span>
               <span>{payableTotal.toLocaleString('vi-VN')} đ</span>

@@ -125,7 +125,7 @@ export default function PharmacyPrescriptionDetail() {
     setError('');
     try {
       await updatePrescriptionStatus(encounterId, prescriptionId, 'dispensed');
-      await fetchDetail();
+      navigate('/pharmacy/dispense-queue');
     } catch (err) {
       setError(resolveError(err));
     } finally {
@@ -212,7 +212,7 @@ export default function PharmacyPrescriptionDetail() {
     <>
       <button
         type="button"
-        onClick={() => navigate('/pharmacy/worklist')}
+        onClick={() => navigate(detail.ready_at ? '/pharmacy/dispense-queue' : '/pharmacy/worklist')}
         className="mb-4 flex items-center gap-1.5 border-none bg-transparent p-0 text-[13px] font-medium text-[#307bc4] hover:underline"
       >
         <Icon icon="fa6-solid:chevron-left" className="text-[11px]" />Quay lại danh sách

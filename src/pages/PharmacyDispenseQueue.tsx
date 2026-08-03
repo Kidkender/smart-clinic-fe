@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { getDispenseQueue, callNextDispense } from '@/api/prescription';
 import { resolveError } from '@/utils/errorMessages';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { toneBadgeClass } from '@/utils/badgeStyles';
 import PharmacyTabs from '@/components/pharmacy/PharmacyTabs';
 import {
   Table,
@@ -23,9 +26,11 @@ interface DispenseQueueItem {
   dispense_queue_number: number;
   ready_at: string;
   dispense_called_at?: string | null;
+  payment_settled: boolean;
 }
 
 export default function PharmacyDispenseQueue() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<DispenseQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,19 +54,32 @@ export default function PharmacyDispenseQueue() {
   }, [fetchQueue]);
 
   const currentlyCalled = items.find(item => item.dispense_called_at);
-  const waitingCount = items.filter(item => !item.dispense_called_at).length;
+  // "Đang chờ" only counts patients who already paid — an unpaid one is not
+  // eligible to be called next (see CallNextDispense on the backend), so it
+  // must not inflate the count that gates the "Gọi tiếp theo" button.
+  const waitingCount = items.filter(item => !item.dispense_called_at && item.payment_settled).length;
+  const pendingPaymentCount = items.filter(item => !item.dispense_called_at && !item.payment_settled).length;
 
   const handleCallNext = async () => {
     setCalling(true);
     setError('');
     try {
-      await callNextDispense();
+      const result = await callNextDispense();
+      const called: DispenseQueueItem | undefined = result.data;
+      if (called) {
+        navigate(`/pharmacy/worklist/${called.encounter_id}/${called.prescription_id}`);
+        return;
+      }
       await fetchQueue();
     } catch (err) {
       setError(resolveError(err));
     } finally {
       setCalling(false);
     }
+  };
+
+  const openDetail = (item: DispenseQueueItem) => {
+    navigate(`/pharmacy/worklist/${item.encounter_id}/${item.prescription_id}`);
   };
 
   return (
@@ -79,8 +97,12 @@ export default function PharmacyDispenseQueue() {
 
       <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         <Card className="rounded-2xl border-[#e8edf2] px-5 py-4.5">
-          <div className="text-xs font-bold tracking-wide text-[#6c757d] uppercase">Đang chờ</div>
+          <div className="text-xs font-bold tracking-wide text-[#6c757d] uppercase">Đang chờ (đã thanh toán)</div>
           <div className="mt-1 text-2xl font-bold text-[#307bc4]">{waitingCount}</div>
+        </Card>
+        <Card className="rounded-2xl border-[#e8edf2] px-5 py-4.5">
+          <div className="text-xs font-bold tracking-wide text-[#6c757d] uppercase">Chờ thanh toán</div>
+          <div className="mt-1 text-2xl font-bold text-[#e0a800]">{pendingPaymentCount}</div>
         </Card>
         <Card className="rounded-2xl border-[#e8edf2] px-5 py-4.5">
           <div className="text-xs font-bold tracking-wide text-[#6c757d] uppercase">Đang gọi số</div>
@@ -93,7 +115,8 @@ export default function PharmacyDispenseQueue() {
           <Button
             variant="outline"
             onClick={handleCallNext}
-            disabled={calling || waitingCount === 0}
+            disabled={calling || waitingCount === 0 || !!currentlyCalled}
+            title={currentlyCalled ? 'Cần hoàn tất cấp phát cho số đang gọi trước khi gọi số tiếp theo.' : undefined}
             className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
           >
             {calling ? 'Đang gọi…' : 'Gọi tiếp theo'}
@@ -121,7 +144,11 @@ export default function PharmacyDispenseQueue() {
             </TableHeader>
             <TableBody>
               {items.map(item => (
-                <TableRow key={item.prescription_id} className="border-t border-[#f0f4f8]">
+                <TableRow
+                  key={item.prescription_id}
+                  onClick={() => openDetail(item)}
+                  className="cursor-pointer border-t border-[#f0f4f8] hover:bg-[#f4f7fa]"
+                >
                   <TableCell className="px-4 py-3 text-sm font-bold text-[#274760]">
                     {item.dispense_queue_number}
                   </TableCell>
@@ -131,13 +158,11 @@ export default function PharmacyDispenseQueue() {
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">Đơn #{item.prescription_id}</TableCell>
                   <TableCell className="px-4 py-3 text-sm">
                     {item.dispense_called_at ? (
-                      <span className="rounded-full bg-[#198754]/15 px-3 py-1 text-xs font-semibold text-[#198754]">
-                        Đang gọi
-                      </span>
+                      <Badge className={toneBadgeClass('success')}>Đang gọi</Badge>
+                    ) : !item.payment_settled ? (
+                      <Badge className={toneBadgeClass('warning')}>Chờ thanh toán</Badge>
                     ) : (
-                      <span className="rounded-full bg-[#6c757d]/15 px-3 py-1 text-xs font-semibold text-[#6c757d]">
-                        Đang chờ
-                      </span>
+                      <Badge className={toneBadgeClass('neutral')}>Đang chờ</Badge>
                     )}
                   </TableCell>
                 </TableRow>

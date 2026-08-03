@@ -117,7 +117,7 @@ export default function Departments() {
     <>
       <div className="mb-7 flex items-center justify-between">
         <div>
-          <h1 className="m-0 text-[26px] font-bold text-[#274760]">Khoa/Phòng</h1>
+          <h1 className="m-0 text-[26px] font-bold text-[#274760]">Khoa</h1>
           <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">Quản lý danh mục khoa lâm sàng</p>
         </div>
         <Button
