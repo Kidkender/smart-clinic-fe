@@ -31,6 +31,12 @@ export interface Payer {
   Type: string;
 }
 
+export interface InsurancePolicy {
+  ID: number | string;
+  PayerID: number | string;
+  PolicyNumber: string;
+}
+
 export interface CoverageEstimate {
   eligible_amount: number;
   coverage_percent: number;
@@ -83,6 +89,7 @@ export interface Invoice {
 
 export interface Encounter {
   ID: number | string;
+  PatientID: number | string;
   HasInsurance: boolean;
   CoveragePercent: number | null;
   RegisteredFacilityCode: string | null;

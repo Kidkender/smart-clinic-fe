@@ -21,6 +21,7 @@ import Wards from './pages/Wards';
 import Payers from './pages/Payers';
 import FeeSettings from './pages/FeeSettings';
 import FinanceReport from './pages/FinanceReport';
+import PharmacyDispenseQueue from './pages/PharmacyDispenseQueue';
 import PharmacyWardIssues from './pages/PharmacyWardIssues';
 import PharmacyWorklist from './pages/PharmacyWorklist';
 import PharmacyPrescriptionDetail from './pages/PharmacyPrescriptionDetail';
@@ -148,6 +149,14 @@ function App() {
           element={
             <RequireAuth roles={['admin', 'pharmacist']}>
               <PharmacyPrescriptionDetail />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="pharmacy/dispense-queue"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <PharmacyDispenseQueue />
             </RequireAuth>
           }
         />

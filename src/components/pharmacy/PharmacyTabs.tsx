@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 
 const TABS = [
   { to: '/pharmacy/worklist', label: 'Ngoại trú', icon: 'fa6-solid:prescription-bottle-medical', end: true },
+  { to: '/pharmacy/dispense-queue', label: 'Hàng chờ cấp thuốc', icon: 'fa6-solid:hashtag', end: true },
   { to: '/pharmacy/ward-issues', label: 'Nội trú', icon: 'fa6-solid:pills', end: true },
 ];
 

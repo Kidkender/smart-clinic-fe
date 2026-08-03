@@ -11,7 +11,25 @@ import { payerSchema, type PayerFormValues } from '@/schemas/payer';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Pagination } from '@/components/ui/pagination';
+import SortableTableHead from '@/components/ui/sortable-table-head';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import FieldError from '@/components/FieldError';
+
+const DEBT_PAGE_LIMIT = 10;
 
 interface Payer {
   ID: number | string;
@@ -26,12 +44,17 @@ interface DebtInvoice {
   invoice_status: string;
   allocated_amount: number;
   remaining: number;
+  created_at: string;
 }
 
 interface DebtSummary {
   payer_id: number | string;
   outstanding_total: number;
   invoices: DebtInvoice[];
+  page: number;
+  limit: number;
+  total: number;
+  total_pages: number;
 }
 
 export default function Payers() {
@@ -41,10 +64,13 @@ export default function Payers() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedPayer, setSelectedPayer] = useState<Payer | null>(null);
   const [debt, setDebt] = useState<DebtSummary | null>(null);
   const [debtLoading, setDebtLoading] = useState(false);
   const [debtError, setDebtError] = useState('');
+  const [debtPage, setDebtPage] = useState(1);
+  const [debtSortBy, setDebtSortBy] = useState('created_at');
+  const [debtSortDir, setDebtSortDir] = useState<'asc' | 'desc'>('desc');
 
   const {
     register, handleSubmit, reset, formState: { errors },
@@ -87,19 +113,42 @@ export default function Payers() {
     }
   });
 
-  const handleViewDebt = async (payer: Payer) => {
-    setSelectedId(String(payer.ID));
-    setDebt(null);
+  const fetchDebt = useCallback(async (payer: Payer, page: number, sortBy: string, sortDir: 'asc' | 'desc') => {
     setDebtError('');
     setDebtLoading(true);
     try {
-      const res = await getPayerDebt(payer.ID);
+      const res = await getPayerDebt(payer.ID, { page, limit: DEBT_PAGE_LIMIT, sort_by: sortBy, sort_dir: sortDir });
       setDebt(res.data);
     } catch (err) {
       setDebtError(resolveError(err));
     } finally {
       setDebtLoading(false);
     }
+  }, []);
+
+  const handleViewDebt = (payer: Payer) => {
+    setSelectedPayer(payer);
+    setDebt(null);
+    setDebtPage(1);
+    setDebtSortBy('created_at');
+    setDebtSortDir('desc');
+    fetchDebt(payer, 1, 'created_at', 'desc');
+  };
+
+  useEffect(() => {
+    if (!selectedPayer) return;
+    fetchDebt(selectedPayer, debtPage, debtSortBy, debtSortDir);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debtPage, debtSortBy, debtSortDir]);
+
+  const handleDebtSort = (column: string) => {
+    if (debtSortBy === column) {
+      setDebtSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setDebtSortBy(column);
+      setDebtSortDir('asc');
+    }
+    setDebtPage(1);
   };
 
   return (
@@ -171,41 +220,71 @@ export default function Payers() {
               >
                 <Icon icon="fa6-solid:file-invoice-dollar" className="mr-1.5 text-[11px]" />Xem công nợ
               </Button>
-
-              {selectedId === String(payer.ID) && (
-                <div className="mt-4 border-t border-[#f0f4f8] pt-3.5">
-                  {debtLoading ? (
-                    <p className="text-xs text-[#6c757d]">Đang tải…</p>
-                  ) : debtError ? (
-                    <ErrorAlert icon={false}>{debtError}</ErrorAlert>
-                  ) : debt ? (
-                    <>
-                      <div className="mb-2.5 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-[#274760]">Tổng công nợ còn lại</span>
-                        <span className="text-base font-bold text-[#dc3545]">
-                          {debt.outstanding_total.toLocaleString('vi-VN')} đ
-                        </span>
-                      </div>
-                      {debt.invoices.length === 0 ? (
-                        <p className="text-xs text-[#6c757d]">Không có hóa đơn nào còn nợ.</p>
-                      ) : (
-                        <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-                          {debt.invoices.map(inv => (
-                            <li key={inv.invoice_id} className="flex items-center justify-between text-xs text-[#6c757d]">
-                              <span>Hóa đơn #{inv.invoice_id} · <span className={invoiceStatusBadgeClass(inv.invoice_status)}>{invoiceStatusLabel(inv.invoice_status)}</span></span>
-                              <span className="font-semibold text-[#274760]">{inv.remaining.toLocaleString('vi-VN')} đ</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </>
-                  ) : null}
-                </div>
-              )}
             </Card>
           ))}
         </div>
       )}
+
+      <Dialog open={!!selectedPayer} onOpenChange={open => { if (!open) setSelectedPayer(null); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[20px] p-8 sm:max-w-[720px]">
+          <DialogHeader>
+            <DialogTitle>Công nợ — {selectedPayer?.Name}</DialogTitle>
+          </DialogHeader>
+
+          {debtError && <ErrorAlert icon={false}>{debtError}</ErrorAlert>}
+
+          {debt && (
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-sm font-semibold text-[#274760]">Tổng công nợ còn lại</span>
+              <span className="text-base font-bold text-[#dc3545]">
+                {debt.outstanding_total.toLocaleString('vi-VN')} đ
+              </span>
+            </div>
+          )}
+
+          {debtLoading ? (
+            <p className="text-xs text-[#6c757d]">Đang tải…</p>
+          ) : debt && debt.invoices.length === 0 ? (
+            <p className="text-xs text-[#6c757d]">Không có hóa đơn nào còn nợ.</p>
+          ) : debt ? (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
+                    <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Hóa đơn</TableHead>
+                    <SortableTableHead label="Ngày tạo" column="created_at" sortBy={debtSortBy} sortDir={debtSortDir} onSort={handleDebtSort} />
+                    <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Trạng thái</TableHead>
+                    <SortableTableHead label="Còn nợ" column="remaining" sortBy={debtSortBy} sortDir={debtSortDir} onSort={handleDebtSort} />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {debt.invoices.map(inv => (
+                    <TableRow key={inv.invoice_id} className="border-t border-[#f0f4f8]">
+                      <TableCell className="px-4 py-3 text-sm text-[#274760]">#{inv.invoice_id}</TableCell>
+                      <TableCell className="px-4 py-3 text-sm text-[#274760]">
+                        {new Date(inv.created_at).toLocaleDateString('vi-VN')}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-sm">
+                        <span className={invoiceStatusBadgeClass(inv.invoice_status)}>{invoiceStatusLabel(inv.invoice_status)}</span>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-sm font-semibold text-[#274760]">
+                        {inv.remaining.toLocaleString('vi-VN')} đ
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <Pagination
+                page={debt.page}
+                totalPages={Math.max(debt.total_pages, 1)}
+                total={debt.total}
+                onPageChange={setDebtPage}
+                itemLabel="hóa đơn"
+              />
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

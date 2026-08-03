@@ -17,6 +17,7 @@ import {
 } from '@/api/billing';
 import { listPayers } from '@/api/payer';
 import { getEncounterById, updateEncounterInsurance } from '@/api/encounter';
+import { listInsurancePolicies } from '@/api/patient';
 import { listPrescriptionsByEncounter } from '@/api/prescription';
 import useConfirm from '@/hooks/useConfirm';
 import { resolveError } from '@/utils/errorMessages';
@@ -28,7 +29,7 @@ import InvoicePaymentForm from './invoice/InvoicePaymentForm';
 import InvoiceAllocationsSection from './invoice/InvoiceAllocationsSection';
 import InvoiceInsuranceSection from './invoice/InvoiceInsuranceSection';
 import InvoiceRefundSection from './invoice/InvoiceRefundSection';
-import { PAYMENT_METHODS, type Encounter, type Invoice, type Payer, type Payment, type Refund } from './invoice/types';
+import { PAYMENT_METHODS, type Encounter, type Invoice, type InsurancePolicy, type Payer, type Payment, type Refund } from './invoice/types';
 
 interface InvoiceDialogProps {
   open: boolean;
@@ -75,6 +76,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
   const [refunding, setRefunding] = useState(false);
 
   const [payers, setPayers] = useState<Payer[]>([]);
+  const [insurancePolicies, setInsurancePolicies] = useState<InsurancePolicy[]>([]);
   const [allocationsBusy, setAllocationsBusy] = useState(false);
 
   const [pendingPrescriptionCount, setPendingPrescriptionCount] = useState(0);
@@ -142,6 +144,9 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
           (p: { Status: string; ReadyAt?: string | null }) => p.Status === 'active' && !p.ReadyAt,
         );
         setPendingPrescriptionCount(pending.length);
+        listInsurancePolicies(encounterRes.data.PatientID)
+          .then(r => setInsurancePolicies(r.data ?? []))
+          .catch(() => setInsurancePolicies([]));
       })
       .catch(err => setError(resolveError(err)))
       .finally(() => setLoading(false));
@@ -341,6 +346,7 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
               <InvoiceAllocationsSection
                 invoice={invoice}
                 payers={payers}
+                insurancePolicies={insurancePolicies}
                 encounterId={encounterId}
                 refreshInvoice={refreshInvoice}
                 onBusyChange={setAllocationsBusy}

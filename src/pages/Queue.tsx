@@ -139,6 +139,12 @@ export default function Queue() {
   const patientId = watch('patient_id');
   const hasInsurance = watch('has_insurance');
   const hasPrivateInsurance = watch('has_private_insurance');
+  const privatePayerId = watch('private_payer_id');
+  const privatePolicyNumber = watch('private_policy_number');
+  const privateCardNumber = watch('private_card_number');
+  const privateValidFrom = watch('private_valid_from');
+  const privateValidTo = watch('private_valid_to');
+  const privateCoveragePercentEstimate = watch('private_coverage_percent_estimate');
   const checkInType = watch('type');
 
   const fetchQueue = useCallback(async (deptId: string) => {
@@ -524,7 +530,7 @@ export default function Queue() {
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={open => { if (!saving) setModalOpen(open); }}>
-        <DialogContent className="sm:max-w-[440px] rounded-[20px] p-8">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[720px] rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Check-in bệnh nhân</DialogTitle>
           </DialogHeader>
@@ -585,50 +591,68 @@ export default function Queue() {
               )}
             />
 
-            <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#274760] has-[:disabled]:opacity-50">
-              <input type="checkbox" disabled={checkInType === 'service'} {...register('has_insurance')} className="size-4" />
-              Có sử dụng BHYT
-            </label>
-            {checkInType === 'service' && (
-              <p className="m-0 mt-1 text-xs text-[#6c757d]">Khám dịch vụ không áp dụng BHYT.</p>
-            )}
-            {hasInsurance && checkInType !== 'service' && (
-              <div className="mt-2.5 flex flex-wrap gap-2.5">
-                <div className="w-[180px]">
-                  <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    {...register('coverage_percent')}
-                    placeholder="VD: 80"
-                    className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
-                  />
-                </div>
-                <div className="w-[180px]">
-                  <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mã cơ sở KCB ban đầu</label>
-                  <Input
-                    {...register('registered_facility_code')}
-                    placeholder="VD: 79001"
-                    className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
-                  />
-                </div>
+            <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+              <div>
+                <p className="m-0 mb-2 text-[11px] font-bold tracking-wide text-[#6c757d] uppercase">BHYT</p>
+                <label className="flex items-center gap-2 text-sm font-semibold text-[#274760] has-[:disabled]:opacity-50">
+                  <input type="checkbox" disabled={checkInType === 'service'} {...register('has_insurance')} className="size-4" />
+                  Có sử dụng BHYT
+                </label>
+                {checkInType === 'service' && (
+                  <p className="m-0 mt-1 text-xs text-[#6c757d]">Khám dịch vụ không áp dụng BHYT.</p>
+                )}
+                {hasInsurance && checkInType !== 'service' && (
+                  <div className="mt-2.5 flex flex-wrap gap-2.5">
+                    <div className="min-w-[140px] flex-1">
+                      <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        {...register('coverage_percent')}
+                        placeholder="VD: 80"
+                        className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
+                      />
+                    </div>
+                    <div className="min-w-[140px] flex-1">
+                      <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mã cơ sở KCB ban đầu</label>
+                      <Input
+                        {...register('registered_facility_code')}
+                        placeholder="VD: 79001"
+                        className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
+                      />
+                    </div>
+                  </div>
+                )}
+                {hasInsurance && checkInType !== 'service' && (
+                  <label className="mt-2.5 flex items-center gap-2 text-xs text-[#6c757d]">
+                    <input type="checkbox" {...register('sync_to_patient_profile')} className="size-3.5" />
+                    Cập nhật vào hồ sơ bệnh nhân
+                  </label>
+                )}
               </div>
-            )}
-            {hasInsurance && checkInType !== 'service' && (
-              <label className="mt-2.5 flex items-center gap-2 text-xs text-[#6c757d]">
-                <input type="checkbox" {...register('sync_to_patient_profile')} className="size-3.5" />
-                Cập nhật vào hồ sơ bệnh nhân
-              </label>
-            )}
 
-            <CheckInPrivateInsuranceFields
-              control={control}
-              register={register}
-              hasPrivateInsurance={hasPrivateInsurance}
-              payers={payers}
-            />
+              <div className="sm:border-l sm:border-[#e8edf2] sm:pl-6">
+                <CheckInPrivateInsuranceFields
+                  hasPrivateInsurance={hasPrivateInsurance}
+                  onHasPrivateInsuranceChange={v => setValue('has_private_insurance', v)}
+                  payerId={privatePayerId}
+                  onPayerIdChange={v => setValue('private_payer_id', v)}
+                  policyNumber={privatePolicyNumber}
+                  onPolicyNumberChange={v => setValue('private_policy_number', v)}
+                  cardNumber={privateCardNumber}
+                  onCardNumberChange={v => setValue('private_card_number', v)}
+                  validFrom={privateValidFrom}
+                  onValidFromChange={v => setValue('private_valid_from', v)}
+                  validTo={privateValidTo}
+                  onValidToChange={v => setValue('private_valid_to', v)}
+                  coveragePercentEstimate={privateCoveragePercentEstimate}
+                  onCoveragePercentEstimateChange={v => setValue('private_coverage_percent_estimate', v)}
+                  payers={payers}
+                />
+              </div>
+            </div>
 
             {formError && (
               <ErrorAlert icon={false} className="mt-4">{formError}</ErrorAlert>

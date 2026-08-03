@@ -87,11 +87,6 @@ export default function PharmacyWorklist() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5">
-                  {p.ready_at && (
-                    <span className="rounded-full bg-[#ffc107]/15 px-3 py-1 text-xs font-semibold text-[#8a6100]">
-                      Đã xác nhận đủ thuốc — chờ thanh toán
-                    </span>
-                  )}
                   <Button
                     variant="outline"
                     className="h-auto rounded-xl border-[#dde2e8] px-4 py-2 text-xs font-semibold text-[#274760]"

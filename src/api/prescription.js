@@ -43,6 +43,16 @@ export async function listPrescriptionWorklist() {
   return data;
 }
 
+export async function getDispenseQueue() {
+  const { data } = await client.get('/pharmacy/dispense-queue');
+  return data;
+}
+
+export async function callNextDispense() {
+  const { data } = await client.post('/pharmacy/dispense-queue/call-next');
+  return data;
+}
+
 export async function flagPrescriptionItem(encounterId, prescriptionId, itemId, reason) {
   const { data } = await client.post(
     `/encounters/${encounterId}/prescriptions/${prescriptionId}/items/${itemId}/flags`,

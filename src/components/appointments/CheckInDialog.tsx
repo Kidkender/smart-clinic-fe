@@ -14,7 +14,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import CheckInPrivateInsuranceFields from '@/components/queue/CheckInPrivateInsuranceFields';
 import type { Appointment } from './types';
+
+interface Payer {
+  ID: number | string;
+  Name: string;
+  Type: string;
+}
 
 const CHECKIN_TYPES = [
   { value: 'new', label: 'Khám mới' },
@@ -34,6 +41,21 @@ export default function CheckInDialog({
   onRegisteredFacilityCodeChange,
   syncToPatientProfile,
   onSyncToPatientProfileChange,
+  hasPrivateInsurance,
+  onHasPrivateInsuranceChange,
+  privatePayerId,
+  onPrivatePayerIdChange,
+  privatePolicyNumber,
+  onPrivatePolicyNumberChange,
+  privateCardNumber,
+  onPrivateCardNumberChange,
+  privateValidFrom,
+  onPrivateValidFromChange,
+  privateValidTo,
+  onPrivateValidToChange,
+  privateCoveragePercentEstimate,
+  onPrivateCoveragePercentEstimateChange,
+  payers,
   checkingIn,
   onClose,
   onConfirm,
@@ -49,13 +71,28 @@ export default function CheckInDialog({
   onRegisteredFacilityCodeChange: (value: string) => void;
   syncToPatientProfile: boolean;
   onSyncToPatientProfileChange: (value: boolean) => void;
+  hasPrivateInsurance: boolean;
+  onHasPrivateInsuranceChange: (value: boolean) => void;
+  privatePayerId: string;
+  onPrivatePayerIdChange: (value: string) => void;
+  privatePolicyNumber: string;
+  onPrivatePolicyNumberChange: (value: string) => void;
+  privateCardNumber: string;
+  onPrivateCardNumberChange: (value: string) => void;
+  privateValidFrom: string;
+  onPrivateValidFromChange: (value: string) => void;
+  privateValidTo: string;
+  onPrivateValidToChange: (value: string) => void;
+  privateCoveragePercentEstimate: string;
+  onPrivateCoveragePercentEstimateChange: (value: string) => void;
+  payers: Payer[];
   checkingIn: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }) {
   return (
     <Dialog open={!!target} onOpenChange={open => { if (!checkingIn && !open) onClose(); }}>
-      <DialogContent className="sm:max-w-[400px] rounded-[20px] p-8">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[720px] rounded-[20px] p-8">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-[#274760]">Check-in bệnh nhân</DialogTitle>
         </DialogHeader>
@@ -73,56 +110,81 @@ export default function CheckInDialog({
             </SelectContent>
           </Select>
 
-          <label className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#274760] has-[:disabled]:opacity-50">
-            <input
-              type="checkbox"
-              checked={hasInsurance && checkInType !== 'service'}
-              disabled={checkInType === 'service'}
-              onChange={e => onHasInsuranceChange(e.target.checked)}
-              className="size-4"
-            />
-            Có sử dụng BHYT
-          </label>
-          {checkInType === 'service' && (
-            <p className="m-0 mt-1 text-xs text-[#6c757d]">Khám dịch vụ không áp dụng BHYT.</p>
-          )}
-          {hasInsurance && checkInType !== 'service' && (
-            <div className="mt-2.5 flex flex-wrap gap-2.5">
-              <div className="w-[160px]">
-                <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={coveragePercent}
-                  onChange={e => onCoveragePercentChange(e.target.value)}
-                  placeholder="VD: 80"
-                  className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
+          <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+            <div>
+              <p className="m-0 mb-2 text-[11px] font-bold tracking-wide text-[#6c757d] uppercase">BHYT</p>
+              <label className="flex items-center gap-2 text-sm font-semibold text-[#274760] has-[:disabled]:opacity-50">
+                <input
+                  type="checkbox"
+                  checked={hasInsurance && checkInType !== 'service'}
+                  disabled={checkInType === 'service'}
+                  onChange={e => onHasInsuranceChange(e.target.checked)}
+                  className="size-4"
                 />
-              </div>
-              <div className="w-[160px]">
-                <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mã cơ sở KCB ban đầu</label>
-                <Input
-                  value={registeredFacilityCode}
-                  onChange={e => onRegisteredFacilityCodeChange(e.target.value)}
-                  placeholder="VD: 79001"
-                  className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
-                />
-              </div>
+                Có sử dụng BHYT
+              </label>
+              {checkInType === 'service' && (
+                <p className="m-0 mt-1 text-xs text-[#6c757d]">Khám dịch vụ không áp dụng BHYT.</p>
+              )}
+              {hasInsurance && checkInType !== 'service' && (
+                <div className="mt-2.5 flex flex-wrap gap-2.5">
+                  <div className="min-w-[140px] flex-1">
+                    <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={coveragePercent}
+                      onChange={e => onCoveragePercentChange(e.target.value)}
+                      placeholder="VD: 80"
+                      className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
+                    />
+                  </div>
+                  <div className="min-w-[140px] flex-1">
+                    <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mã cơ sở KCB ban đầu</label>
+                    <Input
+                      value={registeredFacilityCode}
+                      onChange={e => onRegisteredFacilityCodeChange(e.target.value)}
+                      placeholder="VD: 79001"
+                      className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
+                    />
+                  </div>
+                </div>
+              )}
+              {hasInsurance && checkInType !== 'service' && (
+                <label className="mt-2.5 flex items-center gap-2 text-xs text-[#6c757d]">
+                  <input
+                    type="checkbox"
+                    checked={syncToPatientProfile}
+                    onChange={e => onSyncToPatientProfileChange(e.target.checked)}
+                    className="size-3.5"
+                  />
+                  Cập nhật vào hồ sơ bệnh nhân
+                </label>
+              )}
             </div>
-          )}
-          {hasInsurance && checkInType !== 'service' && (
-            <label className="mt-2.5 flex items-center gap-2 text-xs text-[#6c757d]">
-              <input
-                type="checkbox"
-                checked={syncToPatientProfile}
-                onChange={e => onSyncToPatientProfileChange(e.target.checked)}
-                className="size-3.5"
+
+            <div className="sm:border-l sm:border-[#e8edf2] sm:pl-6">
+              <CheckInPrivateInsuranceFields
+                hasPrivateInsurance={hasPrivateInsurance}
+                onHasPrivateInsuranceChange={onHasPrivateInsuranceChange}
+                payerId={privatePayerId}
+                onPayerIdChange={onPrivatePayerIdChange}
+                policyNumber={privatePolicyNumber}
+                onPolicyNumberChange={onPrivatePolicyNumberChange}
+                cardNumber={privateCardNumber}
+                onCardNumberChange={onPrivateCardNumberChange}
+                validFrom={privateValidFrom}
+                onValidFromChange={onPrivateValidFromChange}
+                validTo={privateValidTo}
+                onValidToChange={onPrivateValidToChange}
+                coveragePercentEstimate={privateCoveragePercentEstimate}
+                onCoveragePercentEstimateChange={onPrivateCoveragePercentEstimateChange}
+                payers={payers}
               />
-              Cập nhật vào hồ sơ bệnh nhân
-            </label>
-          )}
+            </div>
+          </div>
         </div>
         <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
           <Button

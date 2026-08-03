@@ -24,11 +24,12 @@ import useConfirm from '@/hooks/useConfirm';
 import { resolveError } from '@/utils/errorMessages';
 import { allocationStatusLabel, claimStatusLabel, payerTypeLabel } from '@/utils/labels';
 import { allocationStatusBadgeClass, claimStatusBadgeClass } from '@/utils/badgeStyles';
-import type { Invoice, InvoicePayerAllocation, Payer } from './types';
+import type { Invoice, InvoicePayerAllocation, InsurancePolicy, Payer } from './types';
 
 interface InvoiceAllocationsSectionProps {
   invoice: Invoice;
   payers: Payer[];
+  insurancePolicies: InsurancePolicy[];
   encounterId: string;
   refreshInvoice: () => Promise<Invoice>;
   onBusyChange: (busy: boolean) => void;
@@ -62,7 +63,7 @@ const allocationRowStatusLabel = (allocation: InvoicePayerAllocation) => {
   return allocationStatusLabel(allocation.Status);
 };
 
-export default function InvoiceAllocationsSection({ invoice, payers, encounterId, refreshInvoice, onBusyChange }: InvoiceAllocationsSectionProps) {
+export default function InvoiceAllocationsSection({ invoice, payers, insurancePolicies, encounterId, refreshInvoice, onBusyChange }: InvoiceAllocationsSectionProps) {
   const [confirm, ConfirmDialog] = useConfirm();
   const [error, setError] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
@@ -172,6 +173,12 @@ export default function InvoiceAllocationsSection({ invoice, payers, encounterId
       setSplitting(false);
       setActionBusy(false);
     }
+  };
+
+  const openClaimDialog = (allocation: InvoicePayerAllocation) => {
+    setClaimAllocation(allocation);
+    const knownPolicy = insurancePolicies.find(p => String(p.PayerID) === String(allocation.PayerID));
+    setPolicyNumber(knownPolicy?.PolicyNumber ?? '');
   };
 
   const closeClaimDialog = () => {
@@ -322,7 +329,7 @@ export default function InvoiceAllocationsSection({ invoice, payers, encounterId
                         variant="outline"
                         size="cta-xs"
                         disabled={actionBusy}
-                        onClick={() => setClaimAllocation(allocation)}
+                        onClick={() => openClaimDialog(allocation)}
                       >
                         Gửi yêu cầu bồi thường
                       </Button>
@@ -432,6 +439,11 @@ export default function InvoiceAllocationsSection({ invoice, payers, encounterId
             <DialogTitle className="text-lg font-bold text-[#274760]">Gửi yêu cầu bồi thường bảo hiểm</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmitClaim} noValidate className="flex flex-col gap-2.5">
+            {policyNumber && (
+              <p className="m-0 -mt-2 text-xs text-[#6c757d]">
+                Đã tự điền số thẻ/hợp đồng bệnh nhân khai báo lúc check-in — chỉnh lại nếu cần.
+              </p>
+            )}
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Số thẻ bảo hiểm</label>
               <Input
