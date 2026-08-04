@@ -144,6 +144,11 @@ const ERROR_MESSAGES = {
   'error.surgery.staff_unavailable': 'Một hoặc nhiều thành viên kíp mổ đã có ca mổ khác trùng khung giờ này.',
   'error.surgery.invalid_transition': 'Không thể thực hiện thao tác ở trạng thái hiện tại của ca mổ.',
   'error.surgery.scheduled_in_past': 'Thời gian dự kiến mổ không được ở trong quá khứ.',
+  'error.surgery.duplicate_team_member': 'Một thành viên kíp mổ được chỉ định trùng vai trò. Vui lòng kiểm tra lại danh sách kíp mổ.',
+
+  'error.survey.not_found': 'Không tìm thấy khảo sát này hoặc liên kết đã hết hạn.',
+  'error.survey.already_responded': 'Bạn đã gửi đánh giá cho khảo sát này rồi.',
+  'error.notification_log.not_found': 'Không tìm thấy thông báo này.',
 
   'error.unauthorized': 'Bạn không có quyền thực hiện thao tác này.',
   'error.forbidden': 'Truy cập bị từ chối.',

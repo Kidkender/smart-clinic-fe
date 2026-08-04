@@ -78,8 +78,12 @@ export default function CreateAppointmentDialog({
   const [selectedPatient, setSelectedPatient] = useState<PatientOption | null>(null);
 
   const resetFormState = () => {
-    const departmentId = String(departments[0]?.ID ?? '');
-    reset({ ...EMPTY_APPOINTMENT_FORM, department_id: departmentId });
+    // Deliberately leave "Khoa" unselected instead of defaulting to
+    // departments[0] — silently pre-selecting the first department meant a
+    // receptionist who only picked patient/doctor/time (without noticing
+    // or touching "Khoa") could book into the wrong department, which
+    // later scoped the check-in room list to that wrong department too.
+    reset(EMPTY_APPOINTMENT_FORM);
     setFormError('');
     setSlotDate('');
     setSlots([]);
@@ -87,11 +91,7 @@ export default function CreateAppointmentDialog({
     setPatientQuery('');
     setPatientResults([]);
     setSelectedPatient(null);
-    if (departmentId) {
-      getDoctorsByDepartment(departmentId).then(r => setDoctors(r.data ?? [])).catch(() => setDoctors([]));
-    } else {
-      setDoctors([]);
-    }
+    setDoctors([]);
   };
 
   useEffect(() => {

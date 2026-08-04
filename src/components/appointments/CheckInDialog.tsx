@@ -1,3 +1,4 @@
+import { ErrorAlert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -38,6 +39,7 @@ const CHECKIN_TYPES = [
 
 export default function CheckInDialog({
   target,
+  error,
   checkInType,
   onCheckInTypeChange,
   roomId,
@@ -71,6 +73,7 @@ export default function CheckInDialog({
   onConfirm,
 }: {
   target: Appointment | null;
+  error: string;
   checkInType: string;
   onCheckInTypeChange: (value: string) => void;
   roomId: string;
@@ -212,6 +215,9 @@ export default function CheckInDialog({
             </div>
           </div>
         </div>
+
+        {error && <ErrorAlert className="mt-4">{error}</ErrorAlert>}
+
         <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
           <Button
             type="button"

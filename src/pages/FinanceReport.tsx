@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { getRevenueReport } from '@/api/reports';
 import { resolveError } from '@/utils/errorMessages';
 import { invoiceItemCategoryLabel, payerTypeLabel } from '@/utils/labels';
 import { Card } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
+import BarChart from '@/components/charts/BarChart';
 import {
   Select,
   SelectContent,
@@ -84,6 +87,10 @@ export default function FinanceReport() {
 
   return (
     <>
+      <Link to="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#307bc4] no-underline">
+        <Icon icon="fa6-solid:arrow-left" className="text-xs" /> Bảng điều khiển
+      </Link>
+
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="m-0 text-[26px] font-bold text-[#274760]">Báo cáo tài chính</h1>
@@ -91,10 +98,10 @@ export default function FinanceReport() {
             Thống kê tiền vào (thanh toán), tiền ra (hoàn tiền) và công nợ hiện tại
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <DatePicker value={from} onChange={setFrom} max={to} />
+        <div className="flex flex-nowrap items-center gap-2">
+          <DatePicker value={from} onChange={setFrom} max={to} className="w-[150px]" />
           <span className="text-sm text-[#6c757d]">đến</span>
-          <DatePicker value={to} onChange={setTo} min={from} />
+          <DatePicker value={to} onChange={setTo} min={from} className="w-[150px]" />
           <Select value={groupBy} onValueChange={value => setGroupBy(value as 'day' | 'month')}>
             <SelectTrigger className="h-auto w-[140px] rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]">
               <SelectValue />
@@ -135,10 +142,18 @@ export default function FinanceReport() {
           <div className="grid grid-cols-[repeat(auto-fit,minmax(380px,1fr))] items-start gap-5">
             <Card className="rounded-2xl border-[#e8edf2] p-6">
               <h2 className="m-0 mb-4 text-[17px] font-bold text-[#274760]">Dòng tiền theo thời gian</h2>
-              {report.by_period.length === 0 ? (
-                <p className="text-sm text-[#6c757d]">Không có dữ liệu trong khoảng thời gian này.</p>
-              ) : (
-                <div className="max-h-[420px] overflow-y-auto">
+              <BarChart
+                data={report.by_period}
+                categoryKey="period"
+                series={[
+                  { key: 'cash_in', label: 'Tiền vào', color: '#28a745' },
+                  { key: 'cash_out', label: 'Tiền ra', color: '#dc3545' },
+                ]}
+                valueFormatter={money}
+                height={220}
+              />
+              {report.by_period.length === 0 ? null : (
+                <div className="mt-4 max-h-[280px] overflow-y-auto">
                   <table className="w-full border-collapse text-sm">
                     <thead>
                       <tr className="border-b border-[#e8edf2] text-left text-xs text-[#6c757d]">
@@ -165,10 +180,16 @@ export default function FinanceReport() {
 
             <Card className="rounded-2xl border-[#e8edf2] p-6">
               <h2 className="m-0 mb-4 text-[17px] font-bold text-[#274760]">Doanh thu theo loại phí</h2>
-              {report.by_category.length === 0 ? (
-                <p className="text-sm text-[#6c757d]">Không có dữ liệu trong khoảng thời gian này.</p>
-              ) : (
-                <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+              <BarChart
+                data={report.by_category.map(row => ({ category: invoiceItemCategoryLabel(row.category), amount: row.amount }))}
+                categoryKey="category"
+                series={[{ key: 'amount', label: 'Doanh thu', color: '#307bc4' }]}
+                orientation="horizontal"
+                valueFormatter={money}
+                height={report.by_category.length * 30}
+              />
+              {report.by_category.length === 0 ? null : (
+                <ul className="mt-4 flex list-none flex-col gap-2.5 p-0">
                   {report.by_category.map(row => (
                     <li key={row.category} className="flex items-center justify-between gap-2 border-b border-[#f0f4f8] pb-2.5">
                       <span className="text-sm text-[#274760]">{invoiceItemCategoryLabel(row.category)}</span>
