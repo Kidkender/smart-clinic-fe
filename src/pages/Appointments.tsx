@@ -32,6 +32,7 @@ export default function Appointments() {
   const [modalOpen, setModalOpen] = useState(false);
   const [confirm, ConfirmDialog] = useConfirm();
   const [checkInTarget, setCheckInTarget] = useState<Appointment | null>(null);
+  const [checkInError, setCheckInError] = useState('');
   const [checkInType, setCheckInType] = useState('follow_up');
   const [checkInHasInsurance, setCheckInHasInsurance] = useState(false);
   const [checkInCoveragePercent, setCheckInCoveragePercent] = useState('');
@@ -158,6 +159,7 @@ export default function Appointments() {
 
   const openCheckIn = (appt: Appointment) => {
     setCheckInTarget(appt);
+    setCheckInError('');
     setCheckInType('follow_up');
     setCheckInHasInsurance(false);
     setCheckInCoveragePercent('');
@@ -179,36 +181,37 @@ export default function Appointments() {
 
   const handleCheckIn = async () => {
     if (!checkInTarget) return;
+    setCheckInError('');
     const hasInsurance = checkInHasInsurance && checkInType !== 'service';
     if (hasInsurance && checkInCoveragePercent.trim()) {
       const parsed = Number(checkInCoveragePercent);
       if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
-        setError('Mức hưởng BHYT phải là số từ 0 đến 100.');
+        setCheckInError('Mức hưởng BHYT phải là số từ 0 đến 100.');
         return;
       }
     }
     if (checkInHasPrivateInsurance) {
       if (!checkInPrivatePayerId) {
-        setError('Vui lòng chọn công ty bảo hiểm tư nhân.');
+        setCheckInError('Vui lòng chọn công ty bảo hiểm tư nhân.');
         return;
       }
       if (!checkInPrivatePolicyNumber.trim()) {
-        setError('Vui lòng nhập số hợp đồng/thẻ bảo hiểm tư nhân.');
+        setCheckInError('Vui lòng nhập số hợp đồng/thẻ bảo hiểm tư nhân.');
         return;
       }
       if (checkInPrivateValidFrom && checkInPrivateValidTo && checkInPrivateValidFrom > checkInPrivateValidTo) {
-        setError('Ngày hiệu lực từ phải trước ngày hiệu lực đến.');
+        setCheckInError('Ngày hiệu lực từ phải trước ngày hiệu lực đến.');
         return;
       }
       const today = new Date().toISOString().slice(0, 10);
       if (checkInPrivateValidTo && checkInPrivateValidTo < today) {
-        setError('Hợp đồng bảo hiểm tư nhân đã hết hạn (Hiệu lực đến đã qua ngày hôm nay). Vui lòng bỏ chọn bảo hiểm tư nhân hoặc cập nhật lại ngày hiệu lực.');
+        setCheckInError('Hợp đồng bảo hiểm tư nhân đã hết hạn (Hiệu lực đến đã qua ngày hôm nay). Vui lòng bỏ chọn bảo hiểm tư nhân hoặc cập nhật lại ngày hiệu lực.');
         return;
       }
       if (checkInPrivateCoveragePercentEstimate.trim()) {
         const parsed = Number(checkInPrivateCoveragePercentEstimate);
         if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
-          setError('Mức chi trả ước tính phải là số từ 0 đến 100.');
+          setCheckInError('Mức chi trả ước tính phải là số từ 0 đến 100.');
           return;
         }
       }
@@ -243,7 +246,7 @@ export default function Appointments() {
       await fetchAppointments();
       setCheckInTarget(null);
     } catch (err) {
-      setError(resolveError(err));
+      setCheckInError(resolveError(err));
     } finally {
       setCheckingIn(false);
     }
@@ -316,6 +319,7 @@ export default function Appointments() {
 
       <CheckInDialog
         target={checkInTarget}
+        error={checkInError}
         checkInType={checkInType}
         onCheckInTypeChange={setCheckInType}
         roomId={checkInRoomId}
@@ -345,7 +349,7 @@ export default function Appointments() {
         onPrivateCoveragePercentEstimateChange={setCheckInPrivateCoveragePercentEstimate}
         payers={payers}
         checkingIn={checkingIn}
-        onClose={() => setCheckInTarget(null)}
+        onClose={() => { setCheckInTarget(null); setCheckInError(''); }}
         onConfirm={handleCheckIn}
       />
 

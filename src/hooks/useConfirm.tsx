@@ -48,7 +48,7 @@ export default function useConfirm(): [ConfirmFn, ReactNode] {
 
   const ConfirmDialog = (
     <Dialog open={!!state} onOpenChange={open => { if (!open) handleChoice(false); }}>
-      <DialogContent showCloseButton={false} className="sm:max-w-[420px] rounded-2xl p-6">
+      <DialogContent showCloseButton={false} className="sm:max-w-[480px] rounded-2xl p-6">
         {state && (
           <>
             <DialogHeader>

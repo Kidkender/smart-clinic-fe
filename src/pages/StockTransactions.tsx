@@ -18,7 +18,7 @@ import {
 import SortableTableHead from '@/components/ui/sortable-table-head';
 import { listStockTransactions } from '@/api/inventory';
 import { resolveError } from '@/utils/errorMessages';
-import { stockTransactionTypeLabel, stockTransactionTypeBadgeClass, STOCK_TRANSACTION_TYPES } from '@/utils/labels';
+import { stockTransactionTypeLabel, stockTransactionTypeBadgeClass, stockTransactionReferenceLabel, STOCK_TRANSACTION_TYPES } from '@/utils/labels';
 import type { StockTransaction } from '@/components/inventory/types';
 import InventoryTabs from '@/components/inventory/InventoryTabs';
 
@@ -163,7 +163,7 @@ export default function StockTransactions() {
                   <TableCell className={`px-4 py-3 text-sm font-semibold ${t.Quantity < 0 ? 'text-[#dc3545]' : 'text-[#198754]'}`}>
                     {t.Quantity > 0 ? `+${t.Quantity}` : t.Quantity}
                   </TableCell>
-                  <TableCell className="px-4 py-3 text-sm text-[#6c757d]">{t.Notes || t.Reference || '—'}</TableCell>
+                  <TableCell className="px-4 py-3 text-sm text-[#6c757d]">{t.Notes || stockTransactionReferenceLabel(t.Reference) || '—'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

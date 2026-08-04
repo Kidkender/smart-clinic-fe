@@ -239,6 +239,15 @@ export default function SurgerySchedule() {
       setFormError('Cần chỉ định ít nhất một thành viên kíp mổ.');
       return;
     }
+    const seen = new Set<string>();
+    for (const row of validTeam) {
+      const key = `${row.userId}:${row.role}`;
+      if (seen.has(key)) {
+        setFormError(`${row.fullname} đã được chỉ định vai trò "${ROLE_LABEL[row.role] ?? row.role}" rồi, vui lòng chọn vai trò khác hoặc xóa dòng trùng.`);
+        return;
+      }
+      seen.add(key);
+    }
     setSaving(true);
     try {
       await scheduleSurgery(scheduleTarget.id, {

@@ -37,6 +37,7 @@ const NAV: NavItem[] = [
   { to: '/doctors', label: 'Bác sĩ', icon: 'fa6-solid:user-doctor', roles: ['admin'] },
   { to: '/doctor-schedules', label: 'Lịch làm việc BS', icon: 'fa6-solid:calendar-check', roles: ['admin'] },
   { to: '/users', label: 'Nhân viên', icon: 'fa6-solid:user-check', roles: ['admin'] },
+  { to: '/notifications', label: 'Thông báo', icon: 'fa6-solid:envelope', roles: ['admin'] },
 ];
 
 export default function AdminLayout() {

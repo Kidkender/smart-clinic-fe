@@ -9,6 +9,7 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import PaymentReturn from './pages/PaymentReturn';
+import SurveyResponse from './pages/SurveyResponse';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import PatientDetail from './pages/PatientDetail';
@@ -23,6 +24,8 @@ import SurgerySchedule from './pages/SurgerySchedule';
 import Payers from './pages/Payers';
 import FeeSettings from './pages/FeeSettings';
 import FinanceReport from './pages/FinanceReport';
+import ClinicalReport from './pages/ClinicalReport';
+import InventoryReport from './pages/InventoryReport';
 import PharmacyDispenseQueue from './pages/PharmacyDispenseQueue';
 import PharmacyWardIssues from './pages/PharmacyWardIssues';
 import PharmacyWorklist from './pages/PharmacyWorklist';
@@ -46,6 +49,7 @@ import DoctorSchedules from './pages/DoctorSchedules';
 import Doctors from './pages/Doctors';
 import DoctorDetail from './pages/DoctorDetail';
 import Users from './pages/Users';
+import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import PortalLogin from './pages/portal/PortalLogin';
 import PortalRegister from './pages/portal/PortalRegister';
@@ -60,6 +64,7 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/payments/:gateway/return" element={<PaymentReturn />} />
+      <Route path="/survey/:token" element={<SurveyResponse />} />
 
       <Route
         path="/"
@@ -144,6 +149,22 @@ function App() {
           element={
             <RequireAuth roles={['admin', 'cashier']}>
               <FinanceReport />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="clinical-report"
+          element={
+            <RequireAuth roles={['admin', 'doctor', 'nurse']}>
+              <ClinicalReport />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="inventory-report"
+          element={
+            <RequireAuth roles={['admin', 'pharmacist']}>
+              <InventoryReport />
             </RequireAuth>
           }
         />
@@ -328,6 +349,14 @@ function App() {
           element={
             <RequireAuth roles={['admin']}>
               <Users />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="notifications"
+          element={
+            <RequireAuth roles={['admin']}>
+              <Notifications />
             </RequireAuth>
           }
         />

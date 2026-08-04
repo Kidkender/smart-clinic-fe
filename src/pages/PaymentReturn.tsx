@@ -45,7 +45,7 @@ export default function PaymentReturn() {
     if (!encounterId) return;
     setReturnEncounterId(encounterId);
     const timer = setTimeout(() => {
-      navigate(`/consultation/${encounterId}?openInvoice=1&from=vnpay`, { replace: true });
+      navigate(`/encounters/${encounterId}?openInvoice=1&from=vnpay`, { replace: true });
     }, 1800);
     return () => clearTimeout(timer);
   }, [loading, navigate]);
@@ -83,7 +83,7 @@ export default function PaymentReturn() {
         )}
 
         <Link
-          to={returnEncounterId ? `/consultation/${returnEncounterId}?openInvoice=1&from=vnpay` : '/'}
+          to={returnEncounterId ? `/encounters/${returnEncounterId}?openInvoice=1&from=vnpay` : '/'}
           className="mt-7 inline-block rounded-xl bg-[#307bc4] px-5 py-2.75 text-sm font-semibold text-white"
         >
           {returnEncounterId ? 'Quay lại lượt khám' : 'Về trang chủ'}

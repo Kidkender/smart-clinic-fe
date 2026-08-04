@@ -1,3 +1,4 @@
+import { ErrorAlert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -38,6 +39,7 @@ const CHECKIN_TYPES = [
 
 export default function CheckInDialog({
   target,
+  error,
   checkInType,
   onCheckInTypeChange,
   roomId,
@@ -71,6 +73,7 @@ export default function CheckInDialog({
   onConfirm,
 }: {
   target: Appointment | null;
+  error: string;
   checkInType: string;
   onCheckInTypeChange: (value: string) => void;
   roomId: string;
@@ -105,11 +108,17 @@ export default function CheckInDialog({
 }) {
   return (
     <Dialog open={!!target} onOpenChange={open => { if (!checkingIn && !open) onClose(); }}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[720px] rounded-[20px] p-8">
-        <DialogHeader>
+      {/* Only the body scrolls (flex-1 + min-h-0 + overflow-y-auto below) — the
+          header stays outside that scrolling box entirely, so the scrollbar
+          that appears once "Thêm chi tiết" expands the form never sits flush
+          against the dialog's rounded corner and doesn't cut it off. Padding
+          lives on the header/body themselves, not on DialogContent. */}
+      <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-[720px] rounded-[20px] p-0">
+      <div className="flex max-h-[90vh] flex-col">
+        <DialogHeader className="shrink-0 pl-8">
           <DialogTitle className="text-xl font-bold text-[#274760]">Check-in bệnh nhân</DialogTitle>
         </DialogHeader>
-        <div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
           <p className="m-0 text-sm text-[#6c757d]">
             {target?.Patient?.Fullname ?? `#${target?.PatientID}`}
           </p>
@@ -211,26 +220,30 @@ export default function CheckInDialog({
               />
             </div>
           </div>
+
+          {error && <ErrorAlert className="mt-4">{error}</ErrorAlert>}
+
+          <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={checkingIn}
+              className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              onClick={onConfirm}
+              disabled={checkingIn}
+              size="cta"
+            >
+              {checkingIn ? 'Đang check-in…' : 'Check-in'}
+            </Button>
+          </DialogFooter>
         </div>
-        <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            disabled={checkingIn}
-            className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
-          >
-            Hủy
-          </Button>
-          <Button
-            type="button"
-            onClick={onConfirm}
-            disabled={checkingIn}
-            size="cta"
-          >
-            {checkingIn ? 'Đang check-in…' : 'Check-in'}
-          </Button>
-        </DialogFooter>
+      </div>
       </DialogContent>
     </Dialog>
   );

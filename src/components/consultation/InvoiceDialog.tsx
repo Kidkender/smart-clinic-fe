@@ -42,6 +42,12 @@ interface InvoiceDialogProps {
   pollForSettlement?: boolean;
 }
 
+// VNPay/ngân hàng nội địa từ chối giao dịch dưới mức này với thông báo gốc
+// khó hiểu ("Số tiền giao dịch không hợp lệ... hạn mức tối thiểu và tối đa
+// của từng ngân hàng") — chặn sớm ở form với thông báo tiếng Việt rõ ràng
+// thay vì để nhân viên phải qua tận trang VNPay mới biết.
+const VNPAY_MIN_AMOUNT = 5000;
+
 const paymentTotal = (payments: Payment[] | null | undefined) => (payments ?? []).reduce((sum, p) => sum + p.Amount, 0);
 const refundTotal = (refunds: Refund[] | null | undefined) => (refunds ?? []).reduce((sum, r) => sum + r.Amount, 0);
 
@@ -189,6 +195,10 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       setError('Số tiền thanh toán không hợp lệ.');
+      return;
+    }
+    if (method === 'vnpay' && parsed < VNPAY_MIN_AMOUNT) {
+      setError(`Số tiền thanh toán qua VNPay phải từ ${VNPAY_MIN_AMOUNT.toLocaleString('vi-VN')} đ trở lên. Với số tiền nhỏ hơn, vui lòng thu tiền mặt hoặc chuyển khoản.`);
       return;
     }
     if (method === 'cash') {
