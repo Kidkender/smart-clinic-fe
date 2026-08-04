@@ -34,3 +34,8 @@ export async function getTopDrugsReport({ from, to, limit }) {
   });
   return data;
 }
+
+export async function getDashboardAlerts() {
+  const { data } = await client.get('/reports/dashboard-alerts');
+  return data;
+}
