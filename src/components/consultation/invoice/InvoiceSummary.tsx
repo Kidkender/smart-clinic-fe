@@ -27,6 +27,14 @@ export default function InvoiceSummary({ invoice, patientPaidTotal, refundedTota
   const insuranceCompanyAllocations = (invoice.Allocations ?? []).filter(a => a.Payer?.Type === 'insurance_company');
   const insuranceCompanyAmount = insuranceCompanyAllocations.reduce((sum, a) => sum + a.AllocatedAmount, 0);
   const showDeductions = bhytAmount > 0 || insuranceCompanyAmount > 0;
+  // A BHYT/insurer row can exist while the patient's own remainder is still
+  // unresolved (see InvoiceAllocationsSection's hasPatientAllocation) — in
+  // that state payableTotal is 0 not because the patient truly owes nothing,
+  // but because no patient allocation row has been created yet. Showing a
+  // bare "0 đ" here reads as "fully covered," so it needs its own caveat
+  // distinct from the CoverageEstimate "(ước tính)" case above.
+  const hasPatientAllocation = (invoice.Allocations ?? []).some(a => a.PayerID === null);
+  const patientShareUnresolved = showDeductions && !hasPatientAllocation;
   const showRemaining = remaining > 0 && invoice.Status !== 'cancelled' && invoice.Status !== 'paid';
 
   return (
@@ -97,9 +105,14 @@ export default function InvoiceSummary({ invoice, patientPaidTotal, refundedTota
               </div>
             ))}
             <div className="flex items-center justify-between text-sm font-semibold text-[#274760]">
-              <span>Bệnh nhân phải trả{coverage && !bhytAllocation ? ' (ước tính)' : ''}</span>
+              <span>Bệnh nhân phải trả{coverage && !bhytAllocation ? ' (ước tính)' : ''}{patientShareUnresolved ? ' (chưa chốt)' : ''}</span>
               <span>{payableTotal.toLocaleString('vi-VN')} đ</span>
             </div>
+            {patientShareUnresolved && (
+              <p className="m-0 text-xs italic text-[#dc3545]">
+                Chưa bấm "Phân bổ thanh toán" nên số tiền bệnh nhân phải trả chưa được tính — xem mục Phân bổ chi trả bên dưới.
+              </p>
+            )}
           </>
         )}
         {patientPaidTotal > 0 && (

@@ -31,6 +31,7 @@ const ERROR_MESSAGES = {
   'error.encounter.queue_empty': 'Hàng đợi hiện đang trống.',
   'error.encounter.service_type_no_insurance': 'Khám dịch vụ không áp dụng BHYT. Vui lòng bỏ chọn BHYT hoặc đổi loại khám.',
   'error.encounter.orders_not_completed': 'Còn chỉ định cận lâm sàng (xét nghiệm/CĐHA) chưa hoàn tất. Vui lòng hoàn tất hoặc hủy các chỉ định này trước khi kết thúc khám.',
+  'error.encounter.diagnosis_required': 'Chưa ghi nhận chẩn đoán nào cho lượt khám này. Vui lòng thêm ít nhất một chẩn đoán trước khi kết thúc khám.',
 
   'error.appointment.not_found': 'Không tìm thấy lịch hẹn.',
   'error.appointment.invalid_status': 'Trạng thái lịch hẹn không hợp lệ.',

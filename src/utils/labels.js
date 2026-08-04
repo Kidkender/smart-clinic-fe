@@ -348,8 +348,17 @@ export const SUPPLY_STOCK_TRANSACTION_TYPES = Object.keys(SUPPLY_STOCK_TRANSACTI
 
 export function supplyStockTransactionReferenceLabel(reference) {
   if (!reference) return null;
-  const match = /^supply_usage:(\d+)$/.exec(reference);
-  if (match) return `Sử dụng cho bệnh nhân (bản ghi #${match[1]})`;
+  const usageMatch = /^supply_usage:(\d+)$/.exec(reference);
+  if (usageMatch) return `Sử dụng cho bệnh nhân (bản ghi #${usageMatch[1]})`;
+  const auditMatch = /^supply_stock_audit:(\d+)$/.exec(reference);
+  if (auditMatch) return `Điều chỉnh theo kiểm kê kho #${auditMatch[1]}`;
+  return reference;
+}
+
+export function stockTransactionReferenceLabel(reference) {
+  if (!reference) return null;
+  const auditMatch = /^stock_audit:(\d+)$/.exec(reference);
+  if (auditMatch) return `Điều chỉnh theo kiểm kê kho #${auditMatch[1]}`;
   return reference;
 }
 

@@ -101,6 +101,24 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
 
   const allocations = invoice.Allocations ?? [];
   const thirdPartyAllocations = allocations.filter(a => a.Payer && a.Payer.Type !== 'government');
+  // BHYT (or a resolved private insurer) can already have a row here while
+  // the patient's own remainder still hasn't been determined — e.g. an
+  // "eligible" EncounterEligibilityCheck with no % estimate leaves the
+  // Coverage Engine unable to auto-resolve the patient's share (see
+  // applyCoverage's hasPrivateSignal branch on the backend). Checking
+  // allocations.length === 0 alone misses this case entirely: the array is
+  // non-empty (BHYT's row is in it), so the old "chưa phân bổ" warning never
+  // fired, and InvoiceSummary's "Bệnh nhân phải trả" silently showed 0 đ
+  // instead of surfacing that the split is still incomplete.
+  const hasPatientAllocation = allocations.some(a => a.PayerID === null);
+  // Once any Payment row exists against an allocation (patient's own, or a
+  // third-party payer's), the backend rejects re-splitting it wholesale
+  // (ErrAllocationHasPayments) — mirror that here so the button itself
+  // reflects reality instead of only failing after a cashier fills out the
+  // whole split form and hits submit.
+  const payments = invoice.Payments ?? [];
+  const allocationHasPayments = (allocation: InvoicePayerAllocation) => payments.some(p => p.AllocationID === allocation.ID);
+  const isLocked = allocations.some(allocationHasPayments);
   // BHYT is a single, system-managed payer whose allocation is computed
   // automatically from the encounter's coverage settings (applyCoverage on
   // the backend) — it must never be picked here as if it were a third-party
@@ -139,6 +157,7 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
   const patientRemainder = Math.max(invoice.TotalAmount - (bhytAllocation?.AllocatedAmount ?? 0) - splitTotal, 0);
 
   const openSplitDialog = () => {
+    setError('');
     if (thirdPartyAllocations.length > 0) {
       setSplitRows(thirdPartyAllocations.map(a => ({
         payerId: String(a.PayerID),
@@ -204,6 +223,7 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
   };
 
   const openClaimDialog = (allocation: InvoicePayerAllocation) => {
+    setError('');
     setClaimAllocation(allocation);
     const knownPolicy = insurancePolicies.find(p => String(p.PayerID) === String(allocation.PayerID));
     setPolicyNumber(knownPolicy?.PolicyNumber ?? '');
@@ -292,7 +312,7 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
       {ConfirmDialog}
       <div className="flex items-center justify-between gap-2">
         <p className="m-0 text-[11px] font-bold tracking-wide text-[#6c757d] uppercase">Phân bổ chi trả</p>
-        {invoice.Status !== 'paid' && (
+        {invoice.Status !== 'paid' && !isLocked && (
           <Button
             type="button"
             variant="outline"
@@ -305,6 +325,12 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
         )}
       </div>
 
+      {isLocked && invoice.Status !== 'paid' && (
+        <p className="m-0 mt-1 text-xs text-[#6c757d]">
+          Đã có khoản chi trả được ghi nhận nên không thể sửa phân bổ nữa — cần hoàn tiền (mục "Hoàn tiền" bên dưới) trước nếu cần điều chỉnh lại.
+        </p>
+      )}
+
       {allocations.length === 0 ? (
         // GenerateInvoice always runs the coverage/allocation pipeline before
         // the dialog shows data, and it always seeds a default patient
@@ -315,6 +341,12 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
           Hóa đơn chưa được phân bổ — cần bấm "Phân bổ thanh toán" trước khi thu tiền.
         </ErrorAlert>
       ) : (
+        <>
+        {!hasPatientAllocation && (
+          <ErrorAlert variant="compact" className="mt-2.5">
+            Đã có {allocations.length} khoản bảo hiểm chi trả nhưng phần bệnh nhân phải trả chưa được chốt — cần bấm "Phân bổ thanh toán" bên dưới để tính số tiền còn lại, nếu không "Bệnh nhân phải trả" sẽ hiển thị sai là 0 đ.
+          </ErrorAlert>
+        )}
         <div className="mt-2.5 overflow-hidden rounded-2xl border border-[#e8edf2]">
         <Table>
           <TableHeader>
@@ -368,7 +400,7 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
                         variant="outline"
                         size="cta-xs"
                         disabled={actionBusy}
-                        onClick={() => setClaimResponseAllocation(allocation)}
+                        onClick={() => { setError(''); setClaimResponseAllocation(allocation); }}
                       >
                         Ghi nhận kết quả duyệt
                       </Button>
@@ -389,9 +421,8 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
           </TableFooter>
         </Table>
         </div>
+        </>
       )}
-
-      {error && <ErrorAlert icon={false} className="mt-2.5">{error}</ErrorAlert>}
 
       <Dialog open={showSplitDialog} onOpenChange={o => { if (!o) closeSplitDialog(); }}>
         <DialogContent className="sm:max-w-[560px] rounded-[20px] p-8">
@@ -468,6 +499,7 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
               <span>Bệnh nhân còn lại</span>
               <span>{patientRemainder.toLocaleString('vi-VN')} đ</span>
             </div>
+            {error && <ErrorAlert icon={false}>{error}</ErrorAlert>}
             <DialogFooter>
               <Button type="button" variant="outline" size="cta" disabled={splitting} onClick={closeSplitDialog}>Hủy</Button>
               <Button type="submit" disabled={splitting} size="cta">{splitting ? 'Đang chia…' : 'Xác nhận'}</Button>
@@ -496,6 +528,7 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
                 className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
               />
             </div>
+            {error && <ErrorAlert icon={false}>{error}</ErrorAlert>}
             <DialogFooter>
               <Button type="button" variant="outline" size="cta" disabled={submittingClaim} onClick={closeClaimDialog}>Hủy</Button>
               <Button type="submit" disabled={submittingClaim} size="cta">{submittingClaim ? 'Đang gửi…' : 'Gửi yêu cầu bồi thường'}</Button>
@@ -551,6 +584,7 @@ export default function InvoiceAllocationsSection({ invoice, payers, insurancePo
                 className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
               />
             </div>
+            {error && <ErrorAlert icon={false}>{error}</ErrorAlert>}
             <DialogFooter>
               <Button type="button" variant="outline" size="cta" disabled={respondingClaim} onClick={closeClaimResponseDialog}>Hủy</Button>
               <Button type="submit" disabled={respondingClaim} size="cta">{respondingClaim ? 'Đang ghi nhận…' : 'Xác nhận'}</Button>
