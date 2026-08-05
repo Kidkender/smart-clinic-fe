@@ -145,6 +145,8 @@ const ERROR_MESSAGES = {
   'error.staff_shift.department_required': 'Vai trò này cần chọn khoa phụ trách cho ca trực.',
   'error.attendance.already_clocked_in': 'Nhân viên đang trong ca (đã chấm công vào), cần chấm công ra trước khi vào ca mới.',
   'error.attendance.no_open_record': 'Chưa có lượt chấm công vào nào đang mở để chấm công ra.',
+  'error.attendance.invalid_range': 'Khoảng thời gian chấm công không hợp lệ (giờ ra phải sau giờ vào, tối thiểu 1 phút và tối đa 24 giờ).',
+  'error.attendance.in_future': 'Giờ chấm công không được ở tương lai.',
   'error.attendance_record.not_found': 'Không tìm thấy lượt chấm công này.',
 
   'error.operating_room.not_found': 'Không tìm thấy phòng mổ.',
