@@ -22,8 +22,16 @@ export const forgotPasswordSchema = z.object({
 export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Vui lòng nhập mã đặt lại.'),
+  email: z.string().email('Email không hợp lệ.'),
+  otp: z.string().length(6, 'Mã OTP gồm 6 chữ số.').regex(/^\d{6}$/, 'Mã OTP chỉ gồm chữ số.'),
   newPassword: z.string().min(8, 'Mật khẩu phải có ít nhất 8 ký tự.'),
 });
 
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+export const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, 'Vui lòng nhập mật khẩu hiện tại.'),
+  newPassword: z.string().min(8, 'Mật khẩu mới phải có ít nhất 8 ký tự.'),
+});
+
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;

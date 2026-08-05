@@ -65,7 +65,10 @@ export default function PortalLogin() {
               className="h-auto rounded-xl border-[#d1fae5] px-4 py-3 text-[15px] text-[#134e48]"
             />
             <FieldError message={errors.email?.message} />
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#134e48]">Mật khẩu</label>
+            <div className="mt-4 flex items-center justify-between">
+              <label className="mb-1.5 block text-sm font-semibold text-[#134e48]">Mật khẩu</label>
+              <Link to="/portal/forgot-password" className="text-[13px] font-medium text-[#0d9488]">Quên mật khẩu?</Link>
+            </div>
             <div className="relative">
               <Input
                 type={showPassword ? 'text' : 'password'}

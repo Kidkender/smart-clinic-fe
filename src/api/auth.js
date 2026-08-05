@@ -25,8 +25,13 @@ export async function forgotPasswordApi(email) {
   return data;
 }
 
-export async function resetPasswordApi(token, newPassword) {
-  const { data } = await client.post('/auth/reset-password', { token, new_password: newPassword });
+export async function resetPasswordApi(email, otp, newPassword) {
+  const { data } = await client.post('/auth/reset-password', { email, otp, new_password: newPassword });
+  return data;
+}
+
+export async function changePasswordApi(oldPassword, newPassword) {
+  const { data } = await client.post('/auth/change-password', { old_password: oldPassword, new_password: newPassword });
   return data;
 }
 

@@ -57,6 +57,8 @@ import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import PortalLogin from './pages/portal/PortalLogin';
 import PortalRegister from './pages/portal/PortalRegister';
+import PortalForgotPassword from './pages/portal/PortalForgotPassword';
+import PortalResetPassword from './pages/portal/PortalResetPassword';
 import PortalHome from './pages/portal/PortalHome';
 
 function App() {
@@ -401,6 +403,8 @@ function App() {
       <Route path="/portal" element={<PortalLayout />}>
         <Route path="login" element={<PortalLogin />} />
         <Route path="register" element={<PortalRegister />} />
+        <Route path="forgot-password" element={<PortalForgotPassword />} />
+        <Route path="reset-password" element={<PortalResetPassword />} />
         <Route
           path="home"
           element={

@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
-import { getMe, updateProfile } from '@/api/auth';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { getMe, updateProfile, changePasswordApi } from '@/api/auth';
 import { getDepartments } from '@/api/department';
 import { getDoctor } from '@/api/doctor';
 import { resolveError } from '@/utils/errorMessages';
 import { roleLabel, userStatusLabel } from '@/utils/labels';
 import { useAuth } from '@/context/AuthContext';
+import { changePasswordSchema, type ChangePasswordFormValues } from '@/schemas/auth';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
+import FieldError from '@/components/FieldError';
 
 interface Me {
   ID: number | string;
@@ -48,6 +52,32 @@ export default function Profile() {
   const [nameValue, setNameValue] = useState('');
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const {
+    register: registerPassword, handleSubmit: handlePasswordSubmit, reset: resetPasswordForm,
+    formState: { errors: passwordErrors },
+  } = useForm<ChangePasswordFormValues>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: { oldPassword: '', newPassword: '' },
+  });
+
+  const handleChangePassword = handlePasswordSubmit(async values => {
+    setPasswordError('');
+    setPasswordSaved(false);
+    setChangingPassword(true);
+    try {
+      await changePasswordApi(values.oldPassword, values.newPassword);
+      resetPasswordForm();
+      setPasswordSaved(true);
+    } catch (err) {
+      setPasswordError(resolveError(err));
+    } finally {
+      setChangingPassword(false);
+    }
+  });
 
   const load = () => {
     setLoading(true);
@@ -219,6 +249,42 @@ export default function Profile() {
             </div>
           </form>
         )}
+      </Card>
+
+      <Card className="mt-5 max-w-[560px] rounded-2xl border-[#e8edf2] p-8">
+        <h2 className="m-0 mb-1 text-lg font-bold text-[#274760]">Đổi mật khẩu</h2>
+        <p className="mt-0 mb-5 text-sm text-[#6c757d]">Nhập mật khẩu hiện tại và mật khẩu mới.</p>
+        <form onSubmit={handleChangePassword} noValidate>
+          <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Mật khẩu hiện tại *</label>
+          <Input
+            type="password"
+            {...registerPassword('oldPassword')}
+            aria-invalid={!!passwordErrors.oldPassword}
+            className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+          />
+          <FieldError message={passwordErrors.oldPassword?.message} />
+
+          <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mật khẩu mới *</label>
+          <Input
+            type="password"
+            {...registerPassword('newPassword')}
+            placeholder="Tối thiểu 8 ký tự"
+            aria-invalid={!!passwordErrors.newPassword}
+            className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+          />
+          <FieldError message={passwordErrors.newPassword?.message} />
+
+          {passwordError && <ErrorAlert icon={false} className="mt-4">{passwordError}</ErrorAlert>}
+          {passwordSaved && (
+            <div className="mt-4 text-[13px] font-semibold text-[#198754]">Đã đổi mật khẩu thành công.</div>
+          )}
+
+          <div className="mt-6 flex justify-end">
+            <Button type="submit" disabled={changingPassword} size="cta">
+              {changingPassword ? 'Đang lưu…' : 'Đổi mật khẩu'}
+            </Button>
+          </div>
+        </form>
       </Card>
     </>
   );

@@ -10,6 +10,21 @@ export async function loginPatient(email, password) {
   return data;
 }
 
+export async function forgotPasswordPatient(email) {
+  const { data } = await portalClient.post('/auth/forgot-password', { email });
+  return data;
+}
+
+export async function resetPasswordPatient(email, otp, newPassword) {
+  const { data } = await portalClient.post('/auth/reset-password', { email, otp, new_password: newPassword });
+  return data;
+}
+
+export async function changePasswordPatient(oldPassword, newPassword) {
+  const { data } = await portalClient.post('/change-password', { old_password: oldPassword, new_password: newPassword });
+  return data;
+}
+
 export async function getMyProfile() {
   const { data } = await portalClient.get('/me');
   return data;

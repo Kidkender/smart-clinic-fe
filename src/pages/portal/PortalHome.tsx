@@ -23,6 +23,7 @@ import PortalHistoryPanel from './PortalHistoryPanel';
 import PortalInvoicesPanel from './PortalInvoicesPanel';
 import PortalAttachmentsPanel from './PortalAttachmentsPanel';
 import PortalProfilePanel from './PortalProfilePanel';
+import PortalChangePasswordPanel from './PortalChangePasswordPanel';
 import PortalBookingDialog from './PortalBookingDialog';
 import type { Profile, Department, Appointment, PatientHistory, Invoice, Attachment } from './types';
 
@@ -283,6 +284,8 @@ export default function PortalHome() {
                 saved={profileSaved}
               />
             )}
+
+            {tab === 'profile' && profileLoaded && <PortalChangePasswordPanel />}
           </>
         )}
       </main>

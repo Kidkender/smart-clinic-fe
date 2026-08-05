@@ -8,6 +8,27 @@ export const portalLoginSchema = z.object({
 
 export type PortalLoginFormValues = z.infer<typeof portalLoginSchema>;
 
+export const portalForgotPasswordSchema = z.object({
+  email: z.string().email('Email không hợp lệ.'),
+});
+
+export type PortalForgotPasswordFormValues = z.infer<typeof portalForgotPasswordSchema>;
+
+export const portalResetPasswordSchema = z.object({
+  email: z.string().email('Email không hợp lệ.'),
+  otp: z.string().length(6, 'Mã OTP gồm 6 chữ số.').regex(/^\d{6}$/, 'Mã OTP chỉ gồm chữ số.'),
+  newPassword: z.string().min(8, 'Mật khẩu phải có ít nhất 8 ký tự.'),
+});
+
+export type PortalResetPasswordFormValues = z.infer<typeof portalResetPasswordSchema>;
+
+export const portalChangePasswordSchema = z.object({
+  oldPassword: z.string().min(1, 'Vui lòng nhập mật khẩu hiện tại.'),
+  newPassword: z.string().min(8, 'Mật khẩu mới phải có ít nhất 8 ký tự.'),
+});
+
+export type PortalChangePasswordFormValues = z.infer<typeof portalChangePasswordSchema>;
+
 export const portalRegisterSchema = z.object({
   fullname: z.string().superRefine((value, ctx) => {
     const message = validateFullname(value);

@@ -230,7 +230,7 @@ export default function Users() {
     <>
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="m-0 text-[26px] font-bold text-[#274760]">Nhân viên</h1>
+          <h1 className="m-0 text-[26px] font-bold text-[#274760]">Tài khoản</h1>
           <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">
             Duyệt tài khoản đăng ký mới và quản lý vai trò nhân viên
           </p>
@@ -299,7 +299,7 @@ export default function Users() {
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <SortableTableHead label="Nhân viên" column="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Tài khoản" column="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <SortableTableHead label="Vai trò" column="role" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <SortableTableHead label="Trạng thái" column="status" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <SortableTableHead label="Ngày đăng ký" column="created_at" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />

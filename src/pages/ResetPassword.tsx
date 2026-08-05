@@ -20,14 +20,14 @@ export default function ResetPassword() {
     register, handleSubmit, formState: { errors },
   } = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
-    defaultValues: { token: searchParams.get('token') ?? '', newPassword: '' },
+    defaultValues: { email: searchParams.get('email') ?? '', otp: '', newPassword: '' },
   });
 
   const handleFormSubmit = handleSubmit(async values => {
     setError('');
     setLoading(true);
     try {
-      await resetPasswordApi(values.token.trim(), values.newPassword);
+      await resetPasswordApi(values.email.trim(), values.otp.trim(), values.newPassword);
       setDone(true);
     } catch (err) {
       setError(resolveError(err));
@@ -40,7 +40,7 @@ export default function ResetPassword() {
     <div className="flex min-h-screen items-center justify-center bg-[#f4f7fa] p-5">
       <div className="w-full max-w-[420px] rounded-[20px] bg-white p-10 shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
         <h1 className="mb-1 text-2xl font-bold text-[#1c3a52]">Đặt lại mật khẩu</h1>
-        <p className="mb-7 text-[#6c757d]">Nhập mã đặt lại và mật khẩu mới cho tài khoản.</p>
+        <p className="mb-7 text-[#6c757d]">Nhập mã OTP đã gửi qua email và mật khẩu mới cho tài khoản.</p>
 
         {done ? (
           <div className="rounded-xl border border-[#198754]/30 bg-[#198754]/8 px-4.5 py-3.5 text-sm text-[#274760]">
@@ -55,14 +55,25 @@ export default function ResetPassword() {
           </div>
         ) : (
           <form onSubmit={handleFormSubmit} noValidate>
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mã đặt lại</label>
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Email</label>
             <Input
-              {...register('token')}
-              placeholder="Mã được cấp từ quản trị viên"
-              aria-invalid={!!errors.token}
+              type="email"
+              {...register('email')}
+              placeholder="you@smartclinic.local"
+              aria-invalid={!!errors.email}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
-            <FieldError message={errors.token?.message} />
+            <FieldError message={errors.email?.message} />
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mã OTP</label>
+            <Input
+              {...register('otp')}
+              placeholder="6 chữ số đã gửi qua email"
+              inputMode="numeric"
+              maxLength={6}
+              aria-invalid={!!errors.otp}
+              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+            />
+            <FieldError message={errors.otp?.message} />
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mật khẩu mới</label>
             <Input
               type="password"
