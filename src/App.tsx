@@ -52,6 +52,7 @@ import Employees from './pages/Employees';
 import EmployeeDetail from './pages/EmployeeDetail';
 import AttendanceSummary from './pages/AttendanceSummary';
 import Users from './pages/Users';
+import AuditLogs from './pages/AuditLogs';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import PortalLogin from './pages/portal/PortalLogin';
@@ -376,6 +377,14 @@ function App() {
           element={
             <RequireAuth roles={['admin']}>
               <Users />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="audit-logs"
+          element={
+            <RequireAuth roles={['admin']}>
+              <AuditLogs />
             </RequireAuth>
           }
         />

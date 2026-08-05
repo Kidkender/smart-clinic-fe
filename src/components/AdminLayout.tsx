@@ -38,6 +38,7 @@ const NAV: NavItem[] = [
   { to: '/doctor-schedules', label: 'Lịch làm việc BS', icon: 'fa6-solid:calendar-check', roles: ['admin'] },
   { to: '/employees', label: 'Nhân sự & Chấm công', icon: 'fa6-solid:business-time', roles: ['admin'] },
   { to: '/users', label: 'Tài khoản', icon: 'fa6-solid:user-check', roles: ['admin'] },
+  { to: '/audit-logs', label: 'Nhật ký hệ thống', icon: 'fa6-solid:clock-rotate-left', roles: ['admin'] },
   // Tạm ẩn "Thông báo" khỏi sidebar — route /notifications vẫn còn, chỉ bỏ nav item.
 ];
 
