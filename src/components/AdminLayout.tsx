@@ -36,7 +36,7 @@ const NAV: NavItem[] = [
   { to: '/medical-supplies/usages', label: 'Vật tư y tế', icon: 'fa6-solid:kit-medical', roles: ['admin', 'doctor', 'nurse', 'pharmacist'] },
   { to: '/doctors', label: 'Bác sĩ', icon: 'fa6-solid:user-doctor', roles: ['admin'] },
   { to: '/doctor-schedules', label: 'Lịch làm việc BS', icon: 'fa6-solid:calendar-check', roles: ['admin'] },
-  { to: '/employees', label: 'Nhân sự & Chấm công', icon: 'fa6-solid:business-time', roles: ['admin'] },
+  { to: '/employees', label: 'Nhân sự', icon: 'fa6-solid:business-time', roles: ['admin'] },
   { to: '/users', label: 'Tài khoản', icon: 'fa6-solid:user-check', roles: ['admin'] },
   { to: '/audit-logs', label: 'Nhật ký hệ thống', icon: 'fa6-solid:clock-rotate-left', roles: ['admin'] },
   // Tạm ẩn "Thông báo" khỏi sidebar — route /notifications vẫn còn, chỉ bỏ nav item.

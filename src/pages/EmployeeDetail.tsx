@@ -18,7 +18,7 @@ import {
   updateAttendance,
 } from '@/api/hr';
 import { resolveError } from '@/utils/errorMessages';
-import { roleLabel } from '@/utils/labels';
+import { roleLabel, attendanceStatusLabel } from '@/utils/labels';
 import useConfirm from '@/hooks/useConfirm';
 import {
   employeeProfileSchema, type EmployeeProfileFormValues,
@@ -463,11 +463,11 @@ export default function EmployeeDetail() {
                 <div>
                   <div className="font-semibold text-[#274760]">{formatDateTime(a.ClockInAt)} → {formatDateTime(a.ClockOutAt)}</div>
                   {a.worked_minutes != null && (
-                    <div className="text-[13px] text-[#6c757d]">{a.worked_minutes} phút</div>
+                    <div className="text-[13px] text-[#6c757d]">Thời gian làm: {a.worked_minutes} phút</div>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={ATTENDANCE_BADGE_VARIANT[a.Status] ?? 'outline'}>{a.Status}</Badge>
+                  <Badge variant={ATTENDANCE_BADGE_VARIANT[a.Status] ?? 'outline'}>{attendanceStatusLabel(a.Status)}</Badge>
                   <Button type="button" size="cta-xs" variant="outline" onClick={() => openEditAttendance(a)}>
                     Sửa
                   </Button>

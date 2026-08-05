@@ -432,3 +432,11 @@ export function stockTransactionReferenceLabel(reference) {
 
 export const notificationEventTypeLabel = value => translate(NOTIFICATION_EVENT_TYPE, value);
 export const notificationStatusLabel = value => translate(NOTIFICATION_STATUS, value);
+
+const ATTENDANCE_STATUS = {
+  present: 'Đúng giờ',
+  late: 'Trễ',
+  absent: 'Vắng',
+};
+
+export const attendanceStatusLabel = value => translate(ATTENDANCE_STATUS, value);

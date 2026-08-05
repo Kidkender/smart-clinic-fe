@@ -56,6 +56,8 @@ export default function Profile() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const {
     register: registerPassword, handleSubmit: handlePasswordSubmit, reset: resetPasswordForm,
     formState: { errors: passwordErrors },
@@ -256,22 +258,42 @@ export default function Profile() {
         <p className="mt-0 mb-5 text-sm text-[#6c757d]">Nhập mật khẩu hiện tại và mật khẩu mới.</p>
         <form onSubmit={handleChangePassword} noValidate>
           <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Mật khẩu hiện tại *</label>
-          <Input
-            type="password"
-            {...registerPassword('oldPassword')}
-            aria-invalid={!!passwordErrors.oldPassword}
-            className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-          />
+          <div className="relative">
+            <Input
+              type={showOldPassword ? 'text' : 'password'}
+              {...registerPassword('oldPassword')}
+              aria-invalid={!!passwordErrors.oldPassword}
+              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 pr-10 text-[15px] text-[#274760]"
+            />
+            <button
+              type="button"
+              onClick={() => setShowOldPassword(v => !v)}
+              title={showOldPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+              className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-0 text-[#6c757d]"
+            >
+              <Icon icon={showOldPassword ? 'fa6-solid:eye-slash' : 'fa6-solid:eye'} className="text-sm" />
+            </button>
+          </div>
           <FieldError message={passwordErrors.oldPassword?.message} />
 
           <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mật khẩu mới *</label>
-          <Input
-            type="password"
-            {...registerPassword('newPassword')}
-            placeholder="Tối thiểu 8 ký tự"
-            aria-invalid={!!passwordErrors.newPassword}
-            className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-          />
+          <div className="relative">
+            <Input
+              type={showNewPassword ? 'text' : 'password'}
+              {...registerPassword('newPassword')}
+              placeholder="Tối thiểu 8 ký tự"
+              aria-invalid={!!passwordErrors.newPassword}
+              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 pr-10 text-[15px] text-[#274760]"
+            />
+            <button
+              type="button"
+              onClick={() => setShowNewPassword(v => !v)}
+              title={showNewPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+              className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-0 text-[#6c757d]"
+            >
+              <Icon icon={showNewPassword ? 'fa6-solid:eye-slash' : 'fa6-solid:eye'} className="text-sm" />
+            </button>
+          </div>
           <FieldError message={passwordErrors.newPassword?.message} />
 
           {passwordError && <ErrorAlert icon={false} className="mt-4">{passwordError}</ErrorAlert>}
