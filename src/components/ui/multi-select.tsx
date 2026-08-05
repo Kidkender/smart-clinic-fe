@@ -60,27 +60,29 @@ function MultiSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) min-w-[180px] p-1.5" align="start">
-        {options.map(opt => {
-          const checked = selected.includes(opt.value)
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => toggle(opt.value)}
-              className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[15px] text-foreground select-none hover:bg-accent hover:text-accent-foreground"
-            >
-              <span
-                className={cn(
-                  "flex size-4 shrink-0 items-center justify-center rounded border border-input",
-                  checked && "border-primary bg-primary text-primary-foreground"
-                )}
+        <div className="max-h-[min(16rem,var(--radix-popover-content-available-height))] overflow-x-hidden overflow-y-auto">
+          {options.map(opt => {
+            const checked = selected.includes(opt.value)
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => toggle(opt.value)}
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[15px] text-foreground select-none hover:bg-accent hover:text-accent-foreground"
               >
-                {checked && <CheckIcon className="size-3" />}
-              </span>
-              {opt.label}
-            </button>
-          )
-        })}
+                <span
+                  className={cn(
+                    "flex size-4 shrink-0 items-center justify-center rounded border border-input",
+                    checked && "border-primary bg-primary text-primary-foreground"
+                  )}
+                >
+                  {checked && <CheckIcon className="size-3" />}
+                </span>
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
       </PopoverContent>
     </Popover>
   )
