@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,10 @@ const ENTITY_OPTIONS = AUDIT_ENTITIES.map(value => ({ value, label: auditEntityL
 const ACTION_OPTIONS = AUDIT_ACTIONS.map(value => ({ value, label: auditActionLabel(value) }));
 
 export default function AuditLogs() {
+  const [searchParams] = useSearchParams();
+  const urlEntityID = searchParams.get('entity_id');
+  const urlEntity = searchParams.get('entity');
+
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +58,7 @@ export default function AuditLogs() {
   const [actorSearchInput, setActorSearchInput] = useState('');
   const [actorSearch, setActorSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string[]>([]);
-  const [entityFilter, setEntityFilter] = useState<string[]>([]);
+  const [entityFilter, setEntityFilter] = useState<string[]>(urlEntity ? [urlEntity] : []);
   const [actionFilter, setActionFilter] = useState<string[]>([]);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -103,6 +108,7 @@ export default function AuditLogs() {
         limit: PAGE_LIMIT,
         actor_id: matchedActorIds ? matchedActorIds.join(',') : undefined,
         entity: entityFilter.length === 0 ? undefined : entityFilter.join(','),
+        entity_id: urlEntityID || undefined,
         action: actionFilter.length === 0 ? undefined : actionFilter.join(','),
         from: from || undefined,
         to: to || undefined,
@@ -117,7 +123,7 @@ export default function AuditLogs() {
     } finally {
       setLoading(false);
     }
-  }, [page, matchedActorIds, entityFilter, actionFilter, from, to, sortBy, sortDir]);
+  }, [page, matchedActorIds, entityFilter, urlEntityID, actionFilter, from, to, sortBy, sortDir]);
 
   useEffect(() => {
     fetchLogs();

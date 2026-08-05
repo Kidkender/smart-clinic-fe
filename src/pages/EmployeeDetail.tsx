@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,6 +28,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import FieldError from '@/components/FieldError';
 import {
@@ -69,6 +71,8 @@ interface AttendanceRecord {
   ClockInAt?: string | null;
   ClockOutAt?: string | null;
   Status: string;
+  Note?: string;
+  StaffShift?: { StartTime: string; EndTime: string } | null;
   worked_minutes?: number | null;
 }
 
@@ -160,12 +164,14 @@ export default function EmployeeDetail() {
   const [manualOpen, setManualOpen] = useState(false);
   const [manualClockIn, setManualClockIn] = useState('');
   const [manualClockOut, setManualClockOut] = useState('');
+  const [manualNote, setManualNote] = useState('');
   const [manualError, setManualError] = useState('');
   const [manualSaving, setManualSaving] = useState(false);
 
   const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
   const [editClockIn, setEditClockIn] = useState('');
   const [editClockOut, setEditClockOut] = useState('');
+  const [editNote, setEditNote] = useState('');
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
@@ -330,6 +336,7 @@ export default function EmployeeDetail() {
   const openManualCreate = () => {
     setManualClockIn('');
     setManualClockOut('');
+    setManualNote('');
     setManualError('');
     setManualOpen(true);
   };
@@ -344,6 +351,10 @@ export default function EmployeeDetail() {
       setManualError('Vui lòng nhập giờ vào.');
       return;
     }
+    if (!manualNote.trim()) {
+      setManualError('Vui lòng nhập lý do bổ sung chấm công.');
+      return;
+    }
     if (!(await confirm(`Bổ sung lượt chấm công cho "${employee?.Fullname}"?`, { confirmLabel: 'Lưu' }))) return;
     setManualError('');
     setManualSaving(true);
@@ -351,6 +362,7 @@ export default function EmployeeDetail() {
       await createManualAttendance(id, {
         clock_in_at: fromDatetimeLocal(manualClockIn),
         clock_out_at: manualClockOut ? fromDatetimeLocal(manualClockOut) : undefined,
+        note: manualNote.trim(),
       });
       await refreshAttendance();
       setManualOpen(false);
@@ -364,6 +376,7 @@ export default function EmployeeDetail() {
   const openEditAttendance = (record: AttendanceRecord) => {
     setEditClockIn(toDatetimeLocal(record.ClockInAt));
     setEditClockOut(toDatetimeLocal(record.ClockOutAt));
+    setEditNote('');
     setEditError('');
     setEditingRecord(record);
   };
@@ -375,6 +388,10 @@ export default function EmployeeDetail() {
 
   const handleUpdateAttendanceSubmit = async () => {
     if (!editingRecord) return;
+    if (!editNote.trim()) {
+      setEditError('Vui lòng nhập lý do sửa chấm công.');
+      return;
+    }
     if (!(await confirm(`Cập nhật lượt chấm công cho "${employee?.Fullname}"?`, { confirmLabel: 'Lưu' }))) return;
     setEditError('');
     setEditSaving(true);
@@ -382,6 +399,7 @@ export default function EmployeeDetail() {
       await updateAttendance(id, editingRecord.ID, {
         clock_in_at: editClockIn ? fromDatetimeLocal(editClockIn) : undefined,
         clock_out_at: editClockOut ? fromDatetimeLocal(editClockOut) : undefined,
+        note: editNote.trim(),
       });
       await refreshAttendance();
       setEditingRecord(null);
@@ -462,8 +480,14 @@ export default function EmployeeDetail() {
               <div key={a.ID} className="flex items-center justify-between rounded-lg border border-[#f0f4f8] px-4 py-2.5">
                 <div>
                   <div className="font-semibold text-[#274760]">{formatDateTime(a.ClockInAt)} → {formatDateTime(a.ClockOutAt)}</div>
+                  {a.StaffShift && (
+                    <div className="text-[13px] text-[#6c757d]">Ca chuẩn: {a.StaffShift.StartTime.slice(0, 5)} - {a.StaffShift.EndTime.slice(0, 5)}</div>
+                  )}
                   {a.worked_minutes != null && (
                     <div className="text-[13px] text-[#6c757d]">Thời gian làm: {a.worked_minutes} phút</div>
+                  )}
+                  {a.Note && (
+                    <div className="text-[13px] text-[#6c757d]">Lý do: {a.Note}</div>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -471,6 +495,14 @@ export default function EmployeeDetail() {
                   <Button type="button" size="cta-xs" variant="outline" onClick={() => openEditAttendance(a)}>
                     Sửa
                   </Button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/audit-logs?entity=attendance_record&entity_id=${a.ID}`)}
+                    title="Xem lịch sử sửa đổi"
+                    className="inline-flex size-[30px] cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#6c757d]"
+                  >
+                    <Icon icon="fa6-solid:clock-rotate-left" className="text-[13px]" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -599,6 +631,15 @@ export default function EmployeeDetail() {
               <label className="mb-1 block text-sm font-medium text-[#274760]">Giờ ra (không bắt buộc)</label>
               <Input type="datetime-local" value={manualClockOut} onChange={e => setManualClockOut(e.target.value)} />
             </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-[#274760]">Lý do bổ sung *</label>
+              <Textarea
+                value={manualNote}
+                onChange={e => setManualNote(e.target.value)}
+                placeholder="VD: Quên chấm công, bổ sung theo camera an ninh…"
+                rows={2}
+              />
+            </div>
             {manualError && <ErrorAlert icon={false}>{manualError}</ErrorAlert>}
           </div>
           <DialogFooter className="mx-0 mt-6 mb-0 justify-end rounded-none border-t-0 bg-transparent p-0">
@@ -625,6 +666,15 @@ export default function EmployeeDetail() {
             <div>
               <label className="mb-1 block text-sm font-medium text-[#274760]">Giờ ra</label>
               <Input type="datetime-local" value={editClockOut} onChange={e => setEditClockOut(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-[#274760]">Lý do sửa *</label>
+              <Textarea
+                value={editNote}
+                onChange={e => setEditNote(e.target.value)}
+                placeholder="VD: Sửa lại giờ ra do nhập nhầm…"
+                rows={2}
+              />
             </div>
             {editError && <ErrorAlert icon={false}>{editError}</ErrorAlert>}
           </div>
