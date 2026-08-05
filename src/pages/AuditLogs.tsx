@@ -8,13 +8,6 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Pagination } from '@/components/ui/pagination';
 import { MultiSelect } from '@/components/ui/multi-select';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Table,
   TableBody,
   TableCell,
@@ -58,8 +51,8 @@ export default function AuditLogs() {
   const [error, setError] = useState('');
 
   const [actorSearchInput, setActorSearchInput] = useState('');
+  const [actorSearch, setActorSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string[]>([]);
-  const [actorFilter, setActorFilter] = useState('');
   const [entityFilter, setEntityFilter] = useState<string[]>([]);
   const [actionFilter, setActionFilter] = useState<string[]>([]);
   const [from, setFrom] = useState('');
@@ -74,29 +67,41 @@ export default function AuditLogs() {
     listUsers({}).then(r => setUsers(r.data ?? [])).catch(() => setUsers([]));
   }, []);
 
-  const actorCandidates = useMemo(() => {
-    const q = actorSearchInput.trim().toLowerCase();
-    return users.filter(u => {
-      const matchesRole = roleFilter.length === 0 || roleFilter.includes(u.Role);
-      const matchesSearch = !q || u.Fullname.toLowerCase().includes(q) || u.Email.toLowerCase().includes(q);
-      return matchesRole && matchesSearch;
-    });
-  }, [users, roleFilter, actorSearchInput]);
-
   useEffect(() => {
-    if (actorFilter && !actorCandidates.some(u => String(u.ID) === actorFilter)) {
-      setActorFilter('');
-    }
-  }, [actorCandidates, actorFilter]);
+    const timer = setTimeout(() => setActorSearch(actorSearchInput.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [actorSearchInput]);
+
+  const actorNarrowingActive = roleFilter.length > 0 || !!actorSearch;
+
+  const matchedActorIds = useMemo(() => {
+    if (!actorNarrowingActive) return null;
+    const q = actorSearch.toLowerCase();
+    return users
+      .filter(u => {
+        const matchesRole = roleFilter.length === 0 || roleFilter.includes(u.Role);
+        const matchesSearch = !q || u.Fullname.toLowerCase().includes(q) || u.Email.toLowerCase().includes(q);
+        return matchesRole && matchesSearch;
+      })
+      .map(u => String(u.ID));
+  }, [users, roleFilter, actorSearch, actorNarrowingActive]);
 
   const fetchLogs = useCallback(async () => {
+    if (matchedActorIds !== null && matchedActorIds.length === 0) {
+      setLogs([]);
+      setTotal(0);
+      setTotalPages(1);
+      setLoading(false);
+      setError('');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
       const result = await listAuditLogs({
         page,
         limit: PAGE_LIMIT,
-        actor_id: actorFilter || undefined,
+        actor_id: matchedActorIds ? matchedActorIds.join(',') : undefined,
         entity: entityFilter.length === 0 ? undefined : entityFilter.join(','),
         action: actionFilter.length === 0 ? undefined : actionFilter.join(','),
         from: from || undefined,
@@ -112,7 +117,7 @@ export default function AuditLogs() {
     } finally {
       setLoading(false);
     }
-  }, [page, actorFilter, entityFilter, actionFilter, from, to, sortBy, sortDir]);
+  }, [page, matchedActorIds, entityFilter, actionFilter, from, to, sortBy, sortDir]);
 
   useEffect(() => {
     fetchLogs();
@@ -120,15 +125,14 @@ export default function AuditLogs() {
 
   useEffect(() => {
     setPage(1);
-  }, [actorFilter, entityFilter, actionFilter, from, to]);
+  }, [matchedActorIds, entityFilter, actionFilter, from, to]);
 
-  const hasActiveFilters = !!actorFilter || !!actorSearchInput || roleFilter.length > 0
-    || entityFilter.length > 0 || actionFilter.length > 0 || !!from || !!to;
+  const hasActiveFilters = actorNarrowingActive || entityFilter.length > 0 || actionFilter.length > 0 || !!from || !!to;
 
   const handleResetFilters = () => {
     setActorSearchInput('');
+    setActorSearch('');
     setRoleFilter([]);
-    setActorFilter('');
     setEntityFilter([]);
     setActionFilter([]);
     setFrom('');
@@ -175,17 +179,11 @@ export default function AuditLogs() {
           placeholder="Tất cả vai trò"
           className="w-[180px]"
         />
-        <Select value={actorFilter || 'all'} onValueChange={v => setActorFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="h-auto w-[220px] rounded-xl border-[#dde2e8] px-4 py-2.75 text-sm text-[#274760]">
-            <SelectValue placeholder="Tất cả người dùng" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả người dùng</SelectItem>
-            {actorCandidates.map(u => (
-              <SelectItem key={u.ID} value={String(u.ID)}>{u.Fullname} ({roleLabel(u.Role)})</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {actorNarrowingActive && (
+          <span className="text-sm text-[#6c757d]">
+            {matchedActorIds?.length ?? 0} người dùng khớp
+          </span>
+        )}
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-2.5">
