@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { getAttendanceSummary } from '@/api/hr';
 import { resolveError } from '@/utils/errorMessages';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Table,
   TableBody,
@@ -79,33 +81,36 @@ export default function AttendanceSummary() {
       </div>
 
       <Card className="p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-[#274760]">Tìm nhân viên</label>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative min-w-[200px] flex-1">
+            <Icon icon="fa6-solid:magnifying-glass" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-[#6c757d]" />
             <Input
-              placeholder="Tên hoặc mã nhân viên…"
+              placeholder="Tìm nhân viên theo tên hoặc mã…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="h-auto max-w-[220px] rounded-xl py-2.75"
+              className="h-auto rounded-xl border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
             />
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-[#274760]">Từ ngày</label>
-            <Input
-              type="date"
-              value={from}
-              onChange={e => setFrom(e.target.value)}
-              className="h-auto max-w-[170px] rounded-xl py-2.75"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-[#274760]">Đến ngày</label>
-            <Input
-              type="date"
-              value={to}
-              onChange={e => setTo(e.target.value)}
-              className="h-auto max-w-[170px] rounded-xl py-2.75"
-            />
+          <div className="flex items-center rounded-xl border border-border bg-background py-2.75 pr-3.5 pl-4 shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Từ ngày</span>
+              <DatePicker
+                value={from}
+                onChange={setFrom}
+                max={to || undefined}
+                className="h-auto w-[110px] justify-start gap-1.5 border-0 bg-transparent p-0 text-sm text-[#274760] shadow-none hover:bg-transparent"
+              />
+            </div>
+            <div className="mx-3 h-4.5 w-px bg-border" />
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Đến ngày</span>
+              <DatePicker
+                value={to}
+                onChange={setTo}
+                min={from || undefined}
+                className="h-auto w-[110px] justify-start gap-1.5 border-0 bg-transparent p-0 text-sm text-[#274760] shadow-none hover:bg-transparent"
+              />
+            </div>
           </div>
         </div>
       </Card>
