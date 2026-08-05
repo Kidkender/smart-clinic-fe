@@ -201,10 +201,26 @@ export default function AuditLogs() {
           placeholder="Tất cả hành động"
           className="w-[200px]"
         />
-        <div className="flex flex-nowrap items-center gap-2">
-          <DatePicker value={from} onChange={setFrom} max={to || undefined} placeholder="Từ ngày" className="w-[150px]" />
-          <span className="text-sm text-[#6c757d]">đến</span>
-          <DatePicker value={to} onChange={setTo} min={from || undefined} placeholder="Đến ngày" className="w-[150px]" />
+        <div className="flex items-center rounded-xl border border-border bg-background py-2.75 pr-3.5 pl-4 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Từ ngày</span>
+            <DatePicker
+              value={from}
+              onChange={setFrom}
+              max={to || undefined}
+              className="h-auto w-[110px] justify-start gap-1.5 border-0 bg-transparent p-0 text-sm text-[#274760] shadow-none hover:bg-transparent"
+            />
+          </div>
+          <div className="mx-3 h-4.5 w-px bg-border" />
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium whitespace-nowrap text-[#6c757d]">Đến ngày</span>
+            <DatePicker
+              value={to}
+              onChange={setTo}
+              min={from || undefined}
+              className="h-auto w-[110px] justify-start gap-1.5 border-0 bg-transparent p-0 text-sm text-[#274760] shadow-none hover:bg-transparent"
+            />
+          </div>
         </div>
         {hasActiveFilters && (
           <Button
