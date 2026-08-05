@@ -137,6 +137,16 @@ const ERROR_MESSAGES = {
   'error.doctor_leave.already_reviewed': 'Đơn nghỉ phép này đã được xử lý.',
   'error.doctor_leave.overlap': 'Đã có đơn nghỉ phép (chờ duyệt hoặc đã duyệt) trùng khoảng thời gian này.',
 
+  'error.employee_profile.not_found': 'Không tìm thấy hồ sơ nhân sự.',
+  'error.employee_profile.license_no_exists': 'Số chứng chỉ hành nghề này đã được dùng cho nhân viên khác.',
+  'error.staff.role_not_allowed': 'Bác sĩ không thuộc phạm vi quản lý Nhân sự & Chấm công — vui lòng dùng trang Bác sĩ.',
+  'error.staff_shift.conflict': 'Nhân viên đã có ca làm việc trùng khung giờ này trong ngày.',
+  'error.staff_shift.not_found': 'Không tìm thấy ca trực.',
+  'error.staff_shift.department_required': 'Vai trò này cần chọn khoa phụ trách cho ca trực.',
+  'error.attendance.already_clocked_in': 'Nhân viên đang trong ca (đã chấm công vào), cần chấm công ra trước khi vào ca mới.',
+  'error.attendance.no_open_record': 'Chưa có lượt chấm công vào nào đang mở để chấm công ra.',
+  'error.attendance_record.not_found': 'Không tìm thấy lượt chấm công này.',
+
   'error.operating_room.not_found': 'Không tìm thấy phòng mổ.',
   'error.operating_room.already_exists': 'Phòng mổ này đã tồn tại.',
   'error.operating_room.unavailable': 'Phòng mổ đang bảo trì, không thể sử dụng.',

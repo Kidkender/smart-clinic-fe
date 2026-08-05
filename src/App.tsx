@@ -48,6 +48,9 @@ import ImagingWorklist from './pages/ImagingWorklist';
 import DoctorSchedules from './pages/DoctorSchedules';
 import Doctors from './pages/Doctors';
 import DoctorDetail from './pages/DoctorDetail';
+import Employees from './pages/Employees';
+import EmployeeDetail from './pages/EmployeeDetail';
+import AttendanceSummary from './pages/AttendanceSummary';
 import Users from './pages/Users';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
@@ -341,6 +344,30 @@ function App() {
           element={
             <RequireAuth roles={['admin']}>
               <DoctorDetail />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="employees"
+          element={
+            <RequireAuth roles={['admin']}>
+              <Employees />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="employees/attendance-summary"
+          element={
+            <RequireAuth roles={['admin']}>
+              <AttendanceSummary />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="employees/:id"
+          element={
+            <RequireAuth roles={['admin']}>
+              <EmployeeDetail />
             </RequireAuth>
           }
         />
