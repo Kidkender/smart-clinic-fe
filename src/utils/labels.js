@@ -257,6 +257,73 @@ function translate(map, value) {
   return map[value] ?? value;
 }
 
+const AUDIT_ACTION = {
+  admit: 'Nhập viện',
+  discharge: 'Xuất viện',
+  update_fee_setting: 'Cập nhật cấu hình phí',
+  add_policy: 'Thêm hợp đồng bảo hiểm',
+  check_eligibility: 'Kiểm tra hưởng BHYT',
+  update_status: 'Cập nhật trạng thái',
+  update_insurance: 'Cập nhật thông tin bảo hiểm',
+  create_order: 'Tạo chỉ định',
+  schedule: 'Lên lịch',
+  start: 'Bắt đầu',
+  complete: 'Hoàn tất',
+  cancel: 'Hủy',
+  schedule_study: 'Lên lịch chụp',
+  perform_study: 'Thực hiện chụp',
+  submit_report: 'Nộp báo cáo kết quả',
+  verify_report: 'Duyệt báo cáo kết quả',
+  stock_in: 'Nhập kho',
+  create: 'Tạo mới',
+  finalize: 'Hoàn tất kiểm kê',
+  collect_specimen: 'Lấy mẫu',
+  receive_specimen: 'Nhận mẫu',
+  submit_results: 'Nộp kết quả',
+  verify_results: 'Duyệt kết quả',
+  record_usage: 'Ghi nhận sử dụng',
+  flag: 'Đánh dấu cảnh báo',
+  resolve_flag: 'Xử lý cảnh báo',
+  confirm_ready: 'Xác nhận đủ thuốc',
+  return: 'Hoàn trả',
+  manual_create_attendance: 'Ghi chấm công thủ công',
+  update_attendance: 'Cập nhật chấm công',
+  review_leave: 'Duyệt nghỉ phép',
+  record_payment: 'Ghi nhận thanh toán',
+  record_refund: 'Ghi nhận hoàn tiền',
+  split_invoice: 'Phân bổ hóa đơn',
+  update_allocation_status: 'Cập nhật trạng thái phân bổ',
+  submit_claim: 'Gửi hồ sơ claim',
+  record_claim_response: 'Ghi nhận phản hồi claim',
+};
+
+const AUDIT_ENTITY = {
+  admission: 'Đợt nhập viện',
+  fee_setting: 'Cấu hình phí',
+  patient_insurance_policy: 'Hợp đồng bảo hiểm',
+  encounter_eligibility_check: 'Kiểm tra hưởng BHYT',
+  encounter: 'Lượt khám',
+  surgery: 'Ca phẫu thuật',
+  order: 'Chỉ định CLS',
+  drug_batch: 'Lô thuốc',
+  stock_audit: 'Kiểm kê kho thuốc',
+  medical_supply_batch: 'Lô vật tư y tế',
+  supply_usage: 'Sử dụng vật tư',
+  supply_stock_audit: 'Kiểm kê kho vật tư',
+  prescription_item: 'Dòng thuốc trong đơn',
+  prescription: 'Đơn thuốc',
+  attendance_record: 'Bản ghi chấm công',
+  doctor_leave: 'Đơn nghỉ phép',
+  invoice: 'Hóa đơn',
+  invoice_allocation: 'Phân bổ hóa đơn',
+  insurance_claim: 'Hồ sơ claim bảo hiểm',
+};
+
+export const auditActionLabel = value => translate(AUDIT_ACTION, value);
+export const auditEntityLabel = value => translate(AUDIT_ENTITY, value);
+export const AUDIT_ACTIONS = Object.keys(AUDIT_ACTION);
+export const AUDIT_ENTITIES = Object.keys(AUDIT_ENTITY);
+
 import { toneBadgeClass } from './badgeStyles';
 
 const LAB_RESULT_FLAG_BADGE_TONE = {
@@ -328,6 +395,7 @@ export const ROOM_TYPES = Object.keys(ROOM_TYPE);
 export const admissionTypeLabel = value => translate(ADMISSION_TYPE, value);
 export const genderLabel = value => translate(GENDER, value);
 export const roleLabel = value => translate(ROLE, value);
+export const ROLES = Object.keys(ROLE);
 export const shiftTypeLabel = value => translate(SHIFT_TYPE, value);
 export const leaveStatusLabel = value => translate(LEAVE_STATUS, value);
 export const userStatusLabel = value => translate(USER_STATUS, value);
