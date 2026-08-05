@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { listEmployees, getAttendanceSummary } from '@/api/hr';
 import { resolveError } from '@/utils/errorMessages';
@@ -123,12 +124,15 @@ export default function Employees() {
 
       <Card className="p-4">
         <div className="flex flex-wrap gap-3">
-          <Input
-            placeholder="Tìm theo tên hoặc email…"
-            value={searchInput}
-            onChange={e => setSearchInput(e.target.value)}
-            className="h-auto max-w-xs rounded-xl py-2.75"
-          />
+          <div className="relative max-w-xs flex-1">
+            <Icon icon="fa6-solid:magnifying-glass" className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm text-[#6c757d]" />
+            <Input
+              placeholder="Tìm theo tên hoặc email…"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              className="h-auto rounded-xl border-[#dde2e8] py-2.75 pr-4 pl-9.5 text-sm text-[#274760]"
+            />
+          </div>
           <Select value={role} onValueChange={setRole}>
             <SelectTrigger className="h-auto w-48 rounded-xl py-2.75 text-sm data-[size=default]:h-auto">
               <SelectValue placeholder="Vai trò" />

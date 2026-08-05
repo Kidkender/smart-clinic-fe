@@ -130,13 +130,14 @@ export default function AttendanceSummary() {
               <TableHead>Tổng giờ công</TableHead>
               <TableHead>Số lần trễ</TableHead>
               <TableHead>Số ngày vắng</TableHead>
+              <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-[#6c757d]">Đang tải…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-[#6c757d]">Đang tải…</TableCell></TableRow>
             ) : filteredEntries.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-[#6c757d]">Không có dữ liệu chấm công phù hợp.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-[#6c757d]">Không có dữ liệu chấm công phù hợp.</TableCell></TableRow>
             ) : (
               filteredEntries.map(e => (
                 <TableRow key={e.staff_id}>
@@ -145,6 +146,16 @@ export default function AttendanceSummary() {
                   <TableCell>{formatHours(e.total_minutes)}</TableCell>
                   <TableCell>{e.late_count}</TableCell>
                   <TableCell>{e.absent_count}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/employees/${e.staff_id}`)}
+                      title="Xem chi tiết giờ vào/ra"
+                      className="inline-flex size-[30px] cursor-pointer items-center justify-center rounded-lg border border-[#e8edf2] bg-white text-[#307bc4]"
+                    >
+                      <Icon icon="fa6-solid:eye" className="text-[13px]" />
+                    </button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
