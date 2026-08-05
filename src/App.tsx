@@ -49,6 +49,7 @@ import DoctorSchedules from './pages/DoctorSchedules';
 import Doctors from './pages/Doctors';
 import DoctorDetail from './pages/DoctorDetail';
 import Users from './pages/Users';
+import AuditLogs from './pages/AuditLogs';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import PortalLogin from './pages/portal/PortalLogin';
@@ -349,6 +350,14 @@ function App() {
           element={
             <RequireAuth roles={['admin']}>
               <Users />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="audit-logs"
+          element={
+            <RequireAuth roles={['admin']}>
+              <AuditLogs />
             </RequireAuth>
           }
         />
