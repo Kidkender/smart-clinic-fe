@@ -19,3 +19,8 @@ export async function deleteDoctorSchedule(doctorId, scheduleId) {
   const { data } = await client.delete(`/doctors/${doctorId}/schedules/${scheduleId}`);
   return data;
 }
+
+export async function getTodayScheduleSummary(date) {
+  const { data } = await client.get('/doctor-schedules/today-summary', { params: date ? { date } : {} });
+  return data;
+}

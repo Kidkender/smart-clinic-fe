@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '@/context/AuthContext';
@@ -11,7 +11,13 @@ type NavItem = {
   label: string;
   icon: string;
   roles?: string[];
+  matchPrefix?: string;
 };
+
+function isNavItemActive(item: NavItem, pathname: string): boolean {
+  const base = item.matchPrefix ?? item.to;
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
 
 const NAV: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: 'fa6-solid:gauge' },
@@ -21,7 +27,7 @@ const NAV: NavItem[] = [
   { to: '/admissions', label: 'Nội trú', icon: 'fa6-solid:bed-pulse', roles: ['admin', 'doctor', 'nurse', 'receptionist'] },
   { to: '/lab-worklist', label: 'Hàng đợi xét nghiệm', icon: 'fa6-solid:flask-vial', roles: ['admin', 'lab_tech', 'nurse', 'doctor'] },
   { to: '/imaging-worklist', label: 'Hàng đợi CĐHA', icon: 'fa6-solid:x-ray', roles: ['admin', 'radiology_tech', 'doctor'] },
-  { to: '/pharmacy/worklist', label: 'Cấp thuốc', icon: 'fa6-solid:prescription-bottle-medical', roles: ['admin', 'pharmacist'] },
+  { to: '/pharmacy/worklist', label: 'Cấp thuốc', icon: 'fa6-solid:prescription-bottle-medical', roles: ['admin', 'pharmacist'], matchPrefix: '/pharmacy' },
   { to: '/departments', label: 'Khoa', icon: 'fa6-solid:sitemap', roles: ['admin'] },
   { to: '/rooms', label: 'Phòng khám/ĐT', icon: 'fa6-solid:door-open', roles: ['admin'] },
   { to: '/lab-tests', label: 'Danh mục xét nghiệm', icon: 'fa6-solid:vial', roles: ['admin', 'lab_tech'] },
@@ -33,7 +39,7 @@ const NAV: NavItem[] = [
   // Tạm ẩn "Báo cáo tài chính" khỏi sidebar — route /finance-report vẫn còn, chỉ bỏ nav item.
   { to: '/fee-settings', label: 'Cấu hình viện phí', icon: 'fa6-solid:sliders', roles: ['admin'] },
   { to: '/inventory', label: 'Kho thuốc', icon: 'fa6-solid:boxes-stacked', roles: ['admin', 'pharmacist'] },
-  { to: '/medical-supplies/usages', label: 'Vật tư y tế', icon: 'fa6-solid:kit-medical', roles: ['admin', 'doctor', 'nurse', 'pharmacist'] },
+  { to: '/medical-supplies/usages', label: 'Vật tư y tế', icon: 'fa6-solid:kit-medical', roles: ['admin', 'doctor', 'nurse', 'pharmacist'], matchPrefix: '/medical-supplies' },
   { to: '/doctors', label: 'Bác sĩ', icon: 'fa6-solid:user-doctor', roles: ['admin'] },
   { to: '/doctor-schedules', label: 'Lịch làm việc BS', icon: 'fa6-solid:calendar-check', roles: ['admin'] },
   { to: '/employees', label: 'Nhân sự', icon: 'fa6-solid:business-time', roles: ['admin'] },
@@ -73,20 +79,18 @@ export default function AdminLayout() {
         </div>
 
         <nav className="flex-1 px-3 py-4">
-          {visibleNav.map(({ to, label, icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                cn(
-                  'mb-1 flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[15px] font-medium no-underline transition-colors',
-                  isActive ? 'bg-white/14 text-white' : 'text-white/65 hover:bg-white/8 hover:text-white',
-                )
-              }
+          {visibleNav.map(item => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={cn(
+                'mb-1 flex items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-[15px] font-medium no-underline transition-colors',
+                isNavItemActive(item, location.pathname) ? 'bg-white/14 text-white' : 'text-white/65 hover:bg-white/8 hover:text-white',
+              )}
             >
-              <Icon icon={icon} className="text-base" />
-              {label}
-            </NavLink>
+              <Icon icon={item.icon} className="text-base" />
+              {item.label}
+            </Link>
           ))}
         </nav>
 

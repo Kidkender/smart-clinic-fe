@@ -26,7 +26,8 @@ export default function ForgotPassword() {
     setLoading(true);
     try {
       await forgotPasswordApi(values.email);
-      navigate(`/reset-password?email=${encodeURIComponent(values.email)}`, { viewTransition: true });
+      sessionStorage.setItem('smartclinic_reset_email', values.email);
+      navigate('/reset-password', { state: { email: values.email }, viewTransition: true });
     } catch (err) {
       setError(resolveError(err));
     } finally {

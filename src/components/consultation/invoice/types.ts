@@ -90,6 +90,7 @@ export interface Invoice {
 export interface Encounter {
   ID: number | string;
   PatientID: number | string;
+  Type: string;
   HasInsurance: boolean;
   CoveragePercent: number | null;
   RegisteredFacilityCode: string | null;

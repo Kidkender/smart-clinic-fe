@@ -299,6 +299,7 @@ export default function EmployeeDetail() {
   };
 
   const openAttendance = attendance.find(a => a.ClockInAt && !a.ClockOutAt);
+  const hasShiftToday = shifts.some(s => s.DayOfWeek === new Date().getDay());
 
   const refreshAttendance = async () => {
     const result = await listAttendance(id, { limit: 20 });
@@ -462,7 +463,13 @@ export default function EmployeeDetail() {
         <h2 className="mb-4 text-lg font-semibold text-[#274760]">Chấm công</h2>
         {attendanceError && <ErrorAlert icon={false} className="mb-4">{attendanceError}</ErrorAlert>}
         <div className="mb-4 flex flex-wrap gap-3">
-          <Button type="button" size="cta" disabled={attendanceBusy || !!openAttendance} onClick={handleClockIn}>
+          <Button
+            type="button"
+            size="cta"
+            disabled={attendanceBusy || !!openAttendance || !hasShiftToday}
+            title={!hasShiftToday && !openAttendance ? 'Nhân viên không có ca trực nào hôm nay' : undefined}
+            onClick={handleClockIn}
+          >
             Chấm công vào
           </Button>
           <Button type="button" size="cta" variant="danger" disabled={attendanceBusy || !openAttendance} onClick={handleClockOut}>
@@ -472,6 +479,11 @@ export default function EmployeeDetail() {
             Bổ sung chấm công
           </Button>
         </div>
+        {!hasShiftToday && !openAttendance && (
+          <p className="mb-4 text-xs text-[#6c757d]">
+            Không có ca trực nào hôm nay nên chưa thể chấm công vào. Nếu cần ghi nhận ngoại lệ, dùng "Bổ sung chấm công".
+          </p>
+        )}
         {attendance.length === 0 ? (
           <p className="text-sm text-[#6c757d]">Chưa có dữ liệu chấm công.</p>
         ) : (

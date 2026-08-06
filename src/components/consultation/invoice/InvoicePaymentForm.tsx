@@ -14,6 +14,11 @@ import { PAYMENT_METHODS, SELECTABLE_PAYMENT_METHODS } from './types';
 
 interface InvoicePaymentFormProps {
   amount: string;
+  /** Inpatient stays can take interim/deposit payments instead of only the
+   * full remaining balance — see billing.go's enforceFull check. */
+  amountEditable?: boolean;
+  onAmountChange?: (value: string) => void;
+  remaining?: number;
   method: (typeof PAYMENT_METHODS)[number];
   onMethodChange: (value: (typeof PAYMENT_METHODS)[number]) => void;
   cashReceived: string;
@@ -28,6 +33,9 @@ interface InvoicePaymentFormProps {
 
 export default function InvoicePaymentForm({
   amount,
+  amountEditable = false,
+  onAmountChange,
+  remaining,
   method,
   onMethodChange,
   cashReceived,
@@ -42,6 +50,25 @@ export default function InvoicePaymentForm({
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-2.5 rounded-2xl border border-[#e8edf2] p-4">
       <h3 className="m-0 text-sm font-bold text-[#274760]">Thanh toán</h3>
+      {amountEditable && (
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-[#274760]">
+            Số tiền thu <span className="text-[#dc3545]">*</span>
+          </label>
+          <Input
+            type="number"
+            min="0"
+            step="1000"
+            max={remaining}
+            value={amount}
+            onChange={e => onAmountChange?.(e.target.value)}
+            className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+          />
+          <p className="m-0 mt-1 text-xs text-[#6c757d]">
+            Còn lại {Math.max(remaining ?? 0, 0).toLocaleString('vi-VN')} đ — bệnh nhân nội trú có thể thu tạm ứng từng đợt, không bắt buộc thu đủ một lần.
+          </p>
+        </div>
+      )}
       <div className="flex items-end gap-2.5">
         <div className="flex-1">
           <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Phương thức</label>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { useForm } from 'react-hook-form';
@@ -136,6 +136,8 @@ export default function Wards() {
       return;
     }
     setBedFormErrors({ ...bedFormErrors, [wardId]: '' });
+    const wardName = wards.find(w => String(w.ID) === String(wardId))?.Name ?? '';
+    if (!(await confirm(`Thêm giường "${parsed.data.bed_number}" vào khu điều trị "${wardName}"?`, { confirmLabel: 'Thêm giường' }))) return;
     setSavingBed({ ...savingBed, [wardId]: true });
     try {
       await createBed({ ward_id: wardId, bed_number: parsed.data.bed_number });
@@ -164,6 +166,10 @@ export default function Wards() {
       setError('Đơn giá giường không hợp lệ.');
       return;
     }
+    if (!(await confirm(
+      `Đổi đơn giá giường/ngày của khu điều trị "${ward.Name}" thành ${parsed.toLocaleString('vi-VN')} đ? Áp dụng ngay cho tiền giường của tất cả bệnh nhân đang nằm tại khu này.`,
+      { confirmLabel: 'Lưu đơn giá' },
+    ))) return;
     setSavingRate({ ...savingRate, [ward.ID]: true });
     try {
       await updateWard(ward.ID, ward.Name, parsed);
@@ -195,6 +201,18 @@ export default function Wards() {
     }
   };
 
+  const bedStats = useMemo(() => {
+    const allBeds = Object.values(bedsByWard).flat();
+    const countByStatus = (status: string) => allBeds.filter(b => b.Status === status).length;
+    return {
+      total: allBeds.length,
+      available: countByStatus('available'),
+      occupied: countByStatus('occupied'),
+      cleaning: countByStatus('cleaning'),
+    };
+  }, [bedsByWard]);
+  const occupancyRate = bedStats.total > 0 ? Math.round((bedStats.occupied / bedStats.total) * 100) : 0;
+
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -217,6 +235,35 @@ export default function Wards() {
       </div>
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
+
+      {!loading && departmentId && bedStats.total > 0 && (
+        <Card className="mb-5 rounded-2xl border-[#e8edf2] p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="m-0 text-[15px] font-bold text-[#274760]">Tình trạng giường bệnh</h2>
+            <span className="text-sm text-[#6c757d]">
+              Công suất sử dụng: <span className="font-semibold text-[#274760]">{occupancyRate}%</span>
+            </span>
+          </div>
+          <div className="mt-3.5 grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+            <div className="rounded-xl bg-[#f4f7fa] px-4 py-3">
+              <div className="text-[22px] font-bold text-[#274760]">{bedStats.total}</div>
+              <div className="text-xs text-[#6c757d]">Tổng số giường</div>
+            </div>
+            <div className="rounded-xl bg-[#198754]/8 px-4 py-3">
+              <div className="text-[22px] font-bold text-[#198754]">{bedStats.available}</div>
+              <div className="text-xs text-[#6c757d]">Đang trống</div>
+            </div>
+            <div className="rounded-xl bg-[#307bc4]/8 px-4 py-3">
+              <div className="text-[22px] font-bold text-[#307bc4]">{bedStats.occupied}</div>
+              <div className="text-xs text-[#6c757d]">Đang sử dụng</div>
+            </div>
+            <div className="rounded-xl bg-[#f0ad4e]/10 px-4 py-3">
+              <div className="text-[22px] font-bold text-[#f0ad4e]">{bedStats.cleaning}</div>
+              <div className="text-xs text-[#6c757d]">Đang vệ sinh</div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card className="rounded-2xl border-[#e8edf2] p-6">
         <h2 className="m-0 mb-4 text-[17px] font-bold text-[#274760]">Thêm khu điều trị mới</h2>

@@ -7,11 +7,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   getAdmissionById, transferAdmission, dischargeAdmission,
   listProgressNotes, addProgressNote, listNursingLogs, addNursingLog,
-  listAdmissionVitals, recordAdmissionVital,
+  listAdmissionVitals, recordAdmissionVital, listAdmissionTransfers,
 } from '@/api/admission';
 import { getDepartments } from '@/api/department';
 import { listWards } from '@/api/ward';
 import { listBeds } from '@/api/bed';
+import InvoiceDialog from '@/components/consultation/InvoiceDialog';
+import useConfirm from '@/hooks/useConfirm';
 import { useAuth } from '@/context/AuthContext';
 import { resolveError } from '@/utils/errorMessages';
 import { admissionTypeLabel, encounterTypeLabel } from '@/utils/labels';
@@ -71,6 +73,19 @@ interface VitalSign {
   RecordedAt: string;
 }
 
+interface AdmissionTransfer {
+  ID: number | string;
+  Reason?: string;
+  TransferredAt: string;
+  FromWard?: { Name?: string } | null;
+  ToWard?: { Name?: string } | null;
+  FromBed?: { BedNumber?: string } | null;
+  ToBed?: { BedNumber?: string } | null;
+  FromDepartment?: { Name?: string } | null;
+  ToDepartment?: { Name?: string } | null;
+  TransferredByUser?: { Fullname?: string } | null;
+}
+
 interface Admission {
   ID: number | string;
   EncounterID: number | string;
@@ -78,7 +93,7 @@ interface Admission {
   AdmittedAt: string;
   DischargedAt?: string | null;
   DischargeSummary?: string;
-  Ward?: { Name?: string; BedNumber?: string };
+  Ward?: { Name?: string; BedNumber?: string; DailyRate?: number };
   Bed?: { BedNumber?: string };
   Encounter?: {
     Type?: string;
@@ -86,6 +101,16 @@ interface Admission {
     Department?: { Name?: string };
     Patient?: { Fullname?: string; MRN?: string; Allergies?: string };
   };
+}
+
+// Mirrors BillingService.admissionNights on the backend (billing.go) so the
+// "Chi phí tạm tính" estimate here always agrees with what the actual
+// invoice will bill — ceil(hours / 24), minimum 1 night.
+function admissionNights(admittedAt: Date, end: Date): number {
+  const hours = (end.getTime() - admittedAt.getTime()) / (60 * 60 * 1000);
+  let nights = Math.floor(hours / 24);
+  if (hours > nights * 24) nights += 1;
+  return Math.max(nights, 1);
 }
 
 export default function AdmissionDetail() {
@@ -102,8 +127,10 @@ export default function AdmissionDetail() {
   const [progressNotes, setProgressNotes] = useState<ProgressNote[]>([]);
   const [nursingLogs, setNursingLogs] = useState<NursingLog[]>([]);
   const [vitals, setVitals] = useState<VitalSign[]>([]);
+  const [transfers, setTransfers] = useState<AdmissionTransfer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -123,6 +150,7 @@ export default function AdmissionDetail() {
     // whole page behind a single forbidden error.
     listProgressNotes(id).then(r => setProgressNotes(r.data ?? [])).catch(() => setProgressNotes([]));
     listNursingLogs(id).then(r => setNursingLogs(r.data ?? [])).catch(() => setNursingLogs([]));
+    listAdmissionTransfers(id).then(r => setTransfers(r.data ?? [])).catch(() => setTransfers([]));
     if (canAddVital) {
       listAdmissionVitals(id).then(r => setVitals(r.data ?? [])).catch(() => setVitals([]));
     } else {
@@ -191,6 +219,8 @@ export default function AdmissionDetail() {
         )}
       </Card>
 
+      <EstimatedCostCard admission={admission} onViewInvoice={() => setInvoiceOpen(true)} />
+
       {!isDischarged && canManage && (
         <TransferDischargeSection
           admission={admission}
@@ -204,8 +234,58 @@ export default function AdmissionDetail() {
         <VitalSignsSection admissionId={id} vitals={vitals} canAdd={canAddVital && !isDischarged} onAdded={loadAll} />
         <ProgressNotesSection admissionId={id} notes={progressNotes} canAdd={canAddProgressNote && !isDischarged} onAdded={loadAll} />
         <NursingLogsSection admissionId={id} logs={nursingLogs} progressNotes={progressNotes} canAdd={canAddNursingLog && !isDischarged} onAdded={loadAll} />
+        <TransferHistorySection transfers={transfers} />
       </div>
+
+      <InvoiceDialog
+        open={invoiceOpen}
+        onClose={() => setInvoiceOpen(false)}
+        encounterId={String(admission.EncounterID)}
+      />
     </>
+  );
+}
+
+interface EstimatedCostCardProps {
+  admission: Admission;
+  onViewInvoice: () => void;
+}
+
+function EstimatedCostCard({ admission, onViewInvoice }: EstimatedCostCardProps) {
+  const dailyRate = admission.Ward?.DailyRate ?? 0;
+  const nights = admissionNights(
+    new Date(admission.AdmittedAt),
+    admission.DischargedAt ? new Date(admission.DischargedAt) : new Date(),
+  );
+  const bedFeeTotal = dailyRate * nights;
+
+  return (
+    <Card className="mt-5 rounded-2xl border-[#e8edf2] p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="m-0 text-[17px] font-bold text-[#274760]">Chi phí tạm tính</h2>
+          {dailyRate > 0 ? (
+            <p className="mt-1 mb-0 text-sm text-[#6c757d]">
+              Tiền giường: {nights} đêm × {dailyRate.toLocaleString('vi-VN')} đ ={' '}
+              <span className="font-semibold text-[#274760]">{bedFeeTotal.toLocaleString('vi-VN')} đ</span>
+              {' '}— chưa gồm khám, xét nghiệm, CĐHA, thuốc, vật tư
+            </p>
+          ) : (
+            <p className="mt-1 mb-0 text-sm text-[#6c757d]">
+              Khu điều trị chưa cấu hình đơn giá giường/ngày — chỉ tính các khoản khác (khám, xét nghiệm, thuốc…)
+            </p>
+          )}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onViewInvoice}
+          className="h-auto shrink-0 rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+        >
+          <Icon icon="fa6-solid:file-invoice-dollar" className="text-xs" />Xem hóa đơn viện phí
+        </Button>
+      </div>
+    </Card>
   );
 }
 
@@ -217,6 +297,7 @@ interface TransferDischargeSectionProps {
 }
 
 function TransferDischargeSection({ admission, canDischarge, onChanged, onDischarged }: TransferDischargeSectionProps) {
+  const [confirm, ConfirmDialog] = useConfirm();
   const [mode, setMode] = useState<'transfer' | 'discharge' | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
@@ -293,6 +374,19 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
 
   const handleTransfer = handleTransferSubmit(async values => {
     setFormError('');
+    const departmentName = values.department_id
+      ? (departments.find(d => String(d.ID) === values.department_id)?.Name ?? '—')
+      : 'giữ nguyên khoa hiện tại';
+    const wardName = values.ward_id
+      ? (wards.find(w => String(w.ID) === values.ward_id)?.Name ?? '—')
+      : 'bỏ xếp khu điều trị';
+    const bedLabel = values.bed_id
+      ? `Giường ${beds.find(b => String(b.ID) === values.bed_id)?.BedNumber ?? '—'}`
+      : 'bỏ xếp giường';
+    if (!(await confirm(
+      `Chuyển bệnh nhân "${admission.Encounter?.Patient?.Fullname ?? ''}" đến ${departmentName} · ${wardName} · ${bedLabel}?`,
+      { confirmLabel: 'Xác nhận chuyển' },
+    ))) return;
     setSaving(true);
     try {
       await transferAdmission(admission.ID, {
@@ -434,6 +528,7 @@ function TransferDischargeSection({ admission, canDischarge, onChanged, onDischa
           </Button>
         </form>
       )}
+      {ConfirmDialog}
     </Card>
   );
 }
@@ -701,6 +796,42 @@ function NursingLogsSection({ admissionId, logs, progressNotes, canAdd, onAdded 
             {saving ? 'Đang lưu…' : 'Lưu nhật ký'}
           </Button>
         </form>
+      )}
+    </Card>
+  );
+}
+
+function placementLabel(department?: { Name?: string } | null, ward?: { Name?: string } | null, bed?: { BedNumber?: string } | null): string {
+  const parts = [department?.Name, ward?.Name, bed?.BedNumber ? `Giường ${bed.BedNumber}` : null].filter(Boolean);
+  return parts.length > 0 ? parts.join(' · ') : 'Chưa xếp';
+}
+
+interface TransferHistorySectionProps {
+  transfers: AdmissionTransfer[];
+}
+
+function TransferHistorySection({ transfers }: TransferHistorySectionProps) {
+  return (
+    <Card className="rounded-2xl border-[#e8edf2] p-6">
+      <h2 className="m-0 mb-3.5 text-[17px] font-bold text-[#274760]">Lịch sử chuyển giường</h2>
+      {transfers.length === 0 ? (
+        <p className="text-sm text-[#6c757d]">Chưa có lần chuyển giường/khoa nào.</p>
+      ) : (
+        <ul className="m-0 list-none p-0">
+          {transfers.map(t => (
+            <li key={t.ID} className="border-b border-[#f0f4f8] py-2.5 last:border-b-0">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-[#6c757d]">{placementLabel(t.FromDepartment, t.FromWard, t.FromBed)}</span>
+                <Icon icon="fa6-solid:arrow-right" className="text-[10px] text-[#6c757d]" />
+                <span className="font-semibold text-[#274760]">{placementLabel(t.ToDepartment, t.ToWard, t.ToBed)}</span>
+              </div>
+              {t.Reason && <div className="text-[13px] text-[#6c757d]">Lý do: {t.Reason}</div>}
+              <div className="text-xs text-[#6c757d]">
+                {t.TransferredByUser?.Fullname ?? '—'} · {new Date(t.TransferredAt).toLocaleString('vi-VN')}
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   );
