@@ -4,6 +4,8 @@ const ERROR_MESSAGES = {
   'error.auth.missing_token': 'Vui lòng đăng nhập để tiếp tục.',
   'error.auth.invalid_refresh_token': 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
   'error.auth.invalid_reset_token': 'Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.',
+  'error.auth.invalid_otp': 'Mã OTP không đúng hoặc đã hết hạn. Vui lòng kiểm tra lại hoặc gửi lại mã.',
+  'error.auth.otp_too_many_attempts': 'Bạn đã nhập sai mã OTP quá nhiều lần. Vui lòng gửi lại mã mới.',
   'error.rate_limit.exceeded': 'Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.',
 
   'error.user.already_exists': 'Email này đã được đăng ký.',
@@ -100,6 +102,8 @@ const ERROR_MESSAGES = {
   'error.admission.not_found': 'Không tìm thấy đợt nhập viện.',
   'error.admission.already_discharged': 'Đợt nhập viện này đã xuất viện.',
   'error.admission.already_active': 'Bệnh nhân này đang có một đợt nhập viện chưa xuất viện.',
+  'error.admission.invoice_unsettled': 'Bệnh nhân chưa thanh toán đủ viện phí, không thể xuất viện. Vui lòng thu tiền trước khi xuất viện.',
+  'error.admission.invoice_already_paid': 'Hóa đơn của bệnh nhân đã thanh toán đủ, không thể chuyển giường/khoa. Cần hoàn tiền trước nếu thực sự cần chuyển.',
   'error.progress_note.not_found': 'Không tìm thấy diễn biến bệnh.',
   'error.nursing_log.not_found': 'Không tìm thấy nhật ký điều dưỡng.',
   'error.invoice.not_found': 'Không tìm thấy hóa đơn.',
@@ -147,6 +151,7 @@ const ERROR_MESSAGES = {
   'error.attendance.no_open_record': 'Chưa có lượt chấm công vào nào đang mở để chấm công ra.',
   'error.attendance.invalid_range': 'Khoảng thời gian chấm công không hợp lệ (giờ ra phải sau giờ vào, tối thiểu 1 phút và tối đa 24 giờ).',
   'error.attendance.in_future': 'Giờ chấm công không được ở tương lai.',
+  'error.attendance.no_shift_today': 'Nhân viên không có ca trực nào hôm nay nên không thể chấm công vào. Nếu cần ghi nhận ngoại lệ, dùng "Bổ sung chấm công".',
   'error.attendance_record.not_found': 'Không tìm thấy lượt chấm công này.',
 
   'error.operating_room.not_found': 'Không tìm thấy phòng mổ.',

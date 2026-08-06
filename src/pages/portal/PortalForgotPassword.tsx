@@ -27,7 +27,8 @@ export default function PortalForgotPassword() {
     setLoading(true);
     try {
       await forgotPasswordPatient(values.email);
-      navigate(`/portal/reset-password?email=${encodeURIComponent(values.email)}`, { viewTransition: true });
+      sessionStorage.setItem('smartclinic_portal_reset_email', values.email);
+      navigate('/portal/reset-password', { state: { email: values.email }, viewTransition: true });
     } catch (err) {
       setError(resolveError(err));
     } finally {

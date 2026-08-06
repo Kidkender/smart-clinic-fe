@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { useForm, Controller } from 'react-hook-form';
@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import SortableTableHead from '@/components/ui/sortable-table-head';
 import {
   Dialog,
   DialogContent,
@@ -72,6 +73,8 @@ export default function Rooms() {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirm, ConfirmDialog] = useConfirm();
+  const [sortBy, setSortBy] = useState('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const {
     register, control, handleSubmit, reset, formState: { errors },
@@ -105,6 +108,31 @@ export default function Rooms() {
 
   const departmentName = (id: number | string) =>
     departments.find(d => String(d.ID) === String(id))?.Name ?? '—';
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
+
+  const sortedRooms = useMemo(() => {
+    const fieldForColumn = (room: Room): string => {
+      switch (sortBy) {
+        case 'code': return room.Code;
+        case 'department': return departmentName(room.DepartmentID);
+        case 'type': return roomTypeLabel(room.Type);
+        case 'status': return room.Status;
+        case 'name': default: return room.Name;
+      }
+    };
+    return [...rooms].sort((a, b) => {
+      const result = fieldForColumn(a).localeCompare(fieldForColumn(b), 'vi');
+      return sortDir === 'asc' ? result : -result;
+    });
+  }, [rooms, sortBy, sortDir, departments]);
 
   const openCreate = () => {
     reset({ ...EMPTY_FORM, department_id: departmentFilter });
@@ -209,16 +237,16 @@ export default function Rooms() {
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Mã</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Tên phòng</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Khoa/Phòng</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Loại phòng</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Trạng thái</TableHead>
+                <SortableTableHead label="Mã" column="code" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Tên phòng" column="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Khoa/Phòng" column="department" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Loại phòng" column="type" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                <SortableTableHead label="Trạng thái" column="status" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                 <TableHead className="h-auto px-4 py-3"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rooms.map(room => (
+              {sortedRooms.map(room => (
                 <TableRow key={room.ID} className="border-t border-[#f0f4f8]">
                   <TableCell className="px-4 py-3 text-sm font-mono text-[#274760]">{room.Code}</TableCell>
                   <TableCell className="px-4 py-3 text-sm font-semibold text-[#274760]">{room.Name}</TableCell>

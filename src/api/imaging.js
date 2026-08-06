@@ -30,6 +30,11 @@ export async function listImagingWorklist(status) {
   return data;
 }
 
+export async function listImagingHistory(params = {}) {
+  const { data } = await client.get('/imaging/history', { params: { page: 1, limit: 20, ...params } });
+  return data;
+}
+
 export async function getImagingOrderDetail(orderId) {
   const { data } = await client.get(`/orders/${orderId}/imaging`);
   return data;

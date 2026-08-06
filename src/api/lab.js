@@ -30,6 +30,11 @@ export async function listLabWorklist(status) {
   return data;
 }
 
+export async function listLabHistory(params = {}) {
+  const { data } = await client.get('/lab/history', { params: { page: 1, limit: 20, ...params } });
+  return data;
+}
+
 export async function getLabOrderDetail(orderId) {
   const { data } = await client.get(`/orders/${orderId}/lab`);
   return data;

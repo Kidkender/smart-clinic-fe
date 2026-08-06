@@ -4,13 +4,15 @@ import { ErrorAlert } from '@/components/ui/alert';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { getDepartments, getDoctorsByDepartment } from '@/api/department';
-import { listDoctorSchedules, createDoctorSchedule, deleteDoctorSchedule } from '@/api/doctorSchedule';
+import { listDoctorSchedules, createDoctorSchedule, deleteDoctorSchedule, getTodayScheduleSummary } from '@/api/doctorSchedule';
 import { resolveError } from '@/utils/errorMessages';
+import { toneBadgeClass } from '@/utils/badgeStyles';
 import useConfirm from '@/hooks/useConfirm';
 import { doctorWeeklyScheduleSchema, type DoctorWeeklyScheduleFormValues } from '@/schemas/doctorSchedule';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import FieldError from '@/components/FieldError';
 import {
   Select,
@@ -36,6 +38,28 @@ interface Schedule {
   StartTime: string;
   EndTime: string;
   SlotMinutes: number;
+}
+
+interface TodayScheduleShift {
+  start_time: string;
+  end_time: string;
+}
+
+interface TodayScheduleDoctor {
+  doctor_id: number | string;
+  fullname: string;
+  department_name: string;
+  on_leave: boolean;
+  shifts: TodayScheduleShift[];
+}
+
+interface TodayScheduleSummary {
+  date: string;
+  total_doctors: number;
+  scheduled_count: number;
+  on_leave_count: number;
+  working_count: number;
+  doctors: TodayScheduleDoctor[];
 }
 
 const DAYS = [
@@ -70,6 +94,11 @@ export default function DoctorSchedules() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const [todaySummary, setTodaySummary] = useState<TodayScheduleSummary | null>(null);
+  const [todaySummaryLoading, setTodaySummaryLoading] = useState(true);
+  const [todaySummaryError, setTodaySummaryError] = useState('');
+  const [showTodayDoctors, setShowTodayDoctors] = useState(false);
+
   const [formError, setFormError] = useState('');
   const [dayErrors, setDayErrors] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
@@ -88,6 +117,15 @@ export default function DoctorSchedules() {
       setDepartments(list);
       if (list.length > 0) setDepartmentId(String(list[0].ID));
     }).catch(err => setError(resolveError(err)));
+  }, []);
+
+  useEffect(() => {
+    setTodaySummaryLoading(true);
+    setTodaySummaryError('');
+    getTodayScheduleSummary()
+      .then(r => setTodaySummary(r.data))
+      .catch(err => setTodaySummaryError(resolveError(err)))
+      .finally(() => setTodaySummaryLoading(false));
   }, []);
 
   useEffect(() => {
@@ -193,6 +231,54 @@ export default function DoctorSchedules() {
           Thiết lập khung giờ làm việc theo tuần cho từng bác sĩ — dùng để sinh khung giờ đặt lịch
         </p>
       </div>
+
+      <Card className="mb-5 rounded-2xl border-[#e8edf2] p-4">
+        {todaySummaryLoading ? (
+          <p className="m-0 text-sm text-[#6c757d]">Đang tải thống kê hôm nay…</p>
+        ) : todaySummaryError ? (
+          <ErrorAlert variant="plain">{todaySummaryError}</ErrorAlert>
+        ) : todaySummary ? (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="m-0 text-sm text-[#6c757d]">
+                Hôm nay ({new Date(todaySummary.date).toLocaleDateString('vi-VN')}):{' '}
+                <span className="font-semibold text-[#274760]">{todaySummary.working_count}/{todaySummary.total_doctors}</span>{' '}
+                bác sĩ có lịch làm việc
+                {todaySummary.on_leave_count > 0 && (
+                  <> · <span className="font-semibold text-[#dc3545]">{todaySummary.on_leave_count}</span> đang nghỉ phép</>
+                )}
+              </p>
+              {todaySummary.doctors.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowTodayDoctors(v => !v)}
+                  className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-1.5 text-xs font-semibold text-[#274760]"
+                >
+                  {showTodayDoctors ? 'Ẩn danh sách' : 'Xem danh sách'}
+                </Button>
+              )}
+            </div>
+            {showTodayDoctors && todaySummary.doctors.length > 0 && (
+              <ul className="m-0 mt-3.5 list-none divide-y divide-[#f0f4f8] border-t border-[#f0f4f8] p-0">
+                {todaySummary.doctors.map(doc => (
+                  <li key={doc.doctor_id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                    <div>
+                      <div className="text-sm font-semibold text-[#274760]">{doc.fullname}</div>
+                      <div className="text-[13px] text-[#6c757d]">
+                        {doc.department_name || '—'} · {doc.shifts.map(s => `${s.start_time}-${s.end_time}`).join(', ')}
+                      </div>
+                    </div>
+                    {doc.on_leave && (
+                      <Badge className={toneBadgeClass('danger')}>Đang nghỉ phép</Badge>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        ) : null}
+      </Card>
 
       <div className="mb-5 flex flex-wrap gap-2.5">
         <Select value={departmentId} onValueChange={setDepartmentId}>

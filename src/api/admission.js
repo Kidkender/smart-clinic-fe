@@ -20,6 +20,11 @@ export async function transferAdmission(id, payload) {
   return data;
 }
 
+export async function listAdmissionTransfers(id) {
+  const { data } = await client.get(`/admissions/${id}/transfers`);
+  return data;
+}
+
 export async function dischargeAdmission(id, dischargeSummary) {
   const { data } = await client.post(`/admissions/${id}/discharge`, { discharge_summary: dischargeSummary });
   return data;

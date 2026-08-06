@@ -104,7 +104,7 @@ export default function InvoiceInsuranceSection({
           </label>
           {hasInsuranceInput && (
             <div className="flex flex-wrap gap-2.5">
-              <div className="w-[200px]">
+              <div className="min-w-[160px] flex-1">
                 <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mức hưởng (%) — để trống nếu chưa biết</label>
                 <Input
                   type="number"
@@ -117,7 +117,7 @@ export default function InvoiceInsuranceSection({
                   className="h-auto rounded-xl border-[#dde2e8] px-3 py-2 text-[13px] text-[#274760]"
                 />
               </div>
-              <div className="w-[200px]">
+              <div className="min-w-[160px] flex-1">
                 <label className="mb-1.5 block min-h-[32px] text-xs font-semibold text-[#274760]">Mã cơ sở KCB ban đầu — để trống nếu chưa biết</label>
                 <Input
                   value={registeredFacilityCodeInput}

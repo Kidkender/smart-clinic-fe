@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
@@ -20,10 +20,10 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import SortableTableHead from '@/components/ui/sortable-table-head';
 
 interface EmployeeProfile {
   Position: string;
@@ -55,6 +55,8 @@ export default function Employees() {
   const [error, setError] = useState('');
   const [totalStaffCount, setTotalStaffCount] = useState<number | null>(null);
   const [presentTodayCount, setPresentTodayCount] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState('fullname');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -99,6 +101,31 @@ export default function Employees() {
   useEffect(() => {
     fetchTodayAttendance();
   }, [fetchTodayAttendance]);
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
+
+  const sortedEmployees = useMemo(() => {
+    const fieldForColumn = (emp: Employee): string => {
+      switch (sortBy) {
+        case 'email': return emp.Email;
+        case 'role': return roleLabel(emp.Role);
+        case 'position': return emp.profile?.Position ?? '';
+        case 'status': return userStatusLabel(emp.Status);
+        case 'fullname': default: return emp.Fullname;
+      }
+    };
+    return [...employees].sort((a, b) => {
+      const result = fieldForColumn(a).localeCompare(fieldForColumn(b), 'vi');
+      return sortDir === 'asc' ? result : -result;
+    });
+  }, [employees, sortBy, sortDir]);
 
   return (
     <div className="space-y-6">
@@ -151,20 +178,20 @@ export default function Employees() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Họ tên</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Vai trò</TableHead>
-              <TableHead>Chức danh</TableHead>
-              <TableHead>Trạng thái</TableHead>
+              <SortableTableHead label="Họ tên" column="fullname" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHead label="Email" column="email" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHead label="Vai trò" column="role" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHead label="Chức danh" column="position" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHead label="Trạng thái" column="status" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={5} className="text-center text-[#6c757d]">Đang tải…</TableCell></TableRow>
-            ) : employees.length === 0 ? (
+            ) : sortedEmployees.length === 0 ? (
               <TableRow><TableCell colSpan={5} className="text-center text-[#6c757d]">Không có nhân viên nào.</TableCell></TableRow>
             ) : (
-              employees.map(emp => (
+              sortedEmployees.map(emp => (
                 <TableRow
                   key={emp.ID}
                   className="cursor-pointer"

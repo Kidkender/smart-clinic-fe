@@ -4,9 +4,10 @@ import { ErrorAlert } from '@/components/ui/alert';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { listPayers, createPayer, getPayerDebt } from '@/api/payer';
+import { getInvoice } from '@/api/billing';
 import { resolveError } from '@/utils/errorMessages';
-import { payerTypeLabel, invoiceStatusLabel } from '@/utils/labels';
-import { invoiceStatusBadgeClass } from '@/utils/badgeStyles';
+import { payerTypeLabel, invoiceStatusLabel, allocationStatusLabel, claimStatusLabel } from '@/utils/labels';
+import { invoiceStatusBadgeClass, allocationStatusBadgeClass, claimStatusBadgeClass } from '@/utils/badgeStyles';
 import { payerSchema, type PayerFormValues } from '@/schemas/payer';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -28,6 +29,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import FieldError from '@/components/FieldError';
+import type { Invoice } from '@/components/consultation/invoice/types';
 
 const DEBT_PAGE_LIMIT = 10;
 
@@ -71,6 +73,11 @@ export default function Payers() {
   const [debtPage, setDebtPage] = useState(1);
   const [debtSortBy, setDebtSortBy] = useState('created_at');
   const [debtSortDir, setDebtSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const [detailInvoiceId, setDetailInvoiceId] = useState<number | string | null>(null);
+  const [detailInvoice, setDetailInvoice] = useState<Invoice | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
 
   const {
     register, handleSubmit, reset, formState: { errors },
@@ -150,6 +157,29 @@ export default function Payers() {
     }
     setDebtPage(1);
   };
+
+  const handleViewInvoiceDetail = async (invoiceId: number | string) => {
+    setDetailInvoiceId(invoiceId);
+    setDetailInvoice(null);
+    setDetailError('');
+    setDetailLoading(true);
+    try {
+      const res = await getInvoice(invoiceId);
+      setDetailInvoice(res.data);
+    } catch (err) {
+      setDetailError(resolveError(err));
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const closeInvoiceDetail = () => {
+    setDetailInvoiceId(null);
+    setDetailInvoice(null);
+    setDetailError('');
+  };
+
+  const payerAllocation = detailInvoice?.Allocations?.find(a => String(a.PayerID) === String(selectedPayer?.ID)) ?? null;
 
   return (
     <>
@@ -259,7 +289,11 @@ export default function Payers() {
                 </TableHeader>
                 <TableBody>
                   {debt.invoices.map(inv => (
-                    <TableRow key={inv.invoice_id} className="border-t border-[#f0f4f8]">
+                    <TableRow
+                      key={inv.invoice_id}
+                      className="cursor-pointer border-t border-[#f0f4f8] hover:bg-[#f4f7fa]"
+                      onClick={() => handleViewInvoiceDetail(inv.invoice_id)}
+                    >
                       <TableCell className="px-4 py-3 text-sm text-[#274760]">#{inv.invoice_id}</TableCell>
                       <TableCell className="px-4 py-3 text-sm text-[#274760]">
                         {new Date(inv.created_at).toLocaleDateString('vi-VN')}
@@ -282,6 +316,97 @@ export default function Payers() {
                 itemLabel="hóa đơn"
               />
             </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!detailInvoiceId} onOpenChange={open => { if (!open) closeInvoiceDetail(); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[20px] p-8 sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Chi tiết hóa đơn #{detailInvoiceId}</DialogTitle>
+          </DialogHeader>
+
+          {detailError && <ErrorAlert icon={false}>{detailError}</ErrorAlert>}
+
+          {detailLoading ? (
+            <p className="text-xs text-[#6c757d]">Đang tải…</p>
+          ) : detailInvoice ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between rounded-xl bg-[#f4f7fa] px-4 py-3 text-sm">
+                <span className="font-semibold text-[#274760]">Trạng thái hóa đơn</span>
+                <span className={invoiceStatusBadgeClass(detailInvoice.Status)}>{invoiceStatusLabel(detailInvoice.Status)}</span>
+              </div>
+
+              <div className="flex flex-col gap-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-[#6c757d]">Tạm tính</span>
+                  <span className="text-[#274760]">{detailInvoice.SubtotalAmount.toLocaleString('vi-VN')} đ</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#6c757d]">Thuế</span>
+                  <span className="text-[#274760]">{detailInvoice.TaxAmount.toLocaleString('vi-VN')} đ</span>
+                </div>
+                <div className="flex items-center justify-between font-semibold">
+                  <span className="text-[#274760]">Tổng hóa đơn</span>
+                  <span className="text-[#274760]">{detailInvoice.TotalAmount.toLocaleString('vi-VN')} đ</span>
+                </div>
+              </div>
+
+              <div>
+                <p className="m-0 mb-2 text-[11px] font-bold tracking-wide text-[#6c757d] uppercase">
+                  Phân bổ cho {selectedPayer?.Name}
+                </p>
+                {payerAllocation ? (
+                  <div className="rounded-xl border border-[#e8edf2] p-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[#6c757d]">Số tiền phân bổ</span>
+                      <span className="font-semibold text-[#274760]">{payerAllocation.AllocatedAmount.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                    <div className="mt-1.5 flex items-center justify-between text-sm">
+                      <span className="text-[#6c757d]">Trạng thái phân bổ</span>
+                      <span className={allocationStatusBadgeClass(payerAllocation.Status)}>{allocationStatusLabel(payerAllocation.Status)}</span>
+                    </div>
+                    {payerAllocation.Note && (
+                      <p className="m-0 mt-1.5 text-xs text-[#6c757d]">Ghi chú: {payerAllocation.Note}</p>
+                    )}
+
+                    {payerAllocation.Claim ? (
+                      <div className="mt-3 border-t border-[#f0f4f8] pt-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[#6c757d]">Trạng thái bồi thường</span>
+                          <span className={claimStatusBadgeClass(payerAllocation.Claim.Status)}>{claimStatusLabel(payerAllocation.Claim.Status)}</span>
+                        </div>
+                        <div className="mt-1.5 flex items-center justify-between text-sm">
+                          <span className="text-[#6c757d]">Số tiền gửi yêu cầu</span>
+                          <span className="text-[#274760]">{payerAllocation.Claim.SubmittedAmount.toLocaleString('vi-VN')} đ</span>
+                        </div>
+                        {payerAllocation.Claim.ApprovedAmount != null && (
+                          <>
+                            <div className="mt-1.5 flex items-center justify-between text-sm">
+                              <span className="text-[#6c757d]">Số tiền được duyệt</span>
+                              <span className="text-[#274760]">{payerAllocation.Claim.ApprovedAmount.toLocaleString('vi-VN')} đ</span>
+                            </div>
+                            <div className="mt-1.5 flex items-center justify-between text-sm font-semibold">
+                              <span className="text-[#dc3545]">Khấu trừ</span>
+                              <span className="text-[#dc3545]">
+                                {(payerAllocation.Claim.SubmittedAmount - payerAllocation.Claim.ApprovedAmount).toLocaleString('vi-VN')} đ
+                              </span>
+                            </div>
+                          </>
+                        )}
+                        {payerAllocation.Claim.Note && (
+                          <p className="m-0 mt-1.5 text-xs text-[#6c757d]">Ghi chú bồi thường: {payerAllocation.Claim.Note}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="m-0 mt-3 border-t border-[#f0f4f8] pt-3 text-xs text-[#6c757d]">Chưa gửi yêu cầu bồi thường bảo hiểm cho khoản này.</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="m-0 text-xs text-[#6c757d]">Không tìm thấy khoản phân bổ của bên bảo lãnh này trong hóa đơn.</p>
+                )}
+              </div>
+            </div>
           ) : null}
         </DialogContent>
       </Dialog>

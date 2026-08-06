@@ -197,6 +197,10 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
       setError('Số tiền thanh toán không hợp lệ.');
       return;
     }
+    if (parsed > remaining + 0.5) {
+      setError(`Số tiền thu không được vượt quá số tiền còn lại (${remaining.toLocaleString('vi-VN')} đ).`);
+      return;
+    }
     if (method === 'vnpay' && parsed < VNPAY_MIN_AMOUNT) {
       setError(`Số tiền thanh toán qua VNPay phải từ ${VNPAY_MIN_AMOUNT.toLocaleString('vi-VN')} đ trở lên. Với số tiền nhỏ hơn, vui lòng thu tiền mặt hoặc chuyển khoản.`);
       return;
@@ -375,6 +379,9 @@ export default function InvoiceDialog({ open, onClose, encounterId, pollForSettl
                   {canPay && (
                     <InvoicePaymentForm
                       amount={amount}
+                      amountEditable={encounter?.Type === 'inpatient'}
+                      onAmountChange={setAmount}
+                      remaining={remaining}
                       method={method}
                       onMethodChange={value => { setMethod(value); setCashReceived(''); }}
                       cashReceived={cashReceived}
