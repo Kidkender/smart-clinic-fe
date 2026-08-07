@@ -88,6 +88,7 @@ export default function InvoiceRefundSection({
             step="1000"
             value={refundAmount}
             onChange={e => onRefundAmountChange(e.target.value)}
+            placeholder="VD: 50000"
             className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
           />
         </div>
