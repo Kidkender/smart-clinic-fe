@@ -10,6 +10,11 @@ export async function getInvoice(invoiceId) {
   return data;
 }
 
+export async function listInvoices(params) {
+  const { data } = await client.get('/invoices', { params });
+  return data;
+}
+
 export async function recordPayment(invoiceId, payload) {
   const { data } = await client.post(`/invoices/${invoiceId}/payments`, payload);
   return data;

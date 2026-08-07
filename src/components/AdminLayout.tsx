@@ -35,6 +35,7 @@ const NAV: NavItem[] = [
   { to: '/wards', label: 'Khu điều trị & Giường', icon: 'fa6-solid:hospital-user', roles: ['admin'] },
   { to: '/surgeries', label: 'Lịch mổ', icon: 'fa6-solid:user-doctor', roles: ['admin', 'doctor', 'nurse'] },
   { to: '/operating-rooms', label: 'Danh mục phòng mổ', icon: 'fa6-solid:door-closed', roles: ['admin'] },
+  { to: '/invoices', label: 'Hóa đơn viện phí', icon: 'fa6-solid:file-invoice', roles: ['admin', 'cashier', 'receptionist'] },
   { to: '/payers', label: 'Bảo lãnh & Công nợ', icon: 'fa6-solid:file-invoice-dollar', roles: ['admin', 'cashier', 'receptionist'] },
   // Tạm ẩn "Báo cáo tài chính" khỏi sidebar — route /finance-report vẫn còn, chỉ bỏ nav item.
   { to: '/fee-settings', label: 'Cấu hình viện phí', icon: 'fa6-solid:sliders', roles: ['admin', 'cashier', 'receptionist'] },
