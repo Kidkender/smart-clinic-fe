@@ -81,7 +81,7 @@ const ADMISSION_TYPE_OPTIONS = ADMISSION_TYPES.map(value => ({
 }));
 
 const EMPTY_FORM: AdmissionFormValues = {
-  patient_id: '', department_id: '', attending_doctor_id: '', admission_type: 'bhyt', ward_id: '', bed_id: '',
+  patient_id: '', department_id: '', attending_doctor_id: '', admission_type: 'bhyt', ward_id: '', bed_id: '', coverage_percent: '',
 };
 
 export default function Admissions() {
@@ -121,6 +121,7 @@ export default function Admissions() {
   const departmentId = watch('department_id');
   const attendingDoctorId = watch('attending_doctor_id');
   const bedId = watch('bed_id');
+  const admissionType = watch('admission_type');
 
   const fetchAdmissions = useCallback(async () => {
     setLoading(true);
@@ -257,6 +258,9 @@ export default function Admissions() {
         admission_type: values.admission_type,
         ward_id: values.ward_id ? Number(values.ward_id) : undefined,
         bed_id: values.bed_id ? Number(values.bed_id) : undefined,
+        coverage_percent: values.admission_type === 'bhyt' && values.coverage_percent?.trim()
+          ? Number(values.coverage_percent)
+          : undefined,
       });
       setModalOpen(false);
       await fetchAdmissions();
@@ -476,6 +480,29 @@ export default function Admissions() {
               )}
             />
             <FieldError message={errors.admission_type?.message} />
+
+            {admissionType === 'bhyt' && (
+              <>
+                <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Mức hưởng BHYT (%) — để trống nếu chưa biết</label>
+                <Controller
+                  control={control}
+                  name="coverage_percent"
+                  render={({ field }) => (
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      placeholder="VD: 80"
+                      className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                    />
+                  )}
+                />
+                <FieldError message={errors.coverage_percent?.message} />
+              </>
+            )}
 
             <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Khu điều trị *</label>
             <Controller
