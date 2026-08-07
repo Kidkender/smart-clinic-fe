@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { appointmentStatusLabel } from '@/utils/labels';
 import { cn } from '@/lib/utils';
@@ -37,6 +38,7 @@ export default function AppointmentsTable({
   onNoShow: (appt: Appointment) => void;
   onCancel: (appt: Appointment) => void;
 }) {
+  const navigate = useNavigate();
   return (
     <Card className="gap-0 overflow-hidden rounded-2xl border-[#e8edf2] py-0">
       {loading ? (
@@ -59,7 +61,11 @@ export default function AppointmentsTable({
           </TableHeader>
           <TableBody>
             {appointments.map(a => (
-              <TableRow key={a.ID} className="border-t border-[#f0f4f8]">
+              <TableRow
+                key={a.ID}
+                className="cursor-pointer border-t border-[#f0f4f8] hover:bg-[#f4f7fa]"
+                onClick={() => navigate(`/patients/${a.PatientID}`)}
+              >
                 <TableCell className="px-4 py-3 text-sm text-[#274760]">{a.Patient?.Fullname ?? `#${a.PatientID}`}</TableCell>
                 <TableCell className="px-4 py-3 text-sm text-[#274760]">{a.Department?.Name ?? `#${a.DepartmentID}`}</TableCell>
                 <TableCell className="px-4 py-3 text-sm text-[#274760]">{a.Doctor?.Fullname ?? '—'}</TableCell>
@@ -69,7 +75,7 @@ export default function AppointmentsTable({
                     {appointmentStatusLabel(a.Status)}
                   </span>
                 </TableCell>
-                <TableCell className="px-4 py-3 text-right">
+                <TableCell className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                   {a.Status === 'booked' && canManage && (
                     <>
                       <button

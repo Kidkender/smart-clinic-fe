@@ -87,6 +87,33 @@ interface DashboardAlerts {
   prescriptions_awaiting_pickup: number;
 }
 
+interface QuickLink {
+  to: string;
+  label: string;
+  icon: string;
+}
+
+// Roles with no stat section above (canSeeClinical/Finance/Inventory are all
+// false for them) used to land on a dashboard with just the page title and
+// nothing else — this gives them role-relevant shortcuts instead of a
+// near-blank screen.
+const QUICK_LINKS_BY_ROLE: Record<string, QuickLink[]> = {
+  receptionist: [
+    { to: '/appointments', label: 'Lịch hẹn', icon: 'fa6-solid:calendar-days' },
+    { to: '/queue', label: 'Hàng đợi', icon: 'fa6-solid:list-ol' },
+    { to: '/admissions', label: 'Nội trú', icon: 'fa6-solid:bed-pulse' },
+    { to: '/patients', label: 'Bệnh nhân', icon: 'fa6-solid:user-injured' },
+  ],
+  radiology_tech: [
+    { to: '/imaging-worklist', label: 'Hàng đợi CĐHA', icon: 'fa6-solid:x-ray' },
+    { to: '/imaging-procedures', label: 'Danh mục CĐHA', icon: 'fa6-solid:radiation' },
+  ],
+  lab_tech: [
+    { to: '/lab-worklist', label: 'Hàng đợi xét nghiệm', icon: 'fa6-solid:flask-vial' },
+    { to: '/lab-tests', label: 'Danh mục xét nghiệm', icon: 'fa6-solid:vial' },
+  ],
+};
+
 export default function Dashboard() {
   const { role, fullname } = useAuth();
   const today = toIsoDate(new Date());
@@ -96,6 +123,8 @@ export default function Dashboard() {
   const canSeeClinical = role === 'admin' || role === 'doctor' || role === 'nurse';
   const canSeeInventory = role === 'admin' || role === 'pharmacist';
   const canSeeAlerts = canSeeFinance || canSeeClinical || canSeeInventory;
+  const hasStatSections = canSeeClinical || canSeeFinance || canSeeInventory;
+  const quickLinks = role ? (QUICK_LINKS_BY_ROLE[role] ?? []) : [];
 
   const [revenueToday, setRevenueToday] = useState<number | null>(null);
   const [revenueYesterday, setRevenueYesterday] = useState<number | null>(null);
@@ -236,6 +265,24 @@ export default function Dashboard() {
             accent="#dc3545"
           />
         </DashboardSection>
+      )}
+
+      {!hasStatSections && quickLinks.length > 0 && (
+        <div className="mb-6">
+          <h2 className="m-0 mb-3 text-[17px] font-bold text-[#274760]">Truy cập nhanh</h2>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+            {quickLinks.map(link => (
+              <Link key={link.to} to={link.to} className="no-underline">
+                <Card className="flex flex-row items-center gap-3 rounded-2xl border-[#e8edf2] p-5 transition-colors hover:bg-[#f4f7fa]">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#307bc4]/10 text-lg text-[#307bc4]">
+                    <Icon icon={link.icon} />
+                  </div>
+                  <p className="m-0 text-sm font-semibold text-[#274760]">{link.label}</p>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
