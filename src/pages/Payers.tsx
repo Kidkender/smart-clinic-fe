@@ -3,7 +3,9 @@ import { Icon } from '@iconify/react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { listPayers, createPayer, getPayerDebt } from '@/api/payer';
+import {
+  listPayers, createPayer, updatePayer, getPayerDebt,
+} from '@/api/payer';
 import { getInvoice } from '@/api/billing';
 import { resolveError } from '@/utils/errorMessages';
 import { payerTypeLabel, invoiceStatusLabel, allocationStatusLabel, claimStatusLabel } from '@/utils/labels';
@@ -65,6 +67,16 @@ export default function Payers() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+
+  const [editPayer, setEditPayer] = useState<Payer | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const {
+    register: registerEdit, handleSubmit: handleEditSubmit, reset: resetEdit, formState: { errors: editErrors },
+  } = useForm<PayerFormValues>({
+    resolver: zodResolver(payerSchema),
+    defaultValues: { name: '', type: 'insurance_company', contact_phone: '', contact_email: '' },
+  });
 
   const [selectedPayer, setSelectedPayer] = useState<Payer | null>(null);
   const [debt, setDebt] = useState<DebtSummary | null>(null);
@@ -132,6 +144,37 @@ export default function Payers() {
       setDebtLoading(false);
     }
   }, []);
+
+  const openEdit = (payer: Payer) => {
+    setEditError('');
+    resetEdit({
+      name: payer.Name,
+      type: 'insurance_company',
+      contact_phone: payer.ContactPhone ?? '',
+      contact_email: payer.ContactEmail ?? '',
+    });
+    setEditPayer(payer);
+  };
+
+  const handleUpdate = handleEditSubmit(async values => {
+    if (!editPayer) return;
+    setEditError('');
+    setEditSaving(true);
+    try {
+      await updatePayer(editPayer.ID, {
+        name: values.name.trim(),
+        type: values.type,
+        contact_phone: values.contact_phone.trim(),
+        contact_email: values.contact_email.trim(),
+      });
+      setEditPayer(null);
+      await fetchPayers();
+    } catch (err) {
+      setEditError(resolveError(err));
+    } finally {
+      setEditSaving(false);
+    }
+  });
 
   const handleViewDebt = (payer: Payer) => {
     setSelectedPayer(payer);
@@ -207,16 +250,20 @@ export default function Payers() {
           <div className="w-[180px]">
             <Input
               {...register('contact_phone')}
-              placeholder="Số điện thoại liên hệ"
+              placeholder="Số điện thoại liên hệ *"
+              aria-invalid={!!errors.contact_phone}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.contact_phone?.message} />
           </div>
           <div className="w-[220px]">
             <Input
               {...register('contact_email')}
-              placeholder="Email liên hệ"
+              placeholder="Email liên hệ *"
+              aria-invalid={!!errors.contact_email}
               className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
             />
+            <FieldError message={errors.contact_email?.message} />
           </div>
           <Button type="submit" disabled={saving} size="cta" className="shrink-0">
             {saving ? 'Đang lưu…' : 'Thêm'}
@@ -242,18 +289,81 @@ export default function Payers() {
                   {[payer.ContactPhone, payer.ContactEmail].filter(Boolean).join(' · ')}
                 </p>
               )}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleViewDebt(payer)}
-                className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2 text-xs font-semibold text-[#274760]"
-              >
-                <Icon icon="fa6-solid:file-invoice-dollar" className="mr-1.5 text-[11px]" />Xem công nợ
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleViewDebt(payer)}
+                  className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2 text-xs font-semibold text-[#274760]"
+                >
+                  <Icon icon="fa6-solid:file-invoice-dollar" className="mr-1.5 text-[11px]" />Xem công nợ
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => openEdit(payer)}
+                  className="h-auto rounded-xl border-[#dde2e8] px-3.5 py-2 text-xs font-semibold text-[#274760]"
+                >
+                  <Icon icon="fa6-solid:pen" className="mr-1.5 text-[11px]" />Sửa
+                </Button>
+              </div>
             </Card>
           ))}
         </div>
       )}
+
+      <Dialog open={!!editPayer} onOpenChange={open => { if (!open && !editSaving) setEditPayer(null); }}>
+        <DialogContent className="rounded-[20px] p-8 sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Sửa bên bảo lãnh</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} noValidate>
+            <label className="mt-2 mb-1.5 block text-sm font-semibold text-[#274760]">Tên *</label>
+            <Input
+              {...registerEdit('name')}
+              placeholder="Tên (VD: Bảo Việt, Prudential...)"
+              aria-invalid={!!editErrors.name}
+              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+            />
+            <FieldError message={editErrors.name?.message} />
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Số điện thoại liên hệ *</label>
+            <Input
+              {...registerEdit('contact_phone')}
+              placeholder="Số điện thoại liên hệ"
+              aria-invalid={!!editErrors.contact_phone}
+              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+            />
+            <FieldError message={editErrors.contact_phone?.message} />
+
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Email liên hệ *</label>
+            <Input
+              {...registerEdit('contact_email')}
+              placeholder="Email liên hệ"
+              aria-invalid={!!editErrors.contact_email}
+              className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+            />
+            <FieldError message={editErrors.contact_email?.message} />
+
+            {editError && <ErrorAlert icon={false} className="mt-4">{editError}</ErrorAlert>}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditPayer(null)}
+                disabled={editSaving}
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={editSaving} size="cta">
+                {editSaving ? 'Đang lưu…' : 'Lưu'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!selectedPayer} onOpenChange={open => { if (!open) setSelectedPayer(null); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto rounded-[20px] p-8 sm:max-w-[720px]">

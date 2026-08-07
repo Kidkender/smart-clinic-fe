@@ -5,6 +5,11 @@ export async function admitPatient(payload) {
   return data;
 }
 
+export async function admitFromEncounter(encounterId, payload) {
+  const { data } = await client.post(`/encounters/${encounterId}/admit`, payload);
+  return data;
+}
+
 export async function listAdmissions(params) {
   const { data } = await client.get('/admissions', { params });
   return data;

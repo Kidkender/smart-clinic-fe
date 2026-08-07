@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ErrorAlert } from '@/components/ui/alert';
 import { listFeeSettings, updateFeeSetting } from '@/api/feeSettings';
 import { resolveError } from '@/utils/errorMessages';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,10 @@ interface FeeSetting {
 }
 
 export default function FeeSettings() {
+  const { role } = useAuth();
+  // Must match backend's writeRoles gate on PUT /fee-settings/:key
+  // (routes/fee_setting.go) — cashier/receptionist can read but not edit.
+  const canEdit = role === 'admin';
   const [settings, setSettings] = useState<FeeSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -97,21 +102,24 @@ export default function FeeSettings() {
                     step={setting.IsPercentage ? '0.1' : '1000'}
                     value={displayValue(setting)}
                     onChange={e => setForm({ ...form, [setting.Key]: e.target.value })}
+                    disabled={!canEdit}
                     className="h-auto rounded-xl border-[#dde2e8] px-3 py-2.25 pr-10 text-[15px] text-[#274760]"
                   />
                   <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-xs text-[#6c757d]">
                     {setting.IsPercentage ? '%' : 'đ'}
                   </span>
                 </div>
-                <Button
-                  type="button"
-                  disabled={saving[setting.Key]}
-                  onClick={() => handleSave(setting)}
-                  size="cta-sm"
-                  className="shrink-0"
-                >
-                  {saving[setting.Key] ? 'Đang lưu…' : savedKey === setting.Key ? 'Đã lưu ✓' : 'Lưu'}
-                </Button>
+                {canEdit && (
+                  <Button
+                    type="button"
+                    disabled={saving[setting.Key]}
+                    onClick={() => handleSave(setting)}
+                    size="cta-sm"
+                    className="shrink-0"
+                  >
+                    {saving[setting.Key] ? 'Đang lưu…' : savedKey === setting.Key ? 'Đã lưu ✓' : 'Lưu'}
+                  </Button>
+                )}
               </div>
             </Card>
           ))}

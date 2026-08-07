@@ -75,7 +75,12 @@ export default function LabOrderPanel({
   onOrderChanged: () => Promise<void>;
 }) {
   const orderLocked = orderStatus === 'completed' || orderStatus === 'cancelled';
-  const canAttach = includesRole(['admin', 'doctor'], role);
+  // AttachItems only resolves the single catalog entry that already matches
+  // the order's fixed Name — mechanical, not a clinical choice — so lab_tech
+  // (who runs the actual LIS process) must trigger it too, not just the
+  // ordering doctor. Must match backend's attachRoles gate on
+  // POST /orders/:orderId/lab/items (routes/lab.go).
+  const canAttach = includesRole(['admin', 'doctor', 'lab_tech'], role);
   const canCollect = includesRole(['admin', 'lab_tech', 'nurse'], role);
   const canProcess = includesRole(['admin', 'lab_tech'], role);
 

@@ -5,6 +5,7 @@ export interface Drug {
   Strength?: string;
   Unit: string;
   Manufacturer?: string;
+  LatestSupplier?: string;
   Price: number;
   StockQuantity: number;
   MinStockLevel: number;

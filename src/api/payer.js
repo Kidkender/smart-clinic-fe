@@ -15,6 +15,11 @@ export async function createPayer(payload) {
   return data;
 }
 
+export async function updatePayer(payerId, payload) {
+  const { data } = await client.put(`/payers/${payerId}`, payload);
+  return data;
+}
+
 export async function getPayerDebt(payerId, params) {
   const { data } = await client.get(`/payers/${payerId}/debt`, { params });
   return data;
