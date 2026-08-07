@@ -476,8 +476,8 @@ export default function SurgerySchedule() {
                   className="border-[#dde2e8]"
                 />
               </div>
-              <div className="w-[130px]">
-                <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Giờ dự kiến *</label>
+              <div className="w-[140px] shrink-0">
+                <label className="mb-1.5 block text-sm font-semibold whitespace-nowrap text-[#274760]">Giờ dự kiến *</label>
                 <Input
                   type="time"
                   value={scheduledTime}
