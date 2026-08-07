@@ -93,7 +93,7 @@ const ERROR_MESSAGES = {
   'error.bed.not_found': 'Không tìm thấy giường.',
   'error.bed.already_exists': 'Số giường này đã tồn tại trong khu điều trị.',
   'error.bed.not_available': 'Giường không còn trống.',
-  'error.bed.in_use': 'Giường đang được sử dụng hoặc đang vệ sinh, không thể xóa.',
+  'error.bed.in_use': 'Giường đang có bệnh nhân nằm hoặc đang được sử dụng, không thể thao tác.',
   'error.room.not_found': 'Không tìm thấy phòng.',
   'error.room.already_exists': 'Phòng này đã tồn tại trong khoa.',
   'error.room.inactive': 'Phòng này đã ngừng sử dụng.',
