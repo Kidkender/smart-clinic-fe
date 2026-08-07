@@ -16,7 +16,7 @@ import InvoiceDialog from '@/components/consultation/InvoiceDialog';
 import useConfirm from '@/hooks/useConfirm';
 import { useAuth } from '@/context/AuthContext';
 import { resolveError } from '@/utils/errorMessages';
-import { admissionTypeLabel, encounterTypeLabel } from '@/utils/labels';
+import { admissionTypeLabel, encounterTypeLabel, genderLabel } from '@/utils/labels';
 import { toneBadgeClass, allergyWarningClass } from '@/utils/badgeStyles';
 import { cn } from '@/lib/utils';
 import {
@@ -99,7 +99,14 @@ interface Admission {
     Type?: string;
     PatientID?: number | string;
     Department?: { Name?: string };
-    Patient?: { Fullname?: string; MRN?: string; Allergies?: string };
+    Patient?: {
+      Fullname?: string;
+      MRN?: string;
+      Allergies?: string;
+      DateOfBirth?: string | null;
+      Gender?: string;
+      Address?: string;
+    };
   };
 }
 
@@ -176,6 +183,7 @@ export default function AdmissionDetail() {
 
   return (
     <>
+    <div className="print:hidden">
       <Link to="/admissions" className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#307bc4] no-underline">
         <Icon icon="fa6-solid:arrow-left" className="text-xs" /> Danh sách nội trú
       </Link>
@@ -195,6 +203,16 @@ export default function AdmissionDetail() {
             <span className={toneBadgeClass(isDischarged ? 'neutral' : 'success')}>
               {isDischarged ? 'Đã xuất viện' : 'Đang điều trị'}
             </span>
+            {isDischarged && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => window.print()}
+                className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]"
+              >
+                <Icon icon="fa6-solid:print" className="text-xs" />In giấy ra viện
+              </Button>
+            )}
             {canManage && (
               <Button asChild variant="outline" className="h-auto rounded-xl border-[#dde2e8] px-5 py-2.75 text-sm font-medium text-[#274760]">
                 <Link to={`/encounters/${admission.EncounterID}`}>
@@ -242,7 +260,66 @@ export default function AdmissionDetail() {
         onClose={() => setInvoiceOpen(false)}
         encounterId={String(admission.EncounterID)}
       />
+    </div>
+
+    {isDischarged && <DischargeCertificate admission={admission} />}
     </>
+  );
+}
+
+interface DischargeCertificateProps {
+  admission: Admission;
+}
+
+// Print-only "Giấy ra viện" — hidden on screen, shown only via window.print()
+// (triggered by the "In giấy ra viện" button above). Deliberately built from
+// data already loaded on this page (no extra API calls): patient/admission
+// fields the backend already preloads via admissionPreloads, so this stays
+// a pure presentation addition with zero backend changes.
+function DischargeCertificate({ admission }: DischargeCertificateProps) {
+  const patient = admission.Encounter?.Patient;
+  return (
+    <div className="hidden print:block print:p-10 print:text-black">
+      <p className="m-0 text-center text-sm font-bold uppercase">Cộng hòa xã hội chủ nghĩa Việt Nam</p>
+      <p className="m-0 text-center text-sm font-bold">Độc lập - Tự do - Hạnh phúc</p>
+      <p className="m-0 mb-6 text-center text-sm">─────────────</p>
+      <h1 className="m-0 mb-6 text-center text-xl font-bold uppercase">Giấy ra viện</h1>
+
+      <p className="m-0 mb-1"><strong>Họ và tên người bệnh:</strong> {patient?.Fullname ?? '—'}</p>
+      <div className="mb-1 flex gap-6">
+        <p className="m-0"><strong>Mã bệnh án (MRN):</strong> {patient?.MRN ?? '—'}</p>
+        <p className="m-0"><strong>Giới tính:</strong> {patient?.Gender ? genderLabel(patient.Gender) : '—'}</p>
+        <p className="m-0">
+          <strong>Ngày sinh:</strong> {patient?.DateOfBirth ? new Date(patient.DateOfBirth).toLocaleDateString('vi-VN') : '—'}
+        </p>
+      </div>
+      <p className="m-0 mb-4"><strong>Địa chỉ:</strong> {patient?.Address || '—'}</p>
+
+      <p className="m-0 mb-1"><strong>Khoa điều trị:</strong> {admission.Encounter?.Department?.Name ?? '—'}</p>
+      <p className="m-0 mb-1">
+        <strong>Vào viện lúc:</strong> {new Date(admission.AdmittedAt).toLocaleString('vi-VN')}
+      </p>
+      <p className="m-0 mb-4">
+        <strong>Ra viện lúc:</strong> {admission.DischargedAt ? new Date(admission.DischargedAt).toLocaleString('vi-VN') : '—'}
+      </p>
+
+      <p className="m-0 mb-1 font-semibold">Chẩn đoán / Quá trình điều trị / Tình trạng ra viện:</p>
+      <p className="m-0 mb-8 min-h-[60px] whitespace-pre-wrap">{admission.DischargeSummary || '—'}</p>
+
+      <div className="flex justify-between">
+        <div className="w-[45%] text-center">
+          <p className="m-0 italic">Điều dưỡng trưởng khoa</p>
+          <p className="m-0 mt-16">(Ký, ghi rõ họ tên)</p>
+        </div>
+        <div className="w-[45%] text-center">
+          <p className="m-0 italic">
+            Ngày {new Date().getDate()} tháng {new Date().getMonth() + 1} năm {new Date().getFullYear()}
+          </p>
+          <p className="m-0">Bác sĩ điều trị</p>
+          <p className="m-0 mt-16">(Ký, ghi rõ họ tên)</p>
+        </div>
+      </div>
+    </div>
   );
 }
 
