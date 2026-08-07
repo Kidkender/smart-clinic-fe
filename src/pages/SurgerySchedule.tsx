@@ -440,7 +440,7 @@ export default function SurgerySchedule() {
       )}
 
       <Dialog open={!!scheduleTarget} onOpenChange={open => { if (!saving && !open) setScheduleTarget(null); }}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px] rounded-[20px] p-8">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[720px] rounded-[20px] p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Xếp lịch mổ</DialogTitle>
           </DialogHeader>
@@ -452,7 +452,7 @@ export default function SurgerySchedule() {
             </p>
           )}
 
-          <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-[2fr_1.3fr_0.9fr]">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Phòng mổ *</label>
               <Select value={operatingRoomId} onValueChange={setOperatingRoomId}>
@@ -466,25 +466,23 @@ export default function SurgerySchedule() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex gap-2.5">
-              <div className="flex-1">
-                <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Ngày dự kiến *</label>
-                <DatePicker
-                  value={scheduledDate}
-                  onChange={setScheduledDate}
-                  min={toIsoDateValue(new Date())}
-                  className="border-[#dde2e8]"
-                />
-              </div>
-              <div className="w-[140px] shrink-0">
-                <label className="mb-1.5 block text-sm font-semibold whitespace-nowrap text-[#274760]">Giờ dự kiến *</label>
-                <Input
-                  type="time"
-                  value={scheduledTime}
-                  onChange={e => setScheduledTime(e.target.value)}
-                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-                />
-              </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Ngày dự kiến *</label>
+              <DatePicker
+                value={scheduledDate}
+                onChange={setScheduledDate}
+                min={toIsoDateValue(new Date())}
+                className="border-[#dde2e8]"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold whitespace-nowrap text-[#274760]">Giờ dự kiến *</label>
+              <Input
+                type="time"
+                value={scheduledTime}
+                onChange={e => setScheduledTime(e.target.value)}
+                className="h-auto rounded-xl border-[#dde2e8] px-3 py-3 text-[15px] text-[#274760]"
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Thời lượng dự kiến (phút) *</label>
@@ -493,7 +491,7 @@ export default function SurgerySchedule() {
                 min="1"
                 value={durationMinutes}
                 onChange={e => setDurationMinutes(e.target.value)}
-                className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
               />
             </div>
           </div>
