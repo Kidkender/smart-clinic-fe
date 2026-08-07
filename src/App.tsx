@@ -53,6 +53,7 @@ import EmployeeDetail from './pages/EmployeeDetail';
 import AttendanceSummary from './pages/AttendanceSummary';
 import Users from './pages/Users';
 import AuditLogs from './pages/AuditLogs';
+import Invoices from './pages/Invoices';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import PortalLogin from './pages/portal/PortalLogin';
@@ -123,6 +124,14 @@ function App() {
           element={
             <RequireAuth roles={['admin', 'cashier', 'receptionist']}>
               <Payers />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="invoices"
+          element={
+            <RequireAuth roles={['admin', 'cashier', 'receptionist']}>
+              <Invoices />
             </RequireAuth>
           }
         />
