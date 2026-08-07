@@ -22,6 +22,7 @@ import PrescriptionsSection from '@/components/consultation/PrescriptionsSection
 import { listSurgeries } from '@/api/surgery';
 import RecordUsageDialog from '@/components/medical-supplies/RecordUsageDialog';
 import InvoiceDialog from '@/components/consultation/InvoiceDialog';
+import AdmitFromEncounterDialog from '@/components/consultation/AdmitFromEncounterDialog';
 import { SectionBadge, ErrorBox, includesRole } from '@/components/consultation/shared';
 import type { Encounter, VitalSign, Diagnosis, Order, Prescription } from '@/components/consultation/types';
 
@@ -55,10 +56,15 @@ export default function Consultation() {
   const canUpdatePrescriptionStatus = includesRole(['admin', 'pharmacist'], role);
   const canRecordSupplyUsage = includesRole(['admin', 'doctor', 'nurse', 'pharmacist'], role);
   const canManageBilling = includesRole(['admin', 'cashier', 'receptionist'], role);
+  // Must match backend's orRoles gate on GET /surgeries (routes/surgery.go) —
+  // receptionist/pharmacist/etc. opening an encounter (e.g. to view the
+  // invoice) must not have the whole page fail behind a single 403.
+  const canViewSurgery = includesRole(['admin', 'doctor', 'nurse'], role);
 
   const [confirm, ConfirmDialog] = useConfirm();
   const [supplyUsageOpen, setSupplyUsageOpen] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [admitOpen, setAdmitOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [pollInvoiceForSettlement, setPollInvoiceForSettlement] = useState(false);
 
@@ -86,16 +92,21 @@ export default function Consultation() {
     setLoading(true);
     setError('');
     try {
-      const [enc, o, p, sg] = await Promise.all([
+      const [enc, o, p] = await Promise.all([
         getEncounterById(encounterId),
         listOrdersByEncounter(encounterId),
         listPrescriptionsByEncounter(encounterId),
-        listSurgeries({ encounter_id: encounterId, limit: 50 }),
       ]);
       setEncounter(enc.data);
       setOrders((o.data ?? []).filter((order: Order) => order.Type !== 'surgery'));
       setPrescriptions(p.data ?? []);
-      setSurgeryOrders(sg.data?.items ?? []);
+
+      if (canViewSurgery) {
+        const sg = await listSurgeries({ encounter_id: encounterId, limit: 50 });
+        setSurgeryOrders(sg.data?.items ?? []);
+      } else {
+        setSurgeryOrders([]);
+      }
 
       if (canViewClinicalData) {
         const [v, d] = await Promise.all([listVitalSigns(encounterId), listDiagnoses(encounterId)]);
@@ -107,7 +118,7 @@ export default function Consultation() {
     } finally {
       setLoading(false);
     }
-  }, [encounterId, canViewClinicalData]);
+  }, [encounterId, canViewClinicalData, canViewSurgery]);
 
   useEffect(() => {
     loadAll();
@@ -178,6 +189,15 @@ export default function Consultation() {
                 <Icon icon="fa6-solid:file-invoice-dollar" className="mr-1.5 text-[13px]" />Hóa đơn viện phí
               </Button>
             )}
+            {canOrder && encounter.Type !== 'inpatient' && encounter.Status === 'in_progress' && (
+              <Button
+                variant="outline"
+                onClick={() => setAdmitOpen(true)}
+                className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.25 text-[13px] font-medium text-[#274760]"
+              >
+                <Icon icon="fa6-solid:bed-pulse" className="mr-1.5 text-[13px]" />Đề nghị nhập viện
+              </Button>
+            )}
             {canCompleteEncounter && encounter.Status === 'in_progress' && (
               <Button
                 onClick={handleComplete}
@@ -214,7 +234,9 @@ export default function Consultation() {
 
       <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(460px,1fr))] gap-5">
         <OrdersSection encounterId={encounterId} orders={orders} canCreate={canOrder && !isCompleted} canUpdateStatus={canUpdateOrderStatus} role={role} onChanged={loadAll} />
-        <SurgeryOrderSection encounterId={encounterId} diagnoses={diagnoses} surgeryOrders={surgeryOrders} canCreate={canOrder && !isCompleted} onChanged={loadAll} />
+        {canViewSurgery && (
+          <SurgeryOrderSection encounterId={encounterId} diagnoses={diagnoses} surgeryOrders={surgeryOrders} canCreate={canOrder && !isCompleted} onChanged={loadAll} />
+        )}
         <PrescriptionsSection
           encounterId={encounterId}
           prescriptions={prescriptions}
@@ -238,6 +260,13 @@ export default function Consultation() {
         onClose={() => setInvoiceOpen(false)}
         encounterId={encounterId}
         pollForSettlement={pollInvoiceForSettlement}
+      />
+
+      <AdmitFromEncounterDialog
+        encounterId={encounterId}
+        departmentId={encounter.DepartmentID}
+        open={admitOpen}
+        onOpenChange={setAdmitOpen}
       />
     </>
   );

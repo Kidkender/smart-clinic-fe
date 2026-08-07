@@ -4,10 +4,12 @@ import { ErrorAlert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
 import SortableTableHead from '@/components/ui/sortable-table-head';
+import { MultiSelect } from '@/components/ui/multi-select';
 import {
   Select,
   SelectContent,
@@ -81,6 +83,8 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: 'Đã hủy',
 };
 
+const ACTIVE_SURGERY_STATUSES = ['pending_scheduling', 'scheduled', 'in_progress'];
+
 const ROLE_LABEL: Record<string, string> = {
   primary_surgeon: 'PTV chính',
   assistant_surgeon: 'Phụ mổ',
@@ -108,12 +112,20 @@ interface TeamRow {
 
 const emptyTeamRow = (): TeamRow => ({ userId: '', fullname: '', role: 'primary_surgeon', query: '', results: [] });
 
-// datetime-local expects local time, not UTC — toISOString() would shift by
-// the timezone offset and let the picker's own "min" silently accept times
-// that are actually already in the past for this user.
-const toDatetimeLocalValue = (date: Date) => {
+const toIsoDateValue = (date: Date) => {
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+// Combines the date-only DatePicker value (yyyy-mm-dd, matching the rest of
+// the app) with a separate time-of-day input into one local Date — avoids
+// toISOString()'s UTC shift silently letting an already-past time slip by.
+const combineDateAndTime = (dateValue: string, timeValue: string): Date | null => {
+  if (!dateValue || !timeValue) return null;
+  const [year, month, day] = dateValue.split('-').map(Number);
+  const [hours, minutes] = timeValue.split(':').map(Number);
+  if (!year || !month || !day || Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return new Date(year, month - 1, day, hours, minutes);
 };
 
 export default function SurgerySchedule() {
@@ -126,11 +138,12 @@ export default function SurgerySchedule() {
   const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState('scheduled_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string[]>(ACTIVE_SURGERY_STATUSES);
 
   const [scheduleTarget, setScheduleTarget] = useState<Surgery | null>(null);
   const [operatingRoomId, setOperatingRoomId] = useState('');
-  const [scheduledAt, setScheduledAt] = useState('');
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
   const [durationMinutes, setDurationMinutes] = useState('60');
   const [teamRows, setTeamRows] = useState<TeamRow[]>([emptyTeamRow()]);
   const [formError, setFormError] = useState('');
@@ -153,7 +166,7 @@ export default function SurgerySchedule() {
         limit: PAGE_LIMIT,
         sort_by: sortBy,
         sort_dir: sortDir,
-        status: statusFilter || undefined,
+        status: statusFilter.length === 0 ? undefined : statusFilter.join(','),
       });
       setSurgeries(result.data?.items ?? []);
       setTotal(result.data?.total ?? 0);
@@ -217,7 +230,8 @@ export default function SurgerySchedule() {
   const openScheduleDialog = (surgery: Surgery) => {
     setScheduleTarget(surgery);
     setOperatingRoomId('');
-    setScheduledAt('');
+    setScheduledDate('');
+    setScheduledTime('');
     setDurationMinutes('60');
     setTeamRows([emptyTeamRow()]);
     setFormError('');
@@ -226,11 +240,16 @@ export default function SurgerySchedule() {
   const handleSchedule = async () => {
     if (!scheduleTarget) return;
     setFormError('');
-    if (!operatingRoomId || !scheduledAt) {
+    if (!operatingRoomId || !scheduledDate || !scheduledTime) {
       setFormError('Vui lòng chọn phòng mổ và thời gian.');
       return;
     }
-    if (new Date(scheduledAt).getTime() < Date.now()) {
+    const scheduledAt = combineDateAndTime(scheduledDate, scheduledTime);
+    if (!scheduledAt) {
+      setFormError('Thời gian dự kiến không hợp lệ.');
+      return;
+    }
+    if (scheduledAt.getTime() < Date.now()) {
       setFormError('Thời gian dự kiến mổ không được ở trong quá khứ.');
       return;
     }
@@ -252,7 +271,7 @@ export default function SurgerySchedule() {
     try {
       await scheduleSurgery(scheduleTarget.id, {
         operating_room_id: Number(operatingRoomId),
-        scheduled_at: new Date(scheduledAt).toISOString(),
+        scheduled_at: scheduledAt.toISOString(),
         estimated_duration_minutes: Number(durationMinutes),
         team_members: validTeam.map(r => ({ user_id: Number(r.userId), role: r.role })),
       });
@@ -342,17 +361,24 @@ export default function SurgerySchedule() {
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-2.5">
-        <Select value={statusFilter || 'all'} onValueChange={v => setStatusFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="h-auto w-[200px] rounded-xl border-[#dde2e8] px-4 py-2.5 text-sm text-[#274760]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            {Object.keys(STATUS_LABEL).map(status => (
-              <SelectItem key={status} value={status}>{STATUS_LABEL[status]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MultiSelect
+          options={Object.keys(STATUS_LABEL).map(status => ({ value: status, label: STATUS_LABEL[status] }))}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+          placeholder="Tất cả trạng thái"
+          className="w-[220px]"
+        />
+        {statusFilter.length > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setStatusFilter([])}
+            className="h-auto rounded-xl border-[#dde2e8] px-4 py-2.5 text-sm font-medium text-[#6c757d] hover:text-[#dc3545]"
+          >
+            <Icon icon="fa6-solid:filter-circle-xmark" className="text-sm" />
+            Xóa lọc
+          </Button>
+        )}
       </div>
 
       {error && <ErrorAlert className="mb-5">{error}</ErrorAlert>}
@@ -440,15 +466,25 @@ export default function SurgerySchedule() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Thời gian dự kiến *</label>
-              <Input
-                type="datetime-local"
-                value={scheduledAt}
-                onChange={e => setScheduledAt(e.target.value)}
-                min={toDatetimeLocalValue(new Date())}
-                className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
-              />
+            <div className="flex gap-2.5">
+              <div className="flex-1">
+                <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Ngày dự kiến *</label>
+                <DatePicker
+                  value={scheduledDate}
+                  onChange={setScheduledDate}
+                  min={toIsoDateValue(new Date())}
+                  className="border-[#dde2e8]"
+                />
+              </div>
+              <div className="w-[130px]">
+                <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Giờ dự kiến *</label>
+                <Input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={e => setScheduledTime(e.target.value)}
+                  className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+                />
+              </div>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-[#274760]">Thời lượng dự kiến (phút) *</label>

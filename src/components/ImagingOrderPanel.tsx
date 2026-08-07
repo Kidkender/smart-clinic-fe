@@ -163,6 +163,10 @@ export default function ImagingOrderPanel({
       setError('Vui lòng nhập mã DICOM Study UID và đường dẫn PACS.');
       return;
     }
+    if (!safeExternalUrl(pacsUrl.trim())) {
+      setError('Đường dẫn PACS không hợp lệ — phải là URL bắt đầu bằng http:// hoặc https://');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -349,6 +353,12 @@ export default function ImagingOrderPanel({
                     )}
                   </div>
                 </div>
+              )}
+
+              {study?.Status === 'completed' && report?.Status !== 'verified' && !canReport && (
+                <p className="mb-3 text-[13px] text-[#6c757d]">
+                  Đã chụp xong, đang chờ bác sĩ đọc và lưu báo cáo kết quả.
+                </p>
               )}
 
               {report?.Status === 'verified' && (

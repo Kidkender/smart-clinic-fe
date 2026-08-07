@@ -121,7 +121,7 @@ export default function StockInDialog({ open, drug, onClose, onSaved }: StockInD
               <FieldError message={errors.quantity?.message} />
             </div>
             <div>
-              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Đơn giá (đ)</label>
+              <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Đơn giá (đ) *</label>
               <Input
                 type="number"
                 min="0"
@@ -141,6 +141,9 @@ export default function StockInDialog({ open, drug, onClose, onSaved }: StockInD
             className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
           />
           <FieldError message={errors.supplier?.message} />
+          <p className="mt-1.5 text-xs text-[#6c757d]">
+            Đơn giá và nhà cung cấp của lần nhập này sẽ trở thành đơn giá bán và nhà cung cấp hiện tại của thuốc.
+          </p>
 
           <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Ghi chú</label>
           <Input

@@ -544,7 +544,8 @@ export default function PatientDetail() {
       )}
 
       <Dialog open={editOpen} onOpenChange={open => { if (!saving) setEditOpen(open); }}>
-        <DialogContent className="max-h-[90vh] sm:max-w-[560px] overflow-y-auto rounded-[20px] p-8">
+        <DialogContent className="overflow-hidden rounded-[20px] p-0 sm:max-w-[560px]">
+          <div className="max-h-[90vh] overflow-y-auto p-8">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-[#274760]">Sửa thông tin bệnh nhân</DialogTitle>
           </DialogHeader>
@@ -616,6 +617,7 @@ export default function PatientDetail() {
               </Button>
             </DialogFooter>
           </form>
+          </div>
         </DialogContent>
       </Dialog>
 

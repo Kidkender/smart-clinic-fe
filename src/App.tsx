@@ -89,7 +89,7 @@ function App() {
         <Route
           path="encounters/:id"
           element={
-            <RequireAuth roles={['admin', 'doctor', 'nurse', 'pharmacist', 'cashier', 'receptionist']}>
+            <RequireAuth roles={['admin', 'doctor', 'nurse', 'pharmacist', 'cashier', 'receptionist', 'lab_tech', 'radiology_tech']}>
               <Consultation />
             </RequireAuth>
           }
@@ -145,7 +145,7 @@ function App() {
         <Route
           path="fee-settings"
           element={
-            <RequireAuth roles={['admin']}>
+            <RequireAuth roles={['admin', 'cashier', 'receptionist']}>
               <FeeSettings />
             </RequireAuth>
           }

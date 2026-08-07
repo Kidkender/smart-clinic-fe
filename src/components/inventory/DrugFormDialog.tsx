@@ -1,8 +1,11 @@
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ErrorAlert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import FieldError from '@/components/FieldError';
 import {
   Dialog,
@@ -16,6 +19,8 @@ import { createDrug, updateDrug } from '@/api/drug';
 import { resolveError } from '@/utils/errorMessages';
 import { useEffect, useState } from 'react';
 import type { Drug } from './types';
+
+const DRUG_UNITS = ['Viên', 'Vỉ', 'Hộp', 'Chai', 'Lọ', 'Ống', 'Tuýp', 'Gói', 'Túi', 'ml', 'mg', 'g'];
 
 const EMPTY_FORM: DrugFormValues = {
   name: '',
@@ -39,11 +44,13 @@ export default function DrugFormDialog({ open, drug, onClose, onSaved }: DrugFor
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const {
-    register, handleSubmit, reset, formState: { errors },
+    register, control, handleSubmit, reset, watch, formState: { errors },
   } = useForm<DrugFormValues>({
     resolver: zodResolver(drugSchema),
     defaultValues: EMPTY_FORM,
   });
+  const unitValue = watch('unit');
+  const unitOptions = unitValue && !DRUG_UNITS.includes(unitValue) ? [unitValue, ...DRUG_UNITS] : DRUG_UNITS;
 
   useEffect(() => {
     if (!open) return;
@@ -133,11 +140,19 @@ export default function DrugFormDialog({ open, drug, onClose, onSaved }: DrugFor
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Đơn vị *</label>
-              <Input
-                {...register('unit')}
-                placeholder="VD: Viên, Chai, Ống"
-                aria-invalid={!!errors.unit}
-                className="h-auto rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]"
+              <Controller
+                control={control}
+                name="unit"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger aria-invalid={!!errors.unit} className="h-auto w-full rounded-xl border-[#dde2e8] px-4 py-3 text-[15px] text-[#274760]">
+                      <SelectValue placeholder="-- Chọn đơn vị --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unitOptions.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
               />
               <FieldError message={errors.unit?.message} />
             </div>

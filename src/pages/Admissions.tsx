@@ -87,7 +87,7 @@ const EMPTY_FORM: AdmissionFormValues = {
 export default function Admissions() {
   const navigate = useNavigate();
   const { role } = useAuth();
-  const canAdmit = role === 'admin' || role === 'doctor' || role === 'receptionist';
+  const canAdmit = role === 'admin' || role === 'receptionist';
   const [statusFilter, setStatusFilter] = useState<string[]>(['active']);
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [departmentFilter, setDepartmentFilter] = useState('');
@@ -120,6 +120,7 @@ export default function Admissions() {
   const patientId = watch('patient_id');
   const departmentId = watch('department_id');
   const attendingDoctorId = watch('attending_doctor_id');
+  const bedId = watch('bed_id');
 
   const fetchAdmissions = useCallback(async () => {
     setLoading(true);
@@ -476,7 +477,7 @@ export default function Admissions() {
             />
             <FieldError message={errors.admission_type?.message} />
 
-            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Khu điều trị</label>
+            <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Khu điều trị *</label>
             <Controller
               control={control}
               name="ward_id"
@@ -494,7 +495,7 @@ export default function Admissions() {
 
             {wardId && (
               <>
-                <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giường trống</label>
+                <label className="mt-4 mb-1.5 block text-sm font-semibold text-[#274760]">Giường trống *</label>
                 <Controller
                   control={control}
                   name="bed_id"
@@ -528,7 +529,7 @@ export default function Admissions() {
               </Button>
               <Button
                 type="submit"
-                disabled={saving || !patientId || !departmentId || !attendingDoctorId || doctors.length === 0}
+                disabled={saving || !patientId || !departmentId || !attendingDoctorId || !wardId || !bedId || doctors.length === 0}
                 size="cta"
               >
                 {saving ? 'Đang lưu…' : 'Nhập viện'}
