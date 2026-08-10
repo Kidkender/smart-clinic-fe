@@ -154,7 +154,7 @@ export default function ChatWidget() {
                   value={draft}
                   onChange={e => setDraft(e.target.value)}
                   placeholder="Nhập tin nhắn…"
-                  className="h-9 flex-1 rounded-lg border border-[#e8edf2] px-3 text-xs outline-none focus:border-[#307bc4]"
+                  className="h-9 min-w-0 flex-1 rounded-lg border border-[#e8edf2] px-3 text-xs outline-none focus:border-[#307bc4]"
                 />
                 <Button type="submit" size="cta-xs" disabled={!draft.trim() || sending}>
                   Gửi

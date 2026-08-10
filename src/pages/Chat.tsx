@@ -81,7 +81,7 @@ export default function Chat() {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-[#e8edf2] bg-white">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e8edf2] bg-white">
         {!withUserId ? (
           <div className="flex flex-1 items-center justify-center text-sm text-[#6c757d]">
             Chọn một cuộc trò chuyện để bắt đầu.
@@ -122,7 +122,7 @@ export default function Chat() {
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
                 placeholder="Nhập tin nhắn…"
-                className="h-10 flex-1 rounded-xl border border-[#e8edf2] px-3.5 text-sm outline-none focus:border-[#307bc4]"
+                className="h-10 min-w-0 flex-1 rounded-xl border border-[#e8edf2] px-3.5 text-sm outline-none focus:border-[#307bc4]"
               />
               <Button type="submit" size="cta" disabled={!draft.trim() || sending}>
                 Gửi
