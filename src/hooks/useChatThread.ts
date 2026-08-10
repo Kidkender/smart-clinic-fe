@@ -20,8 +20,8 @@ export function useChatThread(withUserId: number | null, onChange?: () => void) 
 
   const fetchThread = useCallback((id: number) => {
     listMessages(id, { limit: 50 }).then(r => setMessages((r.data ?? []).slice().reverse())).catch(() => {});
-    markMessagesRead(id).catch(() => {});
-  }, []);
+    markMessagesRead(id).then(() => onChange?.()).catch(() => {});
+  }, [onChange]);
 
   useEffect(() => {
     if (withUserId) fetchThread(withUserId);
@@ -34,7 +34,7 @@ export function useChatThread(withUserId: number | null, onChange?: () => void) 
     const counterpartId = msg.SenderID === myId ? msg.RecipientID : msg.SenderID;
     if (withUserId === counterpartId) {
       setMessages(list => [...list, msg]);
-      if (msg.SenderID === withUserId) markMessagesRead(withUserId).catch(() => {});
+      if (msg.SenderID === withUserId) markMessagesRead(withUserId).then(() => onChange?.()).catch(() => {});
     }
   });
 
