@@ -135,7 +135,7 @@ export default function ChatWidget() {
                 {messages.map(m => (
                   <div key={m.ID} className={`flex ${m.SenderID === myId ? 'justify-end' : 'justify-start'}`}>
                     <div
-                      className={`max-w-[75%] rounded-2xl px-3 py-1.5 text-xs ${m.SenderID === myId ? 'bg-[#307bc4] text-white' : 'bg-[#f4f7fa] text-[#274760]'}`}
+                      className={`max-w-[75%] rounded-2xl px-3 py-1.5 text-xs break-words whitespace-pre-wrap ${m.SenderID === myId ? 'bg-[#307bc4] text-white' : 'bg-[#f4f7fa] text-[#274760]'}`}
                     >
                       {m.Body}
                     </div>

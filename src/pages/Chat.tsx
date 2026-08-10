@@ -39,7 +39,7 @@ export default function Chat() {
   const activeName = activeConversation?.counterpart_name ?? pendingName;
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] gap-4">
+    <div className="flex h-full gap-4">
       <div className="flex w-80 shrink-0 flex-col overflow-hidden rounded-2xl border border-[#e8edf2] bg-white">
         <div className="flex items-center justify-between border-b border-[#e8edf2] px-4 py-3.5">
           <h2 className="m-0 text-base font-bold text-[#274760]">Trò chuyện</h2>
@@ -99,7 +99,7 @@ export default function Chat() {
               {messages.map(m => (
                 <div key={m.ID} className={`flex ${m.SenderID === myId ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`max-w-[70%] rounded-2xl px-3.5 py-2 text-sm ${m.SenderID === myId ? 'bg-[#307bc4] text-white' : 'bg-[#f4f7fa] text-[#274760]'}`}
+                    className={`max-w-[70%] rounded-2xl px-3.5 py-2 text-sm break-words whitespace-pre-wrap ${m.SenderID === myId ? 'bg-[#307bc4] text-white' : 'bg-[#f4f7fa] text-[#274760]'}`}
                   >
                     {m.Body}
                     <div className={`mt-0.5 text-[10px] ${m.SenderID === myId ? 'text-white/70' : 'text-[#9aa7b2]'}`}>

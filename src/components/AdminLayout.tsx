@@ -72,7 +72,7 @@ export default function AdminLayout() {
   const avatarInitial = (fullname || role || 'U').charAt(0).toUpperCase();
 
   return (
-    <div className="flex min-h-screen bg-[#f4f7fa]">
+    <div className="flex h-screen overflow-hidden bg-[#f4f7fa]">
       <aside className="fixed top-0 left-0 flex h-screen w-60 shrink-0 flex-col overflow-y-auto bg-[#1c3a52] text-white">
         <div className="border-b border-white/10 px-6 pt-7 pb-5">
           <Link to="/dashboard" className="no-underline">
@@ -129,12 +129,12 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      <div className="ml-60 flex min-w-0 flex-1 flex-col">
+      <div className="ml-60 flex min-h-0 flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#e8edf2] bg-white px-8">
           <GlobalSearch />
           <NotificationBell />
         </header>
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="min-h-0 flex-1 overflow-y-auto p-8">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}
