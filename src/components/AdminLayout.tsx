@@ -6,6 +6,7 @@ import { roleLabel } from '@/utils/labels';
 import { cn } from '@/lib/utils';
 import useConfirm from '@/hooks/useConfirm';
 import NotificationBell from '@/components/NotificationBell';
+import ChatWidget from '@/components/chat/ChatWidget';
 
 type NavItem = {
   to: string;
@@ -147,6 +148,7 @@ export default function AdminLayout() {
       </div>
 
       {ConfirmDialog}
+      <ChatWidget />
     </div>
   );
 }

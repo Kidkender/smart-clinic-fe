@@ -1,142 +1,49 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { listConversations, listMessages, sendMessage, markMessagesRead } from '@/api/chat';
-import { listStaffDirectory } from '@/api/staffDirectory';
-import { useAuth } from '@/context/AuthContext';
-import { useRealtime } from '@/hooks/useRealtime';
-import { roleLabel } from '@/utils/labels';
-
-interface Conversation {
-  counterpart_id: number;
-  counterpart_name: string;
-  counterpart_role: string;
-  last_message: string;
-  last_sender_id: number;
-  last_message_at: string;
-  unread_count: number;
-}
-
-interface ChatMessage {
-  ID: number;
-  SenderID: number;
-  RecipientID: number;
-  Body: string;
-  ReadAt: string | null;
-  CreatedAt: string;
-}
-
-interface StaffEntry {
-  id: number;
-  fullname: string;
-  role: string;
-}
-
-function initials(name: string) {
-  return name.trim().charAt(0).toUpperCase() || '?';
-}
+import { useConversations } from '@/hooks/useConversations';
+import { useChatThread } from '@/hooks/useChatThread';
+import StaffPickerDialog, { type StaffEntry } from '@/components/chat/StaffPickerDialog';
+import { initials } from '@/components/chat/chatUtils';
 
 export default function Chat() {
-  const { userId } = useAuth();
-  const myId = Number(userId);
   const [searchParams, setSearchParams] = useSearchParams();
   const withUserId = searchParams.get('with') ? Number(searchParams.get('with')) : null;
 
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
-  const [sending, setSending] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [staff, setStaff] = useState<StaffEntry[]>([]);
-  const [staffQuery, setStaffQuery] = useState('');
+  const [pendingName, setPendingName] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const fetchConversations = useCallback(() => {
-    listConversations().then(r => setConversations(r.data ?? [])).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
-
-  const fetchThread = useCallback((withId: number) => {
-    listMessages(withId, { limit: 50 }).then(r => {
-      setMessages((r.data ?? []).slice().reverse());
-    }).catch(() => {});
-    markMessagesRead(withId).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (withUserId) fetchThread(withUserId);
-  }, [withUserId, fetchThread]);
+  const { conversations, refetch } = useConversations();
+  const { messages, myId, sending, send } = useChatThread(withUserId, refetch);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
 
-  useRealtime(envelope => {
-    if (envelope.type !== 'chat_message') return;
-    const msg = envelope.data as ChatMessage;
-    const counterpartId = msg.SenderID === myId ? msg.RecipientID : msg.SenderID;
-    if (withUserId === counterpartId) {
-      setMessages(list => [...list, msg]);
-      if (msg.SenderID === withUserId) markMessagesRead(withUserId).catch(() => {});
-    }
-    fetchConversations();
-  });
-
-  const openPicker = () => {
-    setPickerOpen(true);
-    if (staff.length === 0) {
-      listStaffDirectory().then(r => setStaff((r.data ?? []).filter((s: StaffEntry) => s.id !== myId))).catch(() => {});
-    }
-  };
-
-  const filteredStaff = useMemo(() => {
-    const q = staffQuery.trim().toLowerCase();
-    if (!q) return staff;
-    return staff.filter(s => s.fullname.toLowerCase().includes(q));
-  }, [staff, staffQuery]);
-
-  const selectConversation = (id: number) => {
+  const selectConversation = (id: number, name = '') => {
     setSearchParams({ with: String(id) });
+    setPendingName(name);
     setPickerOpen(false);
   };
 
   const handleSend = async () => {
-    const body = draft.trim();
-    if (!body || !withUserId || sending) return;
-    setSending(true);
-    try {
-      const result = await sendMessage(withUserId, body);
-      setMessages(list => [...list, result.data]);
-      setDraft('');
-      fetchConversations();
-    } catch {
-      // Leave the draft in place so the user can retry the send.
-    } finally {
-      setSending(false);
-    }
+    if (!draft.trim()) return;
+    await send(draft);
+    setDraft('');
   };
 
   const activeConversation = conversations.find(c => c.counterpart_id === withUserId);
-  const activeName = activeConversation?.counterpart_name
-    ?? staff.find(s => s.id === withUserId)?.fullname
-    ?? '';
+  const activeName = activeConversation?.counterpart_name ?? pendingName;
 
   return (
     <div className="flex h-[calc(100vh-4rem)] gap-4">
       <div className="flex w-80 shrink-0 flex-col overflow-hidden rounded-2xl border border-[#e8edf2] bg-white">
         <div className="flex items-center justify-between border-b border-[#e8edf2] px-4 py-3.5">
           <h2 className="m-0 text-base font-bold text-[#274760]">Trò chuyện</h2>
-          <Button type="button" size="cta-xs" onClick={openPicker}>
+          <Button type="button" size="cta-xs" onClick={() => setPickerOpen(true)}>
             <Icon icon="fa6-solid:pen" className="mr-1 text-xs" />
             Mới
           </Button>
@@ -225,38 +132,11 @@ export default function Chat() {
         )}
       </div>
 
-      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Bắt đầu trò chuyện</DialogTitle>
-          </DialogHeader>
-          <input
-            type="text"
-            value={staffQuery}
-            onChange={e => setStaffQuery(e.target.value)}
-            placeholder="Tìm theo tên…"
-            className="h-10 w-full rounded-xl border border-[#e8edf2] px-3.5 text-sm outline-none focus:border-[#307bc4]"
-          />
-          <div className="max-h-80 overflow-y-auto">
-            {filteredStaff.map(s => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => selectConversation(s.id)}
-                className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-[#f4f7fa]"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#307bc4]/12 text-xs font-semibold text-[#307bc4]">
-                  {initials(s.fullname)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-[#274760]">{s.fullname}</div>
-                  <div className="text-xs text-[#6c757d]">{roleLabel(s.role)}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <StaffPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onSelect={(s: StaffEntry) => selectConversation(s.id, s.fullname)}
+      />
     </div>
   );
 }
