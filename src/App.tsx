@@ -54,7 +54,7 @@ import AttendanceSummary from './pages/AttendanceSummary';
 import Users from './pages/Users';
 import AuditLogs from './pages/AuditLogs';
 import Invoices from './pages/Invoices';
-import Notifications from './pages/Notifications';
+import EmailLogs from './pages/EmailLogs';
 import Profile from './pages/Profile';
 import PortalLogin from './pages/portal/PortalLogin';
 import PortalRegister from './pages/portal/PortalRegister';
@@ -400,10 +400,10 @@ function App() {
           }
         />
         <Route
-          path="notifications"
+          path="email-logs"
           element={
             <RequireAuth roles={['admin']}>
-              <Notifications />
+              <EmailLogs />
             </RequireAuth>
           }
         />

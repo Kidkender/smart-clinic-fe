@@ -19,11 +19,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { listNotificationLogs, resendNotification } from '@/api/notification';
+import { listEmailDeliveryLogs, resendEmail } from '@/api/emailLog';
 import { resolveError } from '@/utils/errorMessages';
-import { notificationEventTypeLabel, notificationStatusLabel, notificationStatusBadgeClass } from '@/utils/labels';
+import { emailEventTypeLabel, emailStatusLabel, emailStatusBadgeClass } from '@/utils/labels';
 
-interface NotificationLog {
+interface EmailDeliveryLog {
   ID: number;
   EventType: string;
   ReferenceType: string;
@@ -41,11 +41,11 @@ interface NotificationLog {
 const PAGE_LIMIT = 20;
 const STATUS_OPTIONS = ['pending', 'queued', 'sent', 'failed'].map(value => ({
   value,
-  label: notificationStatusLabel(value),
+  label: emailStatusLabel(value),
 }));
 
-export default function Notifications() {
-  const [logs, setLogs] = useState<NotificationLog[]>([]);
+export default function EmailLogs() {
+  const [logs, setLogs] = useState<EmailDeliveryLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -58,7 +58,7 @@ export default function Notifications() {
     setLoading(true);
     setError('');
     try {
-      const result = await listNotificationLogs({
+      const result = await listEmailDeliveryLogs({
         status: statusFilter || undefined,
         page,
         limit: PAGE_LIMIT,
@@ -85,7 +85,7 @@ export default function Notifications() {
     setResendingId(id);
     setError('');
     try {
-      await resendNotification(id);
+      await resendEmail(id);
       await fetchLogs();
     } catch (err) {
       setError(resolveError(err));
@@ -98,7 +98,7 @@ export default function Notifications() {
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="m-0 text-[26px] font-bold text-[#274760]">Thông báo</h1>
+          <h1 className="m-0 text-[26px] font-bold text-[#274760]">Nhật ký email</h1>
           <p className="mt-1 mb-0 text-[15px] text-[#6c757d]">Nhật ký email nhắc lịch, hướng dẫn dùng thuốc và khảo sát hài lòng</p>
         </div>
       </div>
@@ -126,13 +126,13 @@ export default function Notifications() {
         {loading ? (
           <div className="p-15 text-center text-[#6c757d]">Đang tải…</div>
         ) : logs.length === 0 ? (
-          <div className="p-15 text-center text-[#6c757d]">Chưa có thông báo nào.</div>
+          <div className="p-15 text-center text-[#6c757d]">Chưa có email nào.</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="bg-[#f4f7fa] hover:bg-[#f4f7fa]">
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Bệnh nhân</TableHead>
-                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Loại thông báo</TableHead>
+                <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Loại email</TableHead>
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Email nhận</TableHead>
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Trạng thái</TableHead>
                 <TableHead className="h-auto px-4 py-3 text-xs font-bold text-[#6c757d] uppercase">Gửi lúc</TableHead>
@@ -147,10 +147,10 @@ export default function Notifications() {
                     {log.Patient?.Fullname ?? '—'}
                     {log.Patient?.MRN && <span className="ml-1 text-xs font-normal text-[#6c757d]">({log.Patient.MRN})</span>}
                   </TableCell>
-                  <TableCell className="px-4 py-3 text-sm text-[#274760]">{notificationEventTypeLabel(log.EventType)}</TableCell>
+                  <TableCell className="px-4 py-3 text-sm text-[#274760]">{emailEventTypeLabel(log.EventType)}</TableCell>
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">{log.RecipientEmail}</TableCell>
                   <TableCell className="px-4 py-3">
-                    <Badge className={notificationStatusBadgeClass(log.Status)}>{notificationStatusLabel(log.Status)}</Badge>
+                    <Badge className={emailStatusBadgeClass(log.Status)}>{emailStatusLabel(log.Status)}</Badge>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-sm text-[#274760]">
                     {log.SentAt ? new Date(log.SentAt).toLocaleString('vi-VN') : '—'}
@@ -179,7 +179,7 @@ export default function Notifications() {
       </Card>
 
       {!loading && logs.length > 0 && (
-        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} itemLabel="thông báo" />
+        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} itemLabel="email" />
       )}
     </>
   );
