@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { listNotifications, getUnreadNotificationCount, markNotificationRead } from '@/api/notification';
@@ -90,13 +89,6 @@ export default function NotificationBell() {
             ))
           )}
         </div>
-        <Link
-          to="/chat"
-          onClick={() => setOpen(false)}
-          className="block border-t border-[#e8edf2] px-4 py-2.5 text-center text-sm font-medium text-[#307bc4] no-underline hover:bg-[#f4f7fa]"
-        >
-          Mở trò chuyện
-        </Link>
       </PopoverContent>
     </Popover>
   );

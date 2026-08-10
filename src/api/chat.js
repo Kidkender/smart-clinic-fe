@@ -15,6 +15,15 @@ export async function sendMessage(recipientId, body) {
   return data;
 }
 
+export async function sendMessageWithAttachment(recipientId, body, file) {
+  const form = new FormData();
+  form.append('recipient_id', recipientId);
+  if (body) form.append('body', body);
+  form.append('file', file);
+  const { data } = await client.post('/chat/messages/upload', form);
+  return data;
+}
+
 export async function markMessagesRead(withUserId) {
   const { data } = await client.patch(`/chat/messages/${withUserId}/read`);
   return data;
