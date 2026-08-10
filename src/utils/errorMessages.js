@@ -166,7 +166,7 @@ const ERROR_MESSAGES = {
 
   'error.survey.not_found': 'Không tìm thấy khảo sát này hoặc liên kết đã hết hạn.',
   'error.survey.already_responded': 'Bạn đã gửi đánh giá cho khảo sát này rồi.',
-  'error.notification_log.not_found': 'Không tìm thấy thông báo này.',
+  'error.email_delivery_log.not_found': 'Không tìm thấy thông báo này.',
 
   'error.unauthorized': 'Bạn không có quyền thực hiện thao tác này.',
   'error.forbidden': 'Truy cập bị từ chối.',

@@ -11,6 +11,7 @@ import ResetPassword from './pages/ResetPassword';
 import PaymentReturn from './pages/PaymentReturn';
 import SurveyResponse from './pages/SurveyResponse';
 import Dashboard from './pages/Dashboard';
+import Chat from './pages/Chat';
 import Patients from './pages/Patients';
 import PatientDetail from './pages/PatientDetail';
 import Appointments from './pages/Appointments';
@@ -54,7 +55,7 @@ import AttendanceSummary from './pages/AttendanceSummary';
 import Users from './pages/Users';
 import AuditLogs from './pages/AuditLogs';
 import Invoices from './pages/Invoices';
-import Notifications from './pages/Notifications';
+import EmailLogs from './pages/EmailLogs';
 import Profile from './pages/Profile';
 import PortalLogin from './pages/portal/PortalLogin';
 import PortalRegister from './pages/portal/PortalRegister';
@@ -82,6 +83,7 @@ function App() {
         }
       >
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="chat" element={<Chat />} />
         <Route path="profile" element={<Profile />} />
         <Route path="patients" element={<Patients />} />
         <Route path="patients/:id" element={<PatientDetail />} />
@@ -400,10 +402,10 @@ function App() {
           }
         />
         <Route
-          path="notifications"
+          path="email-logs"
           element={
             <RequireAuth roles={['admin']}>
-              <Notifications />
+              <EmailLogs />
             </RequireAuth>
           }
         />

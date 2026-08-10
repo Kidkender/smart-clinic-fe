@@ -228,14 +228,14 @@ const SUPPLY_STOCK_TRANSACTION_TYPE = {
   usage: 'Sử dụng cho bệnh nhân',
 };
 
-const NOTIFICATION_EVENT_TYPE = {
+const EMAIL_EVENT_TYPE = {
   'appointment.reminder.24h': 'Nhắc lịch khám (24h)',
   'appointment.reminder.2h': 'Nhắc lịch khám (2h)',
   'medication.instructions': 'Hướng dẫn sử dụng thuốc',
   'satisfaction.survey': 'Khảo sát hài lòng',
 };
 
-const NOTIFICATION_STATUS = {
+const EMAIL_STATUS = {
   pending: 'Chờ gửi',
   queued: 'Đã lên hàng đợi',
   sent: 'Đã gửi',
@@ -342,14 +342,14 @@ const STOCK_AUDIT_STATUS_BADGE_TONE = {
 
 export const stockAuditStatusBadgeClass = status => toneBadgeClass(STOCK_AUDIT_STATUS_BADGE_TONE[status] ?? 'neutral');
 
-const NOTIFICATION_STATUS_BADGE_TONE = {
+const EMAIL_STATUS_BADGE_TONE = {
   pending: 'neutral',
   queued: 'info',
   sent: 'success',
   failed: 'danger',
 };
 
-export const notificationStatusBadgeClass = status => toneBadgeClass(NOTIFICATION_STATUS_BADGE_TONE[status] ?? 'neutral');
+export const emailStatusBadgeClass = status => toneBadgeClass(EMAIL_STATUS_BADGE_TONE[status] ?? 'neutral');
 
 const STOCK_TRANSACTION_TYPE_BADGE_TONE = {
   purchase: 'success',
@@ -430,8 +430,8 @@ export function stockTransactionReferenceLabel(reference) {
   return reference;
 }
 
-export const notificationEventTypeLabel = value => translate(NOTIFICATION_EVENT_TYPE, value);
-export const notificationStatusLabel = value => translate(NOTIFICATION_STATUS, value);
+export const emailEventTypeLabel = value => translate(EMAIL_EVENT_TYPE, value);
+export const emailStatusLabel = value => translate(EMAIL_STATUS, value);
 
 const ATTENDANCE_STATUS = {
   present: 'Đúng giờ',

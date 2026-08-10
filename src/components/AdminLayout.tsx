@@ -5,6 +5,9 @@ import { useAuth } from '@/context/AuthContext';
 import { roleLabel } from '@/utils/labels';
 import { cn } from '@/lib/utils';
 import useConfirm from '@/hooks/useConfirm';
+import NotificationBell from '@/components/NotificationBell';
+import ChatWidget from '@/components/chat/ChatWidget';
+import GlobalSearch from '@/components/GlobalSearch';
 
 type NavItem = {
   to: string;
@@ -21,6 +24,7 @@ function isNavItemActive(item: NavItem, pathname: string): boolean {
 
 const NAV: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: 'fa6-solid:gauge' },
+  { to: '/chat', label: 'Trò chuyện', icon: 'fa6-solid:comments' },
   { to: '/patients', label: 'Bệnh nhân', icon: 'fa6-solid:user-injured' },
   { to: '/appointments', label: 'Lịch hẹn', icon: 'fa6-solid:calendar-days' },
   { to: '/queue', label: 'Hàng đợi', icon: 'fa6-solid:list-ol' },
@@ -46,7 +50,7 @@ const NAV: NavItem[] = [
   { to: '/employees', label: 'Nhân sự', icon: 'fa6-solid:business-time', roles: ['admin'] },
   { to: '/users', label: 'Tài khoản', icon: 'fa6-solid:user-check', roles: ['admin'] },
   { to: '/audit-logs', label: 'Nhật ký hệ thống', icon: 'fa6-solid:clock-rotate-left', roles: ['admin'] },
-  // Tạm ẩn "Thông báo" khỏi sidebar — route /notifications vẫn còn, chỉ bỏ nav item.
+  // Tạm ẩn "Nhật ký email" khỏi sidebar — route /email-logs vẫn còn, chỉ bỏ nav item.
 ];
 
 export default function AdminLayout() {
@@ -68,7 +72,7 @@ export default function AdminLayout() {
   const avatarInitial = (fullname || role || 'U').charAt(0).toUpperCase();
 
   return (
-    <div className="flex min-h-screen bg-[#f4f7fa]">
+    <div className="flex h-screen overflow-hidden bg-[#f4f7fa]">
       <aside className="fixed top-0 left-0 flex h-screen w-60 shrink-0 flex-col overflow-y-auto bg-[#1c3a52] text-white">
         <div className="border-b border-white/10 px-6 pt-7 pb-5">
           <Link to="/dashboard" className="no-underline">
@@ -125,11 +129,16 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      <div className="ml-60 flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 overflow-y-auto p-8">
+      <div className="ml-60 flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#e8edf2] bg-white px-8">
+          <GlobalSearch />
+          <NotificationBell />
+        </header>
+        <main className="min-h-0 flex-1 overflow-y-auto p-8">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}
+              className="h-full"
               initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
@@ -142,6 +151,7 @@ export default function AdminLayout() {
       </div>
 
       {ConfirmDialog}
+      <ChatWidget />
     </div>
   );
 }

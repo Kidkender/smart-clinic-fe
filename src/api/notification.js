@@ -1,11 +1,16 @@
 import client from './client';
 
-export async function listNotificationLogs(params) {
-  const { data } = await client.get('/notifications/logs', { params });
+export async function listNotifications(params) {
+  const { data } = await client.get('/notifications', { params });
   return data;
 }
 
-export async function resendNotification(id) {
-  const { data } = await client.post(`/notifications/logs/${id}/resend`);
+export async function getUnreadNotificationCount() {
+  const { data } = await client.get('/notifications/unread-count');
+  return data;
+}
+
+export async function markNotificationRead(id) {
+  const { data } = await client.patch(`/notifications/${id}/read`);
   return data;
 }
