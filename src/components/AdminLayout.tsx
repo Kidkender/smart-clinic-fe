@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import useConfirm from '@/hooks/useConfirm';
 import NotificationBell from '@/components/NotificationBell';
 import ChatWidget from '@/components/chat/ChatWidget';
+import GlobalSearch from '@/components/GlobalSearch';
 
 type NavItem = {
   to: string;
@@ -129,7 +130,8 @@ export default function AdminLayout() {
       </aside>
 
       <div className="ml-60 flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center justify-end border-b border-[#e8edf2] bg-white px-8">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#e8edf2] bg-white px-8">
+          <GlobalSearch />
           <NotificationBell />
         </header>
         <main className="flex-1 overflow-y-auto p-8">
