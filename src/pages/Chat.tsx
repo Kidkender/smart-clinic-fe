@@ -95,7 +95,7 @@ export default function Chat() {
               <span className="text-sm font-bold text-[#274760]">{activeName}</span>
             </div>
 
-            <div ref={scrollRef} className="flex-1 space-y-2.5 overflow-y-auto px-5 py-4">
+            <div ref={scrollRef} className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-5 py-4">
               {messages.map(m => (
                 <div key={m.ID} className={`flex ${m.SenderID === myId ? 'justify-end' : 'justify-start'}`}>
                   <div
