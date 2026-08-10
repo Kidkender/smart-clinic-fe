@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
-import { Button } from '@/components/ui/button';
 import { useConversations } from '@/hooks/useConversations';
 import { useChatThread } from '@/hooks/useChatThread';
 import StaffPickerDialog, { type StaffEntry } from '@/components/chat/StaffPickerDialog';
+import ChatInputBox from '@/components/chat/ChatInputBox';
 import { initials } from '@/components/chat/chatUtils';
 
 export default function ChatWidget() {
@@ -138,28 +138,14 @@ export default function ChatWidget() {
                       className={`max-w-[75%] rounded-2xl px-3 py-1.5 text-xs break-words whitespace-pre-wrap ${m.SenderID === myId ? 'bg-[#307bc4] text-white' : 'bg-[#f4f7fa] text-[#274760]'}`}
                     >
                       {m.Body}
+                      <div className={`mt-0.5 text-[9px] ${m.SenderID === myId ? 'text-white/70' : 'text-[#9aa7b2]'}`}>
+                        {new Date(m.CreatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <form
-                className="flex items-center gap-2 border-t border-[#e8edf2] px-3 py-2.5"
-                onSubmit={e => {
-                  e.preventDefault();
-                  handleSend();
-                }}
-              >
-                <input
-                  type="text"
-                  value={draft}
-                  onChange={e => setDraft(e.target.value)}
-                  placeholder="Nhập tin nhắn…"
-                  className="h-9 min-w-0 flex-1 rounded-lg border border-[#e8edf2] px-3 text-xs outline-none focus:border-[#307bc4]"
-                />
-                <Button type="submit" size="cta-xs" disabled={!draft.trim() || sending}>
-                  Gửi
-                </Button>
-              </form>
+              <ChatInputBox value={draft} onChange={setDraft} onSend={handleSend} disabled={sending} compact />
             </>
           )}
         </div>

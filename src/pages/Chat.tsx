@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useConversations } from '@/hooks/useConversations';
 import { useChatThread } from '@/hooks/useChatThread';
 import StaffPickerDialog, { type StaffEntry } from '@/components/chat/StaffPickerDialog';
+import ChatInputBox from '@/components/chat/ChatInputBox';
 import { initials } from '@/components/chat/chatUtils';
 
 export default function Chat() {
@@ -110,24 +111,7 @@ export default function Chat() {
               ))}
             </div>
 
-            <form
-              className="flex items-center gap-2.5 border-t border-[#e8edf2] px-4 py-3"
-              onSubmit={e => {
-                e.preventDefault();
-                handleSend();
-              }}
-            >
-              <input
-                type="text"
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                placeholder="Nhập tin nhắn…"
-                className="h-10 min-w-0 flex-1 rounded-xl border border-[#e8edf2] px-3.5 text-sm outline-none focus:border-[#307bc4]"
-              />
-              <Button type="submit" size="cta" disabled={!draft.trim() || sending}>
-                Gửi
-              </Button>
-            </form>
+            <ChatInputBox value={draft} onChange={setDraft} onSend={handleSend} disabled={sending} />
           </>
         )}
       </div>
