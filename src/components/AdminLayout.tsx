@@ -129,7 +129,7 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      <div className="ml-60 flex min-h-0 flex-1 flex-col">
+      <div className="ml-60 flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#e8edf2] bg-white px-8">
           <GlobalSearch />
           <NotificationBell />
