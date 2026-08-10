@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { Button } from '@/components/ui/button';
-import { useConversations } from '@/hooks/useConversations';
+import type { Conversation } from '@/hooks/useConversations';
 import { useChatThread } from '@/hooks/useChatThread';
 import StaffPickerDialog, { type StaffEntry } from '@/components/chat/StaffPickerDialog';
 import ChatInputBox from '@/components/chat/ChatInputBox';
-import { initials } from '@/components/chat/chatUtils';
+import ChatMessageBubble from '@/components/chat/ChatMessageBubble';
+import { initials, conversationPreview, conversationTime } from '@/components/chat/chatUtils';
+import { ErrorAlert } from '@/components/ui/alert';
 
 export default function Chat() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -17,8 +19,12 @@ export default function Chat() {
   const [pendingName, setPendingName] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { conversations, refetch } = useConversations();
-  const { messages, myId, sending, send } = useChatThread(withUserId, refetch);
+  const { conversations, refetchConversations: refetch } = useOutletContext<{
+    conversations: Conversation[];
+    unreadTotal: number;
+    refetchConversations: () => void;
+  }>();
+  const { messages, myId, sending, send, error } = useChatThread(withUserId, refetch);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -30,9 +36,9 @@ export default function Chat() {
     setPickerOpen(false);
   };
 
-  const handleSend = async () => {
-    if (!draft.trim()) return;
-    await send(draft);
+  const handleSend = async (file: File | null) => {
+    if (!draft.trim() && !file) return;
+    await send(draft, file);
     setDraft('');
   };
 
@@ -64,16 +70,18 @@ export default function Chat() {
                   {initials(c.counterpart_name)}
                 </div>
                 <div className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-[#274760]">{c.counterpart_name}</span>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-semibold text-[#274760]">{c.counterpart_name}</span>
+                    <div className="min-w-0 flex-1 truncate text-xs text-[#6c757d]">
+                      {c.last_sender_id === myId ? 'Bạn: ' : ''}
+                      {conversationPreview(c.last_message, c.last_message_attachment_name)}
+                    </div>
+                    <span className="shrink-0 text-[11px] text-[#9aa7b2]">{conversationTime(c.last_message_at)}</span>
                     {c.unread_count > 0 && (
-                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#307bc4] px-1 text-[11px] font-bold text-white">
+                      <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#307bc4] px-1 text-[11px] font-bold text-white">
                         {c.unread_count}
                       </span>
                     )}
-                  </div>
-                  <div className="truncate text-xs text-[#6c757d]">
-                    {c.last_sender_id === myId ? 'Bạn: ' : ''}{c.last_message}
                   </div>
                 </div>
               </button>
@@ -98,19 +106,15 @@ export default function Chat() {
 
             <div ref={scrollRef} className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-5 py-4">
               {messages.map(m => (
-                <div key={m.ID} className={`flex ${m.SenderID === myId ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-[70%] rounded-2xl px-3.5 py-2 text-sm break-words whitespace-pre-wrap ${m.SenderID === myId ? 'bg-[#307bc4] text-white' : 'bg-[#f4f7fa] text-[#274760]'}`}
-                  >
-                    {m.Body}
-                    <div className={`mt-0.5 text-[10px] ${m.SenderID === myId ? 'text-white/70' : 'text-[#9aa7b2]'}`}>
-                      {new Date(m.CreatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </div>
-                </div>
+                <ChatMessageBubble key={m.ID} message={m} isMine={m.SenderID === myId} />
               ))}
             </div>
 
+            {error && (
+              <div className="px-5 pt-3">
+                <ErrorAlert variant="compact">{error}</ErrorAlert>
+              </div>
+            )}
             <ChatInputBox value={draft} onChange={setDraft} onSend={handleSend} disabled={sending} />
           </>
         )}

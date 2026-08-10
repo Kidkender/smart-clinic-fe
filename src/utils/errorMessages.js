@@ -168,6 +168,13 @@ const ERROR_MESSAGES = {
   'error.survey.already_responded': 'Bạn đã gửi đánh giá cho khảo sát này rồi.',
   'error.email_delivery_log.not_found': 'Không tìm thấy thông báo này.',
 
+  'error.chat.message_empty': 'Tin nhắn không được để trống.',
+  'error.chat.cannot_message_self': 'Không thể tự nhắn tin cho chính mình.',
+  'error.chat.recipient_not_found': 'Không tìm thấy người nhận.',
+  'error.chat.attachment_too_large': 'File đính kèm vượt quá 25MB.',
+  'error.chat.attachment_type_not_allowed': 'Định dạng file không được hỗ trợ. Chỉ chấp nhận ảnh (JPG/PNG/WEBP), PDF, Word, Excel.',
+  'error.chat.message_not_found': 'Không tìm thấy tin nhắn.',
+
   'error.unauthorized': 'Bạn không có quyền thực hiện thao tác này.',
   'error.forbidden': 'Truy cập bị từ chối.',
   'error.internal_server_error': 'Đã xảy ra lỗi máy chủ. Vui lòng thử lại.',

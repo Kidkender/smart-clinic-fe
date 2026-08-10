@@ -7,6 +7,7 @@ export interface Conversation {
   counterpart_name: string;
   counterpart_role: string;
   last_message: string;
+  last_message_attachment_name: string | null;
   last_sender_id: number;
   last_message_at: string;
   unread_count: number;

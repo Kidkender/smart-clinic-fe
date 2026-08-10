@@ -6,8 +6,18 @@ import { roleLabel } from '@/utils/labels';
 import { cn } from '@/lib/utils';
 import useConfirm from '@/hooks/useConfirm';
 import NotificationBell from '@/components/NotificationBell';
+import ChatHeaderIcon from '@/components/ChatHeaderIcon';
 import ChatWidget from '@/components/chat/ChatWidget';
+import { useConversations } from '@/hooks/useConversations';
 import GlobalSearch from '@/components/GlobalSearch';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 type NavItem = {
   to: string;
@@ -24,7 +34,6 @@ function isNavItemActive(item: NavItem, pathname: string): boolean {
 
 const NAV: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: 'fa6-solid:gauge' },
-  { to: '/chat', label: 'Trò chuyện', icon: 'fa6-solid:comments' },
   { to: '/patients', label: 'Bệnh nhân', icon: 'fa6-solid:user-injured' },
   { to: '/appointments', label: 'Lịch hẹn', icon: 'fa6-solid:calendar-days' },
   { to: '/queue', label: 'Hàng đợi', icon: 'fa6-solid:list-ol' },
@@ -59,6 +68,7 @@ export default function AdminLayout() {
   const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
   const [confirm, ConfirmDialog] = useConfirm();
+  const { conversations, unreadTotal, refetch: refetchConversations } = useConversations();
 
   const handleLogout = async () => {
     const ok = await confirm('Bạn có chắc chắn muốn đăng xuất?', { title: 'Đăng xuất' });
@@ -100,39 +110,55 @@ export default function AdminLayout() {
         </nav>
 
         <div className="border-t border-white/10 px-3 py-4">
-          <Link
-            to="/profile"
-            title="Xem hồ sơ cá nhân"
-            className="mb-2 flex items-center gap-2.5 rounded-lg px-3.5 py-2 no-underline hover:bg-white/8"
-          >
-            <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-white/15 text-sm font-semibold text-white">
-              {avatarInitial}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold text-white">
-                {fullname ?? (role ? roleLabel(role) : 'Người dùng')}
-              </div>
-              <div className="truncate text-[11px] text-white/50">
-                {email ?? (role ? roleLabel(role) : '')}
-              </div>
-            </div>
-          </Link>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex w-full cursor-pointer items-center gap-2 rounded-lg border-none bg-white/8 px-3.5 py-2.5 text-sm font-medium text-white/70 hover:bg-white/12 hover:text-white"
-          >
-            <Icon icon="fa6-solid:right-from-bracket" className="text-sm" />
-            Đăng xuất
-          </button>
-          <div className="mt-3 text-center text-[11px] text-white/35">SmartClinic v{__APP_VERSION__}</div>
+          <div className="text-center text-[11px] text-white/35">SmartClinic v{__APP_VERSION__}</div>
         </div>
       </aside>
 
       <div className="ml-60 flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#e8edf2] bg-white px-8">
           <GlobalSearch />
-          <NotificationBell />
+          <div className="flex items-center gap-2">
+            <ChatHeaderIcon unreadTotal={unreadTotal} />
+            <NotificationBell />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex cursor-pointer items-center gap-2.5 rounded-full py-1 pr-3 pl-1 hover:bg-[#eef2f6]"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1c3a52] text-sm font-semibold text-white">
+                    {avatarInitial}
+                  </div>
+                  <div className="hidden min-w-0 text-left sm:block">
+                    <div className="truncate text-sm font-semibold text-[#274760]">
+                      {fullname ?? (role ? roleLabel(role) : 'Người dùng')}
+                    </div>
+                    <div className="truncate text-[11px] text-[#6c757d]">{email ?? (role ? roleLabel(role) : '')}</div>
+                  </div>
+                  <Icon icon="fa6-solid:chevron-down" className="text-xs text-[#9aa7b2]" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>
+                  <div className="truncate text-sm font-semibold text-[#274760]">
+                    {fullname ?? (role ? roleLabel(role) : 'Người dùng')}
+                  </div>
+                  <div className="truncate text-[11px] text-[#6c757d]">{email ?? (role ? roleLabel(role) : '')}</div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="no-underline">
+                    <Icon icon="fa6-solid:user" className="text-xs text-[#5d7285]" />
+                    Xem hồ sơ cá nhân
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleLogout} className="text-[#dc3545] data-highlighted:bg-[#dc3545]/8">
+                  <Icon icon="fa6-solid:right-from-bracket" className="text-xs" />
+                  Đăng xuất
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </header>
         <main className="min-h-0 flex-1 overflow-y-auto p-8">
           <AnimatePresence mode="wait" initial={false}>
@@ -144,14 +170,14 @@ export default function AdminLayout() {
               exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
               transition={{ duration: 0.16, ease: 'easeOut' }}
             >
-              <Outlet />
+              <Outlet context={{ conversations, unreadTotal, refetchConversations }} />
             </motion.div>
           </AnimatePresence>
         </main>
       </div>
 
       {ConfirmDialog}
-      <ChatWidget />
+      <ChatWidget conversations={conversations} unreadTotal={unreadTotal} refetch={refetchConversations} />
     </div>
   );
 }
