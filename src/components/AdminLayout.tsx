@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { roleLabel } from '@/utils/labels';
 import { cn } from '@/lib/utils';
 import useConfirm from '@/hooks/useConfirm';
+import NotificationBell from '@/components/NotificationBell';
 
 type NavItem = {
   to: string;
@@ -21,6 +22,7 @@ function isNavItemActive(item: NavItem, pathname: string): boolean {
 
 const NAV: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: 'fa6-solid:gauge' },
+  { to: '/chat', label: 'Trò chuyện', icon: 'fa6-solid:comments' },
   { to: '/patients', label: 'Bệnh nhân', icon: 'fa6-solid:user-injured' },
   { to: '/appointments', label: 'Lịch hẹn', icon: 'fa6-solid:calendar-days' },
   { to: '/queue', label: 'Hàng đợi', icon: 'fa6-solid:list-ol' },
@@ -126,6 +128,9 @@ export default function AdminLayout() {
       </aside>
 
       <div className="ml-60 flex min-w-0 flex-1 flex-col">
+        <header className="flex h-16 shrink-0 items-center justify-end border-b border-[#e8edf2] bg-white px-8">
+          <NotificationBell />
+        </header>
         <main className="flex-1 overflow-y-auto p-8">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div

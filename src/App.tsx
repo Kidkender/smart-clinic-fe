@@ -11,6 +11,7 @@ import ResetPassword from './pages/ResetPassword';
 import PaymentReturn from './pages/PaymentReturn';
 import SurveyResponse from './pages/SurveyResponse';
 import Dashboard from './pages/Dashboard';
+import Chat from './pages/Chat';
 import Patients from './pages/Patients';
 import PatientDetail from './pages/PatientDetail';
 import Appointments from './pages/Appointments';
@@ -82,6 +83,7 @@ function App() {
         }
       >
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="chat" element={<Chat />} />
         <Route path="profile" element={<Profile />} />
         <Route path="patients" element={<Patients />} />
         <Route path="patients/:id" element={<PatientDetail />} />
