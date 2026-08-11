@@ -12,6 +12,7 @@ import {
 import { resolveError } from '@/utils/errorMessages';
 import { genderLabel, encounterStatusLabel, encounterTypeLabel, prescriptionStatusLabel, orderStatusLabel, orderTypeLabel, attachmentCategoryLabel, ATTACHMENT_CATEGORIES } from '@/utils/labels';
 import { toneBadgeClass } from '@/utils/badgeStyles';
+import { openOrDownloadAttachment } from '@/utils/attachments';
 import { cn } from '@/lib/utils';
 import { patientSchema, contactSchema, type PatientFormValues, type ContactFormValues } from '@/schemas/patient';
 import { useAuth } from '@/context/AuthContext';
@@ -302,9 +303,7 @@ export default function PatientDetail() {
     setOpeningAttachmentId(attachment.ID);
     try {
       const blob = await downloadAttachment(id, attachment.ID);
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener,noreferrer');
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      openOrDownloadAttachment(blob, attachment.ContentType, attachment.FileName);
     } catch (err) {
       setAttachmentError(resolveError(err));
     } finally {
