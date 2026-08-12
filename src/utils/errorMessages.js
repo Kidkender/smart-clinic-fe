@@ -24,6 +24,8 @@ const ERROR_MESSAGES = {
   'error.patient_contact.not_found': 'Không tìm thấy người liên hệ.',
   'error.patient_attachment.not_found': 'Không tìm thấy tệp đính kèm.',
   'error.patient_attachment.invalid_category': 'Loại tệp đính kèm không hợp lệ.',
+  'error.patient_attachment.too_large': 'File đính kèm vượt quá 25MB.',
+  'error.patient_attachment.type_not_allowed': 'Định dạng file không được hỗ trợ. Chỉ chấp nhận ảnh (JPG/PNG/WEBP), PDF, Word, Excel, DICOM.',
   'error.icd10.not_found': 'Không tìm thấy mã ICD-10 phù hợp. Vui lòng chọn từ danh sách gợi ý.',
 
   'error.encounter.not_found': 'Không tìm thấy lượt khám.',

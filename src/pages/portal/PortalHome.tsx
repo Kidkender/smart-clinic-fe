@@ -10,6 +10,7 @@ import {
   listMyAttachments, downloadMyAttachment,
 } from '@/api/portal';
 import { resolveError } from '@/utils/errorMessages';
+import { openOrDownloadAttachment } from '@/utils/attachments';
 import { usePatientAuth } from '@/context/PatientAuthContext';
 import useConfirm from '@/hooks/useConfirm';
 import { cn } from '@/lib/utils';
@@ -167,9 +168,7 @@ export default function PortalHome() {
     setOpeningAttachmentId(attachment.ID);
     try {
       const blob = await downloadMyAttachment(attachment.ID);
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener,noreferrer');
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      openOrDownloadAttachment(blob, attachment.ContentType, attachment.FileName);
     } catch (err) {
       setAttachmentError(resolveError(err));
     } finally {
